@@ -10,6 +10,7 @@ import socket
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -127,21 +128,35 @@ class ServerTest(unittest.TestCase):
 
 
 class ImageCacheTrimTest(unittest.TestCase):
+    def make(self, name, age):
+        f = server.IMG_CACHE / name
+        f.write_bytes(b"x" * 100)
+        t = time.time() - age
+        os.utime(f, (t, t))
+        self.addCleanup(f.unlink, missing_ok=True)
+        return f
+
+    def trim_to_nothing(self):
+        with mock.patch.object(server, "_img_cache_cap", return_value=50):  # кэш «переполнен» — чистить всё, что можно
+            server._trim_img_cache(force=True)
+
     def test_trim_keeps_files_being_written(self):
         # .part и .tmp прямо сейчас дописывает другой поток: удалить их — уронить тот запрос в 500
-        old = server.IMG_CACHE / "trim-old"
-        part = server.IMG_CACHE / "trim-new.123.part"
-        tmp = server.IMG_CACHE / "trim-new-w420.tmp"
-        for f in (old, part, tmp):
-            f.write_bytes(b"x" * 100)
-            self.addCleanup(f.unlink, missing_ok=True)
-        for f in (part, tmp):
-            os.utime(f, (1, 1))  # самые «старые» — очистка взяла бы их первыми
-        with mock.patch.object(server, "_img_cache_cap", return_value=50):
-            server._trim_img_cache(force=True)
+        old = self.make("trim-old", 3600)
+        part = self.make("trim-new.123.part", 1)
+        tmp = self.make("trim-new-w420.tmp", 1)
+        self.trim_to_nothing()
         self.assertTrue(part.exists())
         self.assertTrue(tmp.exists())
         self.assertFalse(old.exists())
+
+    def test_trim_removes_leftovers_of_a_crash(self):
+        # Недописанные файлы, брошенные при аварийном выходе, не должны копиться вечно (замечание DeepSeek)
+        part = self.make("trim-orphan.456.part", 3600)
+        tmp = self.make("trim-orphan-w420.tmp", 3600)
+        self.trim_to_nothing()
+        self.assertFalse(part.exists())
+        self.assertFalse(tmp.exists())
 
 
 class UpstreamTest(unittest.TestCase):

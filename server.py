@@ -13,6 +13,7 @@ import re
 import socket
 import sys
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -47,6 +48,9 @@ _img_lock = threading.Lock()
 _img_writes = 0
 
 
+TEMP_FILE_GRACE = 600  # сек.: столько не трогаем недописанный файл кэша — загрузка не длится дольше
+
+
 def _img_cache_cap() -> int:
     return (250 if lite_mode() else 400) * 1024 * 1024
 
@@ -57,10 +61,18 @@ def _trim_img_cache(force: bool = False) -> None:
         _img_writes += 1
         if not force and _img_writes % 40:
             return
+    now = time.time()
+    files = []
     try:
-        # .part и .tmp прямо сейчас дописывает другой поток (image(), media.enhanced): удалишь — его запрос упадёт
-        files = [(f.stat().st_mtime, f.stat().st_size, f) for f in IMG_CACHE.iterdir()
-                 if f.is_file() and f.suffix not in (".part", ".tmp")]
+        for f in IMG_CACHE.iterdir():
+            if not f.is_file():
+                continue
+            st = f.stat()
+            # свежие .part и .tmp прямо сейчас дописывает другой поток (image(), media.enhanced): удалишь — его
+            # запрос упадёт. Старые — брошены при аварийном выходе, их чистим как обычные файлы.
+            if f.suffix in (".part", ".tmp") and now - st.st_mtime < TEMP_FILE_GRACE:
+                continue
+            files.append((st.st_mtime, st.st_size, f))
     except OSError:
         return
     cap = _img_cache_cap()
