@@ -10,6 +10,7 @@ import json
 import mimetypes
 import os
 import re
+import socket
 import sys
 import threading
 import urllib.error
@@ -485,7 +486,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_bytes(b"", "text/plain", 404)
             tmp = f.with_name(f"{f.name}.{threading.get_ident()}.part")
             tmp.write_bytes(data)
-            tmp.replace(f)
+            try:
+                tmp.replace(f)
+            except PermissionError:
+                # Ту же картинку (постер в двух размерах) качал ещё один поток: он уже положил файл и читает его,
+                # а открытый файл Windows заменить не даёт. Его копия ничем не хуже — берём её.
+                tmp.unlink(missing_ok=True)
+                if not f.exists():
+                    raise
             _trim_img_cache()
         if want:
             big = enhanced(f, want, upscale=not lite_mode())  # на слабом ПК не тратим процессор на увеличение
@@ -569,6 +577,17 @@ class Handler(BaseHTTPRequestHandler):
 
 
 
+class AppServer(ThreadingHTTPServer):
+    # HTTPServer сам включает SO_REUSEADDR, а в Windows с ним вторая программа может сесть на тот же
+    # занятый порт и забирать часть запросов окна (перехват порта). Поэтому порт занимаем только для себя.
+    allow_reuse_address = False
+
+    def server_bind(self):
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):  # есть только в Windows
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def make_server(port: int) -> ThreadingHTTPServer:
     mimetypes.add_type("text/javascript", ".js")
     mimetypes.add_type("image/svg+xml", ".svg")
@@ -576,7 +595,7 @@ def make_server(port: int) -> ThreadingHTTPServer:
     # Счётчики озвучек больше не считаем при старте: это нужно только странице
     # «Озвучки» и запускается при её открытии (на слабом ПК — не запускается).
     threading.Thread(target=_trim_img_cache, kwargs={"force": True}, daemon=True).start()
-    srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    srv = AppServer(("127.0.0.1", port), Handler)
     srv.daemon_threads = True
     return srv
 
@@ -584,4 +603,6 @@ def make_server(port: int) -> ThreadingHTTPServer:
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8790
     print(f"Animax: http://127.0.0.1:{port}")
-    make_server(port).serve_forever()
+    srv = make_server(port)
+    shiki_net.warm_up(SHIKI)
+    srv.serve_forever()

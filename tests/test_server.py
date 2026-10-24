@@ -3,8 +3,10 @@
 Сервер поднимается на свободном порту с временной папкой данных — настоящие закладки не трогаются.
 Интернет не нужен: проверяются только локальные маршруты.
 """
+import hashlib
 import json
 import os
+import socket
 import sys
 import tempfile
 import threading
@@ -12,6 +14,7 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
 os.environ["APPDATA"] = tempfile.mkdtemp(prefix="animax-test-")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -84,6 +87,53 @@ class ServerTest(unittest.TestCase):
     def test_image_proxy_only_known_hosts(self):
         code, _ = self.req("/img?u=" + urllib.request.quote("https://evil.example/a.jpg"))
         self.assertEqual(code, 403)
+
+    def test_same_image_downloaded_twice_at_once(self):
+        # Постер в двух размерах (srcset) качается двумя потоками сразу: второй кладёт файл в кэш, когда первый
+        # уже положил его и читает. В Windows заменить открытый файл нельзя — было «Отказано в доступе» и 500.
+        url = "https://shikimori.io/uploads/poster/animes/1/race.jpg"
+        cached = server.IMG_CACHE / hashlib.sha1(url.encode()).hexdigest()
+        readers = []
+
+        def other_thread_won(u, ua):
+            cached.write_bytes(b"poster")
+            readers.append(open(cached, "rb"))
+            return b"poster"
+
+        with mock.patch.object(server.shiki_net, "fetch_image", side_effect=other_thread_won):
+            try:
+                code, body = self.req("/img?u=" + urllib.request.quote(url))
+            finally:
+                for r in readers:
+                    r.close()
+        self.assertEqual(code, 200)
+        self.assertEqual(body, b"poster")
+        self.assertEqual([p.name for p in server.IMG_CACHE.glob("*.part")], [])  # временный файл не остался
+
+    def test_port_cannot_be_hijacked(self):
+        # Перехват порта: в Windows чужой сокет с SO_REUSEADDR мог сесть на уже занятый порт
+        # и получать часть запросов окна (закладки, токен Shikimori).
+        s = socket.socket()
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            with self.assertRaises(OSError):
+                s.bind(("127.0.0.1", self.port))
+        finally:
+            s.close()
+
+
+class RestartTest(unittest.TestCase):
+    def test_restart_right_after_quit(self):
+        # После «Выхода» Animax должен сразу запускаться снова, хотя старые соединения ещё в TIME_WAIT.
+        srv = server.make_server(0)
+        port = srv.server_address[1]
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        for _ in range(5):
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/ping", timeout=5).read()
+        srv.shutdown()
+        srv.server_close()
+        again = server.make_server(port)
+        again.server_close()
 
 
 if __name__ == "__main__":

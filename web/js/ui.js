@@ -27,9 +27,21 @@ document.addEventListener('click', e => {
 
 // Картинка не загрузилась (хост недоступен, ссылка устарела) — аккуратная заглушка вместо «битой» иконки.
 // error не всплывает, поэтому слушаем на фазе перехвата.
+// Сеть до Shikimori бывает нестабильной, поэтому картинку через /img сначала пробуем загрузить ещё раз.
 document.addEventListener('error', e => {
   const im = e.target;
   if (!(im instanceof HTMLImageElement) || im.dataset.fallback || im.getAttribute('onerror')) return;
+  if (!im.dataset.retried && im.getAttribute('src')?.startsWith('/img?')) {
+    im.dataset.retried = '1';
+    // новый адрес, чтобы браузер не взял из памяти прошлую неудачу; сервер лишний параметр не читает
+    const again = s => s.replace(/\/img\?[^\s,]+/g, u => u + '&retry=1');
+    setTimeout(() => {
+      if (!im.isConnected) return;
+      if (im.srcset) im.srcset = again(im.getAttribute('srcset'));
+      im.src = again(im.getAttribute('src'));
+    }, 2500);
+    return;
+  }
   im.dataset.fallback = '1';
   im.removeAttribute('srcset');
   im.src = 'placeholder.svg';

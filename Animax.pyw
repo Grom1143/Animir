@@ -19,8 +19,9 @@ from ctypes import wintypes
 from pathlib import Path
 
 import windows
-from config import APP_DIR, DATA_DIR, FROZEN
+from config import APP_DIR, DATA_DIR, FROZEN, SHIKI
 import server
+import shiki_net
 from server import make_server
 from tray import Tray
 
@@ -262,6 +263,7 @@ def main():
         return
     if nav:
         server.set_pending_nav(nav)  # окно откроется и сразу перейдёт к уведомлению
+    shiki_net.warm_up(SHIKI)  # пока открывается окно, соединения с Shikimori уже будут готовы
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     show_window()
     # значок в трее и цикл сообщений Windows — в главном потоке; живём, пока не нажмут «Выход»
