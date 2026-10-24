@@ -21,3 +21,6 @@ source.zip
 Thumbs.db
 .vscode/
 .idea/
+
+# Доска задач агентов: одна на проект, живёт только в основной папке (см. ~/.agents/AGENTS.md)
+TASKS.md
