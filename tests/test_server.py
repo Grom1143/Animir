@@ -13,13 +13,17 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
+import uuid
 from pathlib import Path
 from unittest import mock
 
-os.environ["APPDATA"] = tempfile.mkdtemp(prefix="animax-test-")
+# Не tempfile.mkdtemp: он даёт папку с правами «только владелец», и в песочнице DeepSeek (ограниченный токен)
+# внутри неё ничего не создать. config.py сам создаст эту папку при импорте.
+os.environ["APPDATA"] = os.path.join(tempfile.gettempdir(), f"animax-test-{uuid.uuid4().hex[:8]}")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import server  # noqa: E402
+import shiki_data  # noqa: E402
 
 
 class ServerTest(unittest.TestCase):
@@ -108,7 +112,7 @@ class ServerTest(unittest.TestCase):
                     r.close()
         self.assertEqual(code, 200)
         self.assertEqual(body, b"poster")
-        self.assertEqual([p.name for p in server.IMG_CACHE.glob("*.part")], [])  # временный файл не остался
+        self.assertEqual(list(server.IMG_CACHE.glob(cached.name + ".*.part")), [])  # временный файл не остался
 
     def test_port_cannot_be_hijacked(self):
         # Перехват порта: в Windows чужой сокет с SO_REUSEADDR мог сесть на уже занятый порт
@@ -120,6 +124,39 @@ class ServerTest(unittest.TestCase):
                 s.bind(("127.0.0.1", self.port))
         finally:
             s.close()
+
+
+class ImageCacheTrimTest(unittest.TestCase):
+    def test_trim_keeps_files_being_written(self):
+        # .part и .tmp прямо сейчас дописывает другой поток: удалить их — уронить тот запрос в 500
+        old = server.IMG_CACHE / "trim-old"
+        part = server.IMG_CACHE / "trim-new.123.part"
+        tmp = server.IMG_CACHE / "trim-new-w420.tmp"
+        for f in (old, part, tmp):
+            f.write_bytes(b"x" * 100)
+            self.addCleanup(f.unlink, missing_ok=True)
+        for f in (part, tmp):
+            os.utime(f, (1, 1))  # самые «старые» — очистка взяла бы их первыми
+        with mock.patch.object(server, "_img_cache_cap", return_value=50):
+            server._trim_img_cache(force=True)
+        self.assertTrue(part.exists())
+        self.assertTrue(tmp.exists())
+        self.assertFalse(old.exists())
+
+
+class UpstreamTest(unittest.TestCase):
+    def idempotent_for(self, body):
+        with mock.patch.object(shiki_data.shiki_net, "open_url", return_value=(200, b"{}")) as call:
+            shiki_data.upstream("https://shikimori.io/api/graphql", body)
+        return call.call_args.kwargs["idempotent"]
+
+    def test_reads_may_go_over_pooled_connection(self):
+        self.assertTrue(self.idempotent_for(None))
+        self.assertTrue(self.idempotent_for(b'{"query":"{ animes(limit: 1) { id } }"}'))
+
+    def test_mutation_is_never_repeated(self):
+        # Мутацию при обрыве повторять нельзя — она могла дойти, и действие выполнилось бы дважды
+        self.assertFalse(self.idempotent_for(b'{"query":"mutation { rate(id: 1, score: 9) { id } }"}'))
 
 
 class RestartTest(unittest.TestCase):

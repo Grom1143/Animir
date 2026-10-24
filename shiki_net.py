@@ -67,6 +67,16 @@ _ssl_ctx = ssl.create_default_context()
 _idle: dict[tuple[str, str, int], list[tuple[http.client.HTTPConnection, float]]] = {}
 
 
+def _origin(url: str) -> tuple[str, str, int]:
+    """Схема, хост и порт — «происхождение» адреса; по нему же различаются соединения в запасе."""
+    parts = urllib.parse.urlsplit(url)
+    return parts.scheme, parts.hostname or "", parts.port or (443 if parts.scheme == "https" else 80)
+
+
+def _same_origin(a: str, b: str) -> bool:
+    return _origin(a) == _origin(b)
+
+
 def _new_conn(key: tuple[str, str, int], timeout: float) -> http.client.HTTPConnection:
     scheme, host, port = key
     if scheme == "https":
@@ -90,12 +100,20 @@ def _take(key: tuple[str, str, int], timeout: float, fresh: bool) -> tuple[http.
 
 
 def _give_back(key: tuple[str, str, int], conn: http.client.HTTPConnection) -> None:
+    now = time.time()
+    to_close = []
     with _lock:
+        # заодно выбрасываем пролежавшие дольше IDLE_MAX у всех хостов: сервер их уже закрыл, а сокеты висели бы
+        for idle in _idle.values():
+            to_close += [c for c, used in idle if now - used >= IDLE_MAX]
+            idle[:] = [(c, used) for c, used in idle if now - used < IDLE_MAX]
         idle = _idle.setdefault(key, [])
         if len(idle) < POOL_MAX:
-            idle.append((conn, time.time()))
-            return
-    conn.close()
+            idle.append((conn, now))
+        else:
+            to_close.append(conn)
+    for c in to_close:
+        c.close()
 
 
 def close_idle() -> None:
@@ -110,8 +128,7 @@ def warm_up(url: str, n: int = 4) -> None:
     """Заранее открыть n соединений, чтобы первый экран не ждал TLS-рукопожатий (по ~5 с каждое)."""
     if _PROXIES:
         return
-    parts = urllib.parse.urlsplit(url)
-    key = (parts.scheme, parts.hostname or "", parts.port or (443 if parts.scheme == "https" else 80))
+    key = _origin(url)
 
     def one():
         conn = _new_conn(key, 30)
@@ -166,14 +183,13 @@ def _urlopen(req: urllib.request.Request, timeout: float, idempotent: bool | Non
         parts = urllib.parse.urlsplit(url)
         if parts.scheme not in ("http", "https"):
             raise urllib.error.URLError(f"неподдерживаемый адрес: {url}")
-        key = (parts.scheme, parts.hostname or "", parts.port or (443 if parts.scheme == "https" else 80))
         path = (parts.path or "/") + ("?" + parts.query if parts.query else "")
-        r, data = _exchange(key, method, path, body, headers, timeout, idempotent)
+        r, data = _exchange(_origin(url), method, path, body, headers, timeout, idempotent)
         location = r.getheader("Location")
         if r.status in (301, 302, 303, 307, 308) and location:
             new = urllib.parse.urljoin(url, location)
-            if urllib.parse.urlsplit(new).hostname != parts.hostname:
-                # токен Shikimori не должен уйти на чужой сайт вместе с переадресацией
+            if not _same_origin(new, url):
+                # токен Shikimori не должен уйти ни на чужой сайт, ни на другой порт, ни по http открытым текстом
                 headers = {k: v for k, v in headers.items() if k.lower() not in ("authorization", "cookie")}
             if r.status == 303 or (r.status in (301, 302) and method == "POST"):
                 method, body = "GET", None

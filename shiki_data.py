@@ -26,8 +26,10 @@ def upstream(url: str, body: bytes | None = None, timeout: int = 20) -> bytes:
     if body is not None:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=body, headers=headers)
-    # только чтение: GET и GraphQL-запросы (мутаций Animax не шлёт) — можно по сохранённому соединению
-    return shiki_net.open_url(req, timeout, idempotent=True)[1]
+    # GET и GraphQL-запросы только читают — их можно слать по сохранённому соединению и повторять при обрыве.
+    # Мутацию (Animax их пока не шлёт) повторять нельзя: она могла дойти, и действие выполнилось бы дважды.
+    idempotent = body is None or b"mutation" not in body
+    return shiki_net.open_url(req, timeout, idempotent=idempotent)[1]
 
 
 def _disk_file(key: str) -> Path:

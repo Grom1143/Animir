@@ -16,6 +16,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+import uuid
 from pathlib import Path
 
 from playwright.sync_api import TimeoutError as PWTimeout, sync_playwright
@@ -151,9 +152,10 @@ def image_retry(p, base: str) -> list:
 def main() -> int:
     port = free_port()
     base = f"http://127.0.0.1:{port}/"
-    data = tempfile.mkdtemp(prefix="animax-ui-")
+    # не tempfile.mkdtemp: его права «только владелец» не пускают песочницу DeepSeek (см. test_server.py)
+    data = str(Path(tempfile.gettempdir()) / f"animax-ui-{uuid.uuid4().hex[:8]}")
     shots = Path(data) / "shots"
-    shots.mkdir()
+    shots.mkdir(parents=True)
     proc = start_server(port, data)
     try:
         print("Экраны:")

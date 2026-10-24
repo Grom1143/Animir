@@ -47,6 +47,10 @@ _img_lock = threading.Lock()
 _img_writes = 0
 
 
+def _img_cache_cap() -> int:
+    return (250 if lite_mode() else 400) * 1024 * 1024
+
+
 def _trim_img_cache(force: bool = False) -> None:
     global _img_writes
     with _img_lock:
@@ -54,10 +58,12 @@ def _trim_img_cache(force: bool = False) -> None:
         if not force and _img_writes % 40:
             return
     try:
-        files = [(f.stat().st_mtime, f.stat().st_size, f) for f in IMG_CACHE.iterdir() if f.is_file()]
+        # .part и .tmp прямо сейчас дописывает другой поток (image(), media.enhanced): удалишь — его запрос упадёт
+        files = [(f.stat().st_mtime, f.stat().st_size, f) for f in IMG_CACHE.iterdir()
+                 if f.is_file() and f.suffix not in (".part", ".tmp")]
     except OSError:
         return
-    cap = (250 if lite_mode() else 400) * 1024 * 1024
+    cap = _img_cache_cap()
     total = sum(size for _, size, _ in files)
     if total <= cap:
         return
