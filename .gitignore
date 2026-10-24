@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.log
+.venv/
+venv/
+env/
+
+# PyInstaller / сборка
+build/
+dist/
+dist-exe/
+Сборка Animax/
+Animax.exe
+Animax-*-setup.exe
+*.spec.bak
+source.zip
+
+# ОС / редакторы
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

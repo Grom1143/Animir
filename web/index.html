@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07080d">
+<meta name="description" content="Animax — каталог аниме, закладки, расписание, онлайн-озвучки, медиатека и встроенный плеер.">
+<title>Animax</title>
+<link rel="icon" href="icon-16.png" sizes="16x16" type="image/png">
+<link rel="icon" href="icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icon-48.png" sizes="48x48" type="image/png">
+<link rel="icon" href="icon-64.png" sizes="64x64" type="image/png">
+<link rel="icon" href="icon-96.png" sizes="96x96" type="image/png">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="icon-256.png" sizes="256x256" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/pages.css">
+<!-- оформление и динамическая подсветка -->
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+<div class="splash" id="splash" aria-hidden="true"><img src="icon-256.png" alt=""><div>Ani<b>max</b></div></div>
+<div class="app">
+  <aside class="side">
+    <a class="brand" href="#/" title="Animax — на главную"><img src="logo.svg" alt=""><span>Ani<b>max</b></span></a>
+    <nav class="nav" aria-label="Разделы">
+      <a href="#/" data-nav="home"><i>⌂</i><span>Главная</span></a>
+      <a href="#/discover" data-nav="discover"><i>◎</i><span>Обзор</span></a>
+      <a href="#/bookmarks" data-nav="bookmarks"><i>▤</i><span>Закладки</span></a>
+      <a href="#/library" data-nav="library"><i>▶</i><span>Медиатека</span></a>
+      <a href="#/profile" data-nav="profile"><i>☺</i><span>Профиль</span></a>
+      <div class="nav-sep">Быстрый доступ</div>
+      <a href="#/recs" data-nav="recs"><i>✦</i><span>Рекомендации</span></a>
+      <a href="#/schedule" data-nav="schedule"><i>▦</i><span>Расписание</span></a>
+      <a href="#/collections" data-nav="collections"><i>▣</i><span>Коллекции</span></a>
+      <a href="#/bookmarks?tab=history" data-nav="history"><i>↺</i><span>История</span></a>
+    </nav>
+    <button class="random" id="random-btn" title="Случайное аниме"><span>🎲</span><span>Случайное</span></button>
+    <button class="random quit" id="quit-btn" title="Закрыть Animax полностью"><span>⏻</span><span>Выход</span></button>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <button class="icon-btn" id="back-btn" title="Назад (Alt+←)" aria-label="Назад">←</button>
+      <div class="search">
+        <canvas id="snow" hidden></canvas>
+        <input id="search" type="search" placeholder="Поиск аниме…  (Ctrl+K)" autocomplete="off" aria-label="Поиск аниме">
+        <div class="suggest" id="suggest" hidden></div>
+      </div>
+      <button class="icon-btn" id="filter-btn" title="Фильтр" aria-label="Фильтр">⚲</button>
+      <span class="top-sp"></span>
+      <button class="icon-btn" id="stream-btn" title="Открыть ссылку на видео" aria-label="Открыть ссылку на видео">🔗</button>
+      <a class="icon-btn bell" href="#/notifications" title="Уведомления" aria-label="Уведомления">🔔<em id="notif-badge" hidden></em></a>
+      <button class="icon-btn" id="keys-btn" title="Горячие клавиши (?)" aria-label="Горячие клавиши">⌨</button>
+      <a class="icon-btn" href="#/settings" title="Настройки" aria-label="Настройки">⚙</a>
+    </header>
+    <main id="view"></main>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden><div class="modal-box" id="modal-box"></div></div>
+<div class="ctx" id="ctx" hidden></div>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<button class="to-top" id="to-top" title="Наверх (Home)" aria-label="Наверх" hidden>↑</button>
+
+<script src="vendor/hls.min.js"></script>
+<!-- порядок важен: каждый файл пользуется тем, что объявлено в файлах выше -->
+<script src="js/core.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/router.js"></script>
+<script src="js/home.js"></script>
+<script src="js/search.js"></script>
+<script src="js/anime.js"></script>
+<script src="js/watch.js"></script>
+<script src="js/releases.js"></script>
+<script src="js/lists.js"></script>
+<script src="js/library.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/start.js"></script>
+<script src="js/fx.js"></script>
+</body>
+</html>
