@@ -12,7 +12,7 @@
 |---|---|
 | `Animax.pyw` | запуск: один экземпляр, трей, окно, прогрев соединений |
 | `server.py` | HTTP-сервер: API, статика, прокси картинок `/img`, защита Host/Origin, эксклюзивный порт |
-| `shiki_net.py` | весь трафик к Shikimori: лимит запросов, пул keep-alive соединений, загрузка картинок |
+| `shiki_net.py` | весь трафик к Shikimori: лимит запросов, пул keep-alive соединений, загрузка картинок; пулом пользуются и онлайн-озвучки (`sources.py`) |
 | `shiki_data.py`, `shiki_auth.py`, `shiki_colls.py`, `reviews.py` | данные Shikimori, кэш, вход, коллекции, отзывы |
 | `sources.py` | онлайн-озвучки (Kodik, Anixart, AniLiberty) |
 | `state.py` | закладки и настройки, трёхстороннее слияние окон |

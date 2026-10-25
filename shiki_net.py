@@ -202,6 +202,16 @@ def _urlopen(req: urllib.request.Request, timeout: float, idempotent: bool | Non
     raise urllib.error.URLError(f"слишком много переадресаций: {url}")
 
 
+def urlopen_pooled(req: urllib.request.Request, timeout: float,
+                   idempotent: bool | None = None) -> tuple[int, bytes]:
+    """Запрос по сохранённому соединению без пауз Shikimori — для онлайн-озвучек (sources.py).
+
+    В отличие от open_url не вызывает _throttle: у sources.py своя вежливая пауза _wait_turn
+    перед каждым обращением к сайту. Ошибки и переадресации — как у _urlopen.
+    """
+    return _urlopen(req, timeout, idempotent)
+
+
 def fetch_image(url: str, user_agent: str, timeout: int | None = None) -> bytes:
     host = urllib.parse.urlsplit(url).hostname or ""
     if time.time() < _host_down.get(host, 0):

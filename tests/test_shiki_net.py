@@ -84,6 +84,8 @@ class Upstream(BaseHTTPRequestHandler):
                 self.reply(200)
             except OSError:
                 pass  # клиент уже ушёл по таймауту
+        elif self.path == "/error":  # серверная ошибка: для проверки повторов в sources._http
+            self.reply(500, b"boom")
         else:
             self.reply(200)
 

@@ -25,6 +25,8 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import shiki_net
+
 from config import DATA_DIR
 from state import lite_mode
 
@@ -68,8 +70,7 @@ def _http(url: str, method: str = "GET", data: bytes | None = None,
             if data is not None and content_type:
                 headers["Content-Type"] = content_type
             req = urllib.request.Request(url, data=data, headers=headers, method=method)
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                result = r.read()
+            result = shiki_net.urlopen_pooled(req, timeout, idempotent=True)[1]
             break
         except Exception:
             if attempt == tries:
@@ -859,8 +860,7 @@ def _kdk_probe(sid: str, tid: str) -> dict | None:
             headers={"User-Agent": USER_AGENT,
                      "Content-Type": "application/x-www-form-urlencoded"})
         try:
-            with urllib.request.urlopen(req, timeout=15) as r:
-                data = json.loads(r.read().decode("utf-8", "replace"))
+            data = json.loads(shiki_net.urlopen_pooled(req, 15, idempotent=True)[1].decode("utf-8", "replace"))
             res = (data.get("results") or [])
             return res[0] if res else None
         except Exception:  # noqa: BLE001 — ошибка = «не найдено», каталог работает дальше
@@ -945,8 +945,7 @@ def _kdk_all_trs(sid: str) -> list[str]:
         "https://kodik-api.com/search", data=body,
         headers={"User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded"})
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            data = json.loads(r.read().decode("utf-8", "replace"))
+        data = json.loads(shiki_net.urlopen_pooled(req, 15, idempotent=True)[1].decode("utf-8", "replace"))
         return [str((e.get("translation") or {}).get("id"))
                 for e in data.get("results", [])
                 if str(e.get("type", "")).startswith(("anime", "cartoon", "foreign"))]
