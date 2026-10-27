@@ -1,6 +1,6 @@
 """Сборка Animax.exe одним файлом (PyInstaller).
 
-Запуск: build.bat (или python build.py).
+Запуск: packaging\\build.bat (или python packaging\\build.py).
 Результат: ..\\Сборка Animax\\Animax.exe
 """
 from __future__ import annotations
@@ -10,7 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent  # packaging/
+ROOT = HERE.parent  # исходники Animax
 OUT = ROOT.parent / "Сборка Animax"
 WORK = Path(os.environ.get("TEMP", str(ROOT))) / "Animax-build"
 EXE = OUT / "Animax.exe"
@@ -29,7 +30,7 @@ def main() -> int:
         import PyInstaller  # noqa: F401
     except ImportError:
         print("Не установлен PyInstaller. Выполни:")
-        print("  python -m pip install -r requirements-build.txt")
+        print("  python -m pip install -r packaging\\requirements-build.txt")
         return 1
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -45,7 +46,7 @@ def main() -> int:
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm", "--clean",
-        "Animax.spec",
+        str(HERE / "Animax.spec"),
         "--distpath", str(OUT),
         "--workpath", str(WORK),
     ]

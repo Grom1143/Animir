@@ -1,5 +1,5 @@
 ; Animax — установщик для Windows 10/11 (64 бита)
-; Сборка: python build_installer.py  (нужен Inno Setup 6)
+; Сборка: python packaging\build_installer.py  (нужен Inno Setup 6)
 
 #define MyAppName "Animax"
 #define MyAppVersion "1.0.0"
@@ -8,6 +8,8 @@
 #define MyAppExeName "Animax.exe"
 
 [Setup]
+; файл лежит в packaging/, а пути ниже считаются от корня исходников
+SourceDir=..
 ; свой AppId: Animax — отдельная программа, установщик не должен перезаписать установленный AnyX
 AppId={{87F84988-AB76-4E35-99A1-60D855159907}
 AppName={#MyAppName}
@@ -49,7 +51,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "Animax.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "packaging\README.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{userprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

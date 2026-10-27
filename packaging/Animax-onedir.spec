@@ -2,14 +2,19 @@
 """Animax — сборка «папкой» (onedir): без самораспаковки во временную папку.
 Такой вариант заметно реже попадает под ложные ML-срабатывания антивирусов."""
 
+import os
+
+# спек лежит в packaging/, исходники — уровнем выше
+ROOT = os.path.dirname(SPECPATH)
+
 a = Analysis(
-    ['Animax.pyw'],
-    pathex=[],
+    [os.path.join(ROOT, 'Animax.pyw')],
+    pathex=[ROOT],
     binaries=[],
     datas=[
-        ('web', 'web'),
-        ('animax.ico', '.'),
-        ('notify_toast.ps1', '.'),
+        (os.path.join(ROOT, 'web'), 'web'),
+        (os.path.join(ROOT, 'animax.ico'), '.'),
+        (os.path.join(ROOT, 'notify_toast.ps1'), '.'),
     ],
     hiddenimports=[
         'PIL.Image',
@@ -40,8 +45,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='animax.ico',
-    version='version_info.txt',
+    icon=os.path.join(ROOT, 'animax.ico'),
+    version=os.path.join(SPECPATH, 'version_info.txt'),
 )
 
 coll = COLLECT(

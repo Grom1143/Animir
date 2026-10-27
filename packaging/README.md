@@ -1,21 +1,23 @@
 # Сборка Animax.exe
 
+Всё для сборки лежит в этой папке `packaging/`. Команды ниже запускаются из корня исходников.
+
 Требуется Python 3.10+ (проверено на 3.14) и пакеты:
 
 ```bat
-python -m pip install -r requirements-build.txt
+python -m pip install -r packaging\requirements-build.txt
 ```
 
 Затем:
 
 ```bat
-build.bat
+packaging\build.bat
 ```
 
 или
 
 ```bat
-python build.py
+python packaging\build.py
 ```
 
 Готовый файл: `..\Сборка Animax\Animax.exe` (один файл, без установки).
@@ -27,7 +29,7 @@ python build.py
 
 ```bat
 winget install JRSoftware.InnoSetup
-build_installer.bat
+packaging\build_installer.bat
 ```
 
 `build_installer.py` сам скопирует свежий exe из `..\Сборка Animax` и соберёт
@@ -36,7 +38,7 @@ build_installer.bat
 создаёт ярлык в меню «Пуск», при желании — на рабочем столе; добавляет
 запись в «Параметры → Приложения» и unins000.exe.
 
-Скрипт установщика — `installer.iss`; версия, publisher и ссылка на репозиторий
+Скрипт установщика — `packaging/installer.iss`; версия, publisher и ссылка на репозиторий
 задаются в начале файла.
 
 ## Что попадает в exe
@@ -64,3 +66,9 @@ signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /a Animax.
 ```
 
 Без сертификата пользователю нужно нажать «Подробнее» → «Выполнить в любом случае».
+
+## Другие варианты
+
+- `build_portable.bat` — портативная сборка папкой (onedir), реже ловит ложные срабатывания антивирусов: `..\Animax-portable\Animax\Animax.exe`.
+- `build_launcher.bat` — маленький лаунчер `Animax.exe` на C# (`launcher/`), запускает `Animax.pyw` из исходников.
+- `README.txt` — инструкция, которую установщик кладёт рядом с программой.

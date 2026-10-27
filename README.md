@@ -56,29 +56,13 @@ Exe не подписан, поэтому SmartScreen может показат�
 
 ## Сборка из исходников
 
-Нужен Python 3.10+ (проверено на 3.14) и пакеты:
+Exe и установщик собираются скриптами из папки [`packaging/`](packaging/README.md), там же подробная инструкция. Коротко:
 
 ```bat
-python -m pip install -r requirements-build.txt
+python -m pip install -r packaging\requirements-build.txt
+packaging\build.bat
+packaging\build_installer.bat
 ```
-
-Собрать exe:
-
-```bat
-build.bat
-```
-
-Результат — `..\Сборка Animax\Animax.exe`.
-
-Собрать установщик (нужен [Inno Setup 6](https://jrsoftware.org/isinfo.php)):
-
-```bat
-build_installer.bat
-```
-
-Результат — `dist\Animax-1.0.0-win64-setup.exe`.
-
-`build_installer.py` сам найдёт exe в `..\Сборка Animax` и скопирует его в папку исходников.
 
 ### Тесты
 
@@ -102,8 +86,7 @@ media.py          медиатека, субтитры, выбор папки, �
 windows.py        окна Edge, уведомления, «поверх всех»
 tray.py           значок в трее на Win32
 web/              интерфейс (HTML/CSS/JS, hls.js)
-installer.iss     установщик Inno Setup
-build*.py/.bat    сборка exe и установщика
+packaging/        сборка exe и установщика (PyInstaller, Inno Setup)
 tests/            автотесты (unittest)
 ```
 

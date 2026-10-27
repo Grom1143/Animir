@@ -9,11 +9,11 @@ if not exist "%CSC%" (
   pause
   exit /b 1
 )
-"%CSC%" /nologo /target:winexe /codepage:65001 /r:System.Windows.Forms.dll /win32icon:animax.ico /out:Animax.exe launcher\AnimaxLauncher.cs
+"%CSC%" /nologo /target:winexe /codepage:65001 /r:System.Windows.Forms.dll /win32icon:..\animax.ico /out:..\Animax.exe launcher\AnimaxLauncher.cs
 if errorlevel 1 (
   echo Build failed.
   pause
   exit /b 1
 )
-echo OK: %~dp0Animax.exe
+echo OK: %~dp0..\Animax.exe
 pause

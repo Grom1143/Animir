@@ -1,19 +1,24 @@
 # -*- mode: python ; coding: utf-8 -*-
 """Сборка Animax.exe (PyInstaller, один файл).
 
-Запуск: build.bat или
-  python -m PyInstaller --noconfirm --clean Animax.spec ^
+Запуск: packaging\\build.bat или
+  python -m PyInstaller --noconfirm --clean packaging\\Animax.spec ^
       --distpath "..\\Сборка Animax" --workpath "%TEMP%\\Animax-build"
 """
 
+import os
+
+# спек лежит в packaging/, исходники — уровнем выше
+ROOT = os.path.dirname(SPECPATH)
+
 a = Analysis(
-    ['Animax.pyw'],
-    pathex=[],
+    [os.path.join(ROOT, 'Animax.pyw')],
+    pathex=[ROOT],
     binaries=[],
     datas=[
-        ('web', 'web'),
-        ('animax.ico', '.'),
-        ('notify_toast.ps1', '.'),
+        (os.path.join(ROOT, 'web'), 'web'),
+        (os.path.join(ROOT, 'animax.ico'), '.'),
+        (os.path.join(ROOT, 'notify_toast.ps1'), '.'),
     ],
     hiddenimports=[
         # импортируются внутри функций — PyInstaller их не всегда видит
@@ -48,6 +53,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='animax.ico',
-    version='version_info.txt',
+    icon=os.path.join(ROOT, 'animax.ico'),
+    version=os.path.join(SPECPATH, 'version_info.txt'),
 )

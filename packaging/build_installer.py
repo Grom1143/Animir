@@ -1,8 +1,8 @@
 """Сборка установщика Animax (Inno Setup 6).
 
 Порядок:
-  1) build.bat            — собрать ..\\Сборка Animax\\Animax.exe
-  2) python build_installer.py
+  1) packaging\\build.bat — собрать ..\\Сборка Animax\\Animax.exe
+  2) python packaging\\build_installer.py
 
 Скрипт сам найдёт exe в ..\\Сборка Animax и скопирует его в папку исходников.
 Результат: dist\\Animax-1.0.0-win64-setup.exe
@@ -15,7 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent  # packaging/
+ROOT = HERE.parent  # исходники Animax
 DIST = ROOT / "dist"
 EXE = ROOT / "Animax.exe"
 BUILT = ROOT.parent / "Сборка Animax" / "Animax.exe"
@@ -40,9 +41,9 @@ def main() -> int:
         shutil.copy2(BUILT, EXE)
         print(f"Скопирован {BUILT} → {EXE}")
     if not EXE.is_file():
-        print("Не найден Animax.exe. Сначала выполни build.bat (или python build.py).")
+        print("Не найден Animax.exe. Сначала выполни packaging\\build.bat.")
         return 1
-    if not (ROOT / "README.txt").is_file():
+    if not (HERE / "README.txt").is_file():
         print("Не найден README.txt — он устанавливается вместе с приложением.")
         return 1
 
@@ -54,7 +55,7 @@ def main() -> int:
 
     DIST.mkdir(exist_ok=True)
     print(f"Сборка установщика: {iscc}")
-    result = subprocess.run([str(iscc), "installer.iss"], cwd=ROOT)
+    result = subprocess.run([str(iscc), str(HERE / "installer.iss")], cwd=ROOT)
     if result.returncode:
         print("Inno Setup завершился с ошибкой.")
         return result.returncode
