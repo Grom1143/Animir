@@ -63,11 +63,36 @@ class _Api:
         if bool(on) != self._full:
             self._full = bool(on)
             self._win.toggle_fullscreen()
+            if self._full:
+                # pywebview берёт размер экрана в логических точках; при масштабе 125–150 % окно выходило меньше
+                # монитора, и по краям оставались светлые полосы. Дотягиваем окно до монитора в настоящих пикселях.
+                threading.Timer(0.15, _cover_monitor, (hwnd(self._win),)).start()
 
     def close(self, _=None):
         # из обработчика вызова страницы окно не уничтожить — оно ждёт ответа; делаем это чуть позже
         target = self._win.hide if self._win is _main else self._win.destroy
         threading.Timer(0.05, target).start()
+
+
+def _cover_monitor(h: int) -> None:
+    try:
+        import ctypes
+        from ctypes import wintypes
+        u = ctypes.windll.user32
+
+        class MONITORINFO(ctypes.Structure):
+            _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
+                        ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
+        mi = MONITORINFO(cbSize=ctypes.sizeof(MONITORINFO))
+        u.MonitorFromWindow.restype = wintypes.HMONITOR
+        mon = u.MonitorFromWindow(wintypes.HWND(h), 2)  # MONITOR_DEFAULTTONEAREST
+        if not mon or not u.GetMonitorInfoW(mon, ctypes.byref(mi)):
+            return
+        r = mi.rcMonitor
+        # HWND_TOP, SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED
+        u.SetWindowPos(wintypes.HWND(h), None, r.left, r.top, r.right - r.left, r.bottom - r.top, 0x0004 | 0x0010 | 0x0020)
+    except Exception:  # noqa: BLE001 — не вышло подогнать: остаётся как сделал pywebview
+        pass
 
 
 def available() -> bool:

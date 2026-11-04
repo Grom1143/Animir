@@ -510,3 +510,6 @@ button.tone-pill { cursor: pointer; }
 .rs-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
 .resume-play { flex: none; }
 @media (max-width: 600px) { .resume { flex-wrap: wrap; } .resume-play { width: 100%; text-align: center; } }
+
+/* полный экран: всё вокруг видео — чёрное, без светлых краёв */
+:fullscreen, ::backdrop { background: #000; }
