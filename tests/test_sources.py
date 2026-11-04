@@ -1,4 +1,4 @@
-"""Онлайн-озвучки (sources.py) ходят через пул соединений shiki_net.
+"""Онлайн-озвучки (пакет sources) ходят через пул соединений shiki_net.
 
 Сервер-заглушку Upstream (считает TCP-соединения по порту клиента) берём из test_shiki_net;
 интернет не нужен.
@@ -43,14 +43,14 @@ class SourcesPoolTest(unittest.TestCase):
         # Каждый запрос sources раньше открывал новое соединение (для https — новое TLS-рукопожатие):
         # два обращения к одному адресу должны пройти по одному.
         for _ in range(2):
-            self.assertEqual(sources._http(self.base + "/ok"), b"ok")
+            self.assertEqual(sources.net._http(self.base + "/ok"), b"ok")
         self.assertEqual(self.connections(), 1)
 
     def test_post_reuses_one_connection(self):
         url = self.base + "/api/search"
         body = b"token=abc&title=x"
         for _ in range(2):
-            raw = sources._http(url, "POST", body, "application/x-www-form-urlencoded")
+            raw = sources.net._http(url, "POST", body, "application/x-www-form-urlencoded")
             self.assertEqual(json.loads(raw.decode("utf-8", "replace")),
                              {"type": "application/x-www-form-urlencoded", "body": "token=abc&title=x"})
         self.assertEqual(self.connections(), 1)
@@ -58,24 +58,24 @@ class SourcesPoolTest(unittest.TestCase):
     # ---------- повторы при ошибке ----------
     def test_server_500_retries_then_raises(self):
         with self.assertRaises(urllib.error.HTTPError) as cm:
-            sources._http(self.base + "/error", tries=2)
+            sources.net._http(self.base + "/error", tries=2)
         self.assertEqual(cm.exception.code, 500)
         self.assertEqual([p for _, _, p in Upstream.seen].count("/error"), 2)
 
     # ---------- _kdk_probe ходит на зашитый адрес, поэтому подменяем сеть ----------
     def test_probe_calls_pooled_and_returns_hit(self):
-        with mock.patch.object(sources, "kodik_token", return_value="tok"), \
+        with mock.patch.object(sources.search, "kodik_token", return_value="tok"), \
              mock.patch.object(shiki_net, "urlopen_pooled",
                                return_value=(200, json.dumps({"results": [{"id": 42}]}).encode())) as pooled:
-            hit = sources._kdk_probe("sid-probe-hit", "7")
+            hit = sources.search._kdk_probe("sid-probe-hit", "7")
         self.assertEqual(hit, {"id": 42})
         self.assertEqual(pooled.call_args.args[1], 15)          # прежний таймаут не меняем
         self.assertIs(pooled.call_args.kwargs["idempotent"], True)
 
     def test_probe_swallows_error_to_none(self):
-        with mock.patch.object(sources, "kodik_token", return_value="tok"), \
+        with mock.patch.object(sources.search, "kodik_token", return_value="tok"), \
              mock.patch.object(shiki_net, "urlopen_pooled", side_effect=urllib.error.URLError("down")) as pooled:
-            hit = sources._kdk_probe("sid-probe-err", "7")
+            hit = sources.search._kdk_probe("sid-probe-err", "7")
         self.assertIsNone(hit)
         self.assertIs(pooled.call_args.kwargs["idempotent"], True)
 

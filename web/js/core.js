@@ -1,7 +1,7 @@
 'use strict';
-/* Animax 2 — интерфейс.
+/* Анимир 2 — интерфейс.
    Каталог, оценки, статистика и комментарии берём из Shikimori через локальный сервер (server.py).
-   Свои закладки, отметки серий, коллекции и настройки хранятся в state.json (%APPDATA%\Animax).
+   Свои закладки, отметки серий, коллекции и настройки хранятся в state.json (%APPDATA%\Animir).
    Видео: свои файлы, ссылки на потоки (свой медиасервер и т.п.) и официальные ролики YouTube. */
 
 // ================= помощники =================
@@ -69,9 +69,10 @@ const scale10 = () => S.settings.scale === '10';
 const scoreWord = v => scale10() ? WORDS10[Math.round(v * 2)] : STAR_WORDS[Math.round(v)];
 const scoreText = v => scale10() ? `${Math.round(v * 2)}/10` : Number.isInteger(v) ? '★'.repeat(v) : `${v} ★`;
 const likedText = () => scale10() ? '8–10' : '4–5 ★';
-const ACCENTS = ['#8b6cff', '#ff5c8a', '#2fb6ff', '#3ccf8e', '#ffb547', '#ff6a3d'];
+const ACCENTS = ['#5f7bff', '#8b6cff', '#ff5c8a', '#2fb6ff', '#3ccf8e', '#ffb547', '#ff6a3d'];
 // Второй цвет градиента подбирается под акцент, чтобы кнопки и подсветка всегда были в одной гамме.
 const ACCENT_PAIRS = {
+  '#5f7bff': '#ff6b5e',  // индиго → закатный коралл («закат над миром», цвет Анимира)
   '#8b6cff': '#ff5c8a',  // фиолетовый → розовый
   '#ff5c8a': '#a06bff',  // розовый → фиолетовый
   '#2fb6ff': '#7b6bff',  // голубой → индиго
@@ -193,8 +194,8 @@ const DEFAULTS = {
   myTab: { name: 'Моя вкладка', filter: null },
   library: { folders: [], links: {} },
   settings: {
-    theme: 'dark', accent: ACCENTS[0], autoNext: true, skipLen: 85, notify: true, notifyLists: ['watching', 'planned', 'on_hold'],
-    notifyOne: true, notifyPremieres: true, notifyFinished: true, view: 'cards', homeTab: 'latest', bookmarksTab: 'watching', timeFormat: 'dh', compactNav: false, snow: true, lite: 'auto',
+    theme: 'dark', accent: ACCENTS[0], playerWindow: 'main', autoNext: true, skipLen: 85, notify: true, notifyLists: ['watching', 'planned', 'on_hold'],
+    notifyOne: true, notifyPremieres: true, notifyFinished: true, view: 'cards', homeTab: 'latest', bookmarksTab: 'watching', timeFormat: 'dh', compactNav: false, snow: true, sky: true, lite: 'auto',
     nickname: 'Зритель', status: '', about: '', scale: '5', avatar: '', cover: '', volume: 1, speed: 1, fit: 'contain', externalPlayer: false, hints: {},
   },
 };
@@ -226,6 +227,13 @@ async function loadState() {
     S = structuredClone(DEFAULTS);
     adoptState(j);
     if (!j.opinions) migrateOpinions();
+    // Переход на Анимир: фиолетовый — цвет по умолчанию у AnyX и Animax, а не выбор человека, — один раз
+    // меняем на новый. Любой другой выбранный цвет не трогаем.
+    if (j.settings && !j.settings.look) {
+      if (S.settings.accent === '#8b6cff') S.settings.accent = ACCENTS[0];
+      S.settings.look = 'animir';
+      save();
+    }
     if (!j.createdAt) save();
   } catch { /* первый запуск */ }
 }
@@ -283,7 +291,7 @@ function commit(id) {
 }
 
 // ---- синхронизация закладок, оценок и серий со списком на Shikimori (право user_rates) ----
-// Правило простое: побеждает то, что изменили позже — в Animax или на сайте.
+// Правило простое: побеждает то, что изменили позже — в Анимир или на сайте.
 const FROM_SHIKI = { planned: 'planned', watching: 'watching', rewatching: 'watching', completed: 'completed', on_hold: 'on_hold', dropped: 'dropped' };
 const canSync = () => S.settings.shikiSync !== false && AUTH?.logged && (AUTH.scope || '').includes('user_rates');
 const pushQueue = new Set();
@@ -326,7 +334,7 @@ async function syncShikimori(manual = false) {
     if (rates.error) throw new Error(rates.error);
     const remote = new Map(rates.filter(r => r.target_type === 'Anime').map(r => [+r.target_id, r]));
     const last = S.settings.shikiSyncAt || 0;
-    // тайтлы, которых нет в Animax, — сначала подтягиваем карточки
+    // тайтлы, которых нет в Анимир, — сначала подтягиваем карточки
     const missing = [...remote.keys()].filter(id => !S.list[id]);
     for (let i = 0; i < missing.length; i += 50) {
       const d = await gql(animes({ ids: missing.slice(i, i + 50).join(','), limit: 50, rating: '' }, CARD));
@@ -337,7 +345,7 @@ async function syncShikimori(manual = false) {
       const e = S.list[id];
       if (!e) continue;
       const rt = Date.parse(r.updated_at) || 0;
-      if (e.status && (e.updated || 0) > rt) { pushQueue.add(id); continue; }  // в Animax новее
+      if (e.status && (e.updated || 0) > rt) { pushQueue.add(id); continue; }  // в Анимир новее
       const st = FROM_SHIKI[r.status] || 'planned';
       if (e.status !== st) e.statusAt = rt;
       e.status = st;
@@ -347,7 +355,7 @@ async function syncShikimori(manual = false) {
       e.updated = rt;
       pulled++;
     }
-    // есть в Animax, нет на сайте: новое — отправляем, удалённое на сайте после прошлой синхронизации — убираем
+    // есть в Анимир, нет на сайте: новое — отправляем, удалённое на сайте после прошлой синхронизации — убираем
     for (const [id, e] of Object.entries(S.list)) {
       if (!e.status || remote.has(+id)) continue;
       if (S.shikiRates[id] && (e.updated || 0) <= last) {
@@ -416,6 +424,20 @@ function applyTheme() {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t === 'light' ? '#f2f4fa' : '#07080d');
   document.body.classList.toggle('compact-nav', !!S.settings.compactNav);
   snowfall();
+  applySky();
+}
+
+// «Мир» живёт по часам: утром — рассвет, днём — чистое небо, вечером — закат, ночью — звёзды.
+// Только оттенок фона (data-sky на <html>, цвета — в theme.css); читаемость текста не меняется.
+const skyOf = h => h >= 5 && h < 10 ? 'morning' : h >= 10 && h < 17 ? 'day' : h >= 17 && h < 21 ? 'evening' : 'night';
+let skyTimer = 0;
+function applySky() {
+  const root = document.documentElement;
+  clearInterval(skyTimer);
+  if (S.settings.sky === false) { delete root.dataset.sky; return; }
+  const tick = () => { root.dataset.sky = skyOf(new Date().getHours()); };
+  tick();
+  skyTimer = setInterval(tick, 5 * 60e3);  // окно открыто весь вечер — закат сменится ночью сам
 }
 
 // kind: '' — обычное, 'ok' — успех, 'err' — ошибка. Клик по сообщению закрывает его.
@@ -431,7 +453,7 @@ function toast(text, kind = /^(Не удалось|Не получ|Ошибка|
   setTimeout(hide, kind === 'err' ? 6000 : 3500);
 }
 // уведомление на рабочем столе (тост Windows через сервер; оказывается даже если окно свернуто)
-// уведомление Windows; href — экран Animax, который откроется по клику на него
+// уведомление Windows; href — экран Анимир, который откроется по клику на него
 const desktop = (title, body, href = '#/notifications') => {
   try { fetch('/api/notify', { method: 'POST', body: JSON.stringify({ title, body, href }) }).catch(() => {}); } catch { /* не критично */ }
 };

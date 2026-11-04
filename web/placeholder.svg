@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300">
-  <!-- заглушка вместо картинки, которая не загрузилась: прозрачный фон, поверх — бледный знак Animax -->
-  <g transform="translate(68 118)" fill="#8b93a8" fill-opacity=".38">
-    <polygon points="0,64 23.1,0 40.9,0 64,64 48.9,64 32,16 15.1,64"/>
-    <polygon points="27.2,39.1 27.2,56.9 40.5,48"/>
+  <!-- заглушка вместо картинки, которая не загрузилась: прозрачный фон, поверх — бледная планета Анимира -->
+  <g fill="none" stroke="#8b93a8" stroke-opacity=".38" stroke-linecap="round" transform="rotate(-18 100 150)">
+    <path d="M58 150 A42 13 0 0 1 142 150" stroke-width="4.5"/>
+  </g>
+  <circle cx="100" cy="150" r="24" fill="#8b93a8" fill-opacity=".38"/>
+  <g fill="none" stroke="#8b93a8" stroke-opacity=".38" stroke-linecap="round" transform="rotate(-18 100 150)">
+    <path d="M58 150 A42 13 0 0 0 142 150" stroke-width="4.5"/>
   </g>
 </svg>

@@ -1,7 +1,7 @@
-"""Animax — вход через Shikimori (OAuth) и запросы от имени пользователя.
+"""Анимир — вход через Shikimori (OAuth) и запросы от имени пользователя.
 
 Нужен, чтобы писать комментарии в обсуждения Shikimori: их видят и отвечают все пользователи сайта.
-Ключи приложения и токены лежат в %APPDATA%\\Animax\\auth.json — только на этом компьютере,
+Ключи приложения и токены лежат в %APPDATA%\\Анимир\\auth.json — только на этом компьютере,
 в интерфейс (state.json) они не попадают.
 """
 
@@ -58,7 +58,7 @@ def status(redirect: str) -> dict:
         "configured": bool(a.get("client_id") and a.get("client_secret")),
         "logged": bool(a.get("refresh_token")),
         "user": a.get("user"),
-        "app_name": a.get("app_name") or "Animax",
+        "app_name": a.get("app_name") or "Анимир",
         "client_id": a.get("client_id", ""),
         "scope": a.get("scope", ""),
         "redirect": redirect,
@@ -67,7 +67,7 @@ def status(redirect: str) -> dict:
 
 def configure(app_name: str, client_id: str, client_secret: str) -> None:
     with _lock:
-        _save({"app_name": app_name.strip() or "Animax", "client_id": client_id.strip(), "client_secret": client_secret.strip()})
+        _save({"app_name": app_name.strip() or "Анимир", "client_id": client_id.strip(), "client_secret": client_secret.strip()})
 
 
 def login_url(redirect: str) -> str:

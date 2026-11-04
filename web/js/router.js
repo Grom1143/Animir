@@ -1,5 +1,5 @@
 'use strict';
-// Animax — переходы между экранами и «Назад».
+// Анимир — переходы между экранами и «Назад».
 
 // ================= роутер =================
 let navToken = 0;
@@ -20,12 +20,12 @@ async function route() {
   fromHistory = false;
   lastHash = location.hash;
   closePlayer();
-  if (!same) document.title = 'Animax';  // пока новый экран грузится, не показываем имя прошлого
+  if (!same) document.title = 'Анимир';  // пока новый экран грузится, не показываем имя прошлого
   closeModal();
   hideCtx();
   hideSuggest();
   const sect = path.split('/')[1] || 'home';
-  const navMap = { collection: 'collections', scoll: 'collections', folder: 'library', watch: 'library', popular: 'discover', now: 'discover', rate: 'profile' };
+  const navMap = { collection: 'collections', scoll: 'collections', folder: 'library', watch: 'library', popular: 'discover', now: 'discover', rate: 'profile', year: 'profile' };
   const navKey = sect === 'bookmarks' && q.get('tab') === 'history' ? 'history' : navMap[sect] || sect;
   $$('.nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
   const old = $('#view');
@@ -72,12 +72,12 @@ function keepScroll(view, y, alive) {
   };
   tick();
 }
-// Экран нарисован: заголовок окна («Animax · Закладки») и клавиатура для кликабельных строк
+// Экран нарисован: заголовок окна («Анимир · Закладки») и клавиатура для кликабельных строк
 function pageDone(view) {
   const h = $('h1', view)?.cloneNode(true);
   h?.querySelectorAll('span, small, button').forEach(x => x.remove());
   const name = h?.textContent.trim().replace(/\s+/g, ' ').slice(0, 70);
-  if (!player) document.title = name ? 'Animax · ' + name : 'Animax';
+  if (!player) document.title = name ? 'Анимир · ' + name : 'Анимир';
   $$('.ep[data-href], .ep[data-play], .ep[data-pick], .video, .shots-row img, .wide-card[data-id]', view).forEach(el => { if (el.tabIndex < 0) el.tabIndex = 0; });
 }
 // ⟳ в конце строки вкладок: заново загружает только открытую вкладку, свежими данными
@@ -110,7 +110,7 @@ const screenKey = h => {
   if (m) return m[1];
   return path.replace(/^(\/anime\/\d+)\/.*$/, '$1');
 };
-// В history.state храним глубину: 0 — первый экран. Так «назад» знает, есть ли куда возвращаться внутри Animax.
+// В history.state храним глубину: 0 — первый экран. Так «назад» знает, есть ли куда возвращаться внутри Анимир.
 const navDepth = () => history.state?.d || 0;
 function go(h) {
   if (location.hash === h) return route();
@@ -122,7 +122,7 @@ function go(h) {
   }
   route();
 }
-// Шаг назад; если назад некуда (Animax открыли сразу на этом экране) — на запасной экран
+// Шаг назад; если назад некуда (Анимир открыли сразу на этом экране) — на запасной экран
 function goBack(fallback = '#/') {
   if (navDepth() > 0) history.back();
   else { history.replaceState({ d: 0 }, '', fallback); route(); }
@@ -131,12 +131,34 @@ function goBack(fallback = '#/') {
 // Просмотр открывается отдельным окном приложения (Edge --app), главное окно остаётся на месте.
 // Не получилось (сервер недоступен, Edge не найден) — открываем внутри этого окна, как раньше.
 async function watchOpen(h) {
-  try {
-    const r = await fetch('/api/open-window', { method: 'POST', body: JSON.stringify({ url: h + (h.includes('?') ? '&' : '?') + 'w=1' }) });
-    if ((await r.json()).ok === true) { toast('Просмотр открыт в отдельном окне'); return true; }
-  } catch { /* открываем здесь */ }
+  // Плеер — только один: если в отдельном окне уже что-то идёт, спрашиваем, переключить ли его.
+  let cur = { open: false };
+  try { cur = await (await fetch('/api/player')).json(); } catch { /* сервер старый — не спрашиваем */ }
+  if (cur.open && !await confirmBox(switchQuestion(cur, h), 'Переключить')) return false;
+  if (S.settings.playerWindow === 'separate') {
+    try {
+      const r = await fetch('/api/open-window', { method: 'POST', body: JSON.stringify({ url: h + (h.includes('?') ? '&' : '?') + 'w=1' }) });
+      if ((await r.json()).ok === true) {
+        toast(cur.open ? 'Окно плеера переключено' : 'Просмотр открыт в отдельном окне');
+        if (location.hash.startsWith('#/watch')) goBack('#/');  // здесь тоже шло видео — второе не нужно
+        return true;
+      }
+    } catch { /* открываем здесь */ }
+  } else if (cur.open) {
+    fetch('/api/player/close', { method: 'POST', body: '{}' }).catch(() => {});  // смотрим здесь — окно плеера закрываем
+  }
   go(h);
   return false;
+}
+// «Сейчас идёт: Фрирен — серия 1. Переключить на серию 2?»
+function switchQuestion(cur, h) {
+  const q = new URLSearchParams(h.split('?')[1] || '');
+  const was = new URLSearchParams((cur.hash || '').split('?')[1] || '');
+  const name = (cur.title || '').replace(/^Анимир\s*·\s*/, '') || 'видео';
+  const file = q.get('f') ? q.get('f').split(/[\\/]/).pop() : '';  // URLSearchParams уже раскодировал
+  const what = q.get('e') && q.get('o') && q.get('o') === was.get('o') ? `серию ${esc(q.get('e'))}`
+    : q.get('e') ? `другой тайтл, серию ${esc(q.get('e'))}` : file ? `«${esc(file)}»` : 'новое видео';
+  return `Сейчас идёт: ${esc(name)}.<br>Переключить на ${what}?`;
 }
 // флаг «мы — отдельное окно просмотра» (метка w=1, которую watchOpen дописывает к адресу)
 const PLAYER_WINDOW = (() => {
@@ -188,9 +210,9 @@ document.addEventListener('keydown', e => {
   if (!(el instanceof HTMLElement) || el.tabIndex < 0 || /^(BUTTON|INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
   if (el.matches('a[data-go]:not([href]), .ep, .video, .shots-row img, .wide-card[data-id], .card, .lrow, .tile')) { e.preventDefault(); el.click(); }
 });
-// Ссылки на Shikimori открываем в обычном браузере: там ты уже вошёл в аккаунт, а у окна Animax свой профиль
+// Ссылки на Shikimori открываем в обычном браузере: там ты уже вошёл в аккаунт, а у окна Анимир свой профиль
 const SHIKI_URL = 'https://shikimori.io/';
-// Клик по уведомлению Windows: Animax.pyw кладёт экран на сервер, главное окно забирает его и переходит
+// Клик по уведомлению Windows: Animir.pyw кладёт экран на сервер, главное окно забирает его и переходит
 async function checkGoto() {
   if (PLAYER_WINDOW) return;
   try {

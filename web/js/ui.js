@@ -1,5 +1,5 @@
 'use strict';
-// Animax — общие блоки интерфейса: карточки, окна, контекстное меню.
+// Анимир — общие блоки интерфейса: карточки, окна, контекстное меню.
 
 // ================= общие блоки =================
 function errBlock(err, retry) {
@@ -311,7 +311,7 @@ function viewer(urls, start = 0) {
     z = 1; px = py = 0; base = null; loadedW = 0;
     v.innerHTML = `<div class="vt"><b>${i + 1} из ${urls.length}</b>
         <button class="btn sm" data-z="-" title="Уменьшить">−</button><span class="vz">100%</span><button class="btn sm" data-z="+" title="Увеличить">+</button>
-        <a class="btn sm" href="${img(urls[i], 0)}" download="animax-${i + 1}.jpg">⤓ Сохранить</a></div>
+        <a class="btn sm" href="${img(urls[i], 0)}" download="animir-${i + 1}.jpg">⤓ Сохранить</a></div>
       <div class="vstage"><img alt="" draggable="false"></div>
       ${urls.length > 1 ? '<button class="vb l">‹</button><button class="vb r">›</button>' : ''}<button class="btn sm vx">✕</button>
       <div class="vh">Колёсико или двойной клик — приблизить · перетаскивание — двигать</div>`;

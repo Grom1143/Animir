@@ -1,8 +1,7 @@
-"""Animax — окна приложения (Edge --app), «поверх всех окон», уведомления Windows и выход."""
+"""Анимир — окна приложения (Edge --app), «поверх всех окон», уведомления Windows и выход."""
 import ctypes
 import os
 import subprocess
-import threading
 import time
 from ctypes import wintypes
 from pathlib import Path
@@ -20,7 +19,7 @@ def find_edge() -> str | None:
     return next((p for p in EDGE_PATHS if Path(p).exists()), None)
 
 
-# Окну Animax не нужны расширения, синхронизация, переводчик, покупки, индексатор поиска и прочие службы Edge.
+# Окну Анимир не нужны расширения, синхронизация, переводчик, покупки, индексатор поиска и прочие службы Edge.
 # Без них окно занимает примерно вдвое меньше памяти (замер: 314 → 176 МБ при запуске).
 _LEAN_FLAGS = [
     "--disable-extensions",
@@ -38,17 +37,22 @@ _LEAN_FLAGS = [
 
 
 def edge_flags(url: str, size: str) -> list[str]:
-    """Аргументы запуска окна Animax. На слабом компьютере ещё и без видеокарты (−40 МБ) и с одним процессом страниц."""
-    flags = [
+    """Аргументы запуска окна Анимир в Edge --app."""
+    return [
         f"--app={url}",
         f"--user-data-dir={WINDOW_PROFILE}",
         "--hide-crash-restore-bubble",  # после «Выхода» не предлагать «восстановить страницы»
         f"--window-size={size}",
         "--no-first-run",
         "--no-default-browser-check",
-        "--autoplay-policy=no-user-gesture-required",
-        *_LEAN_FLAGS,
+        *engine_flags(),
     ]
+
+
+def engine_flags() -> list[str]:
+    """Флаги движка Chromium — общие для Edge --app и своего окна на WebView2 (тот же движок).
+    На слабом компьютере ещё и без видеокарты (−40 МБ) и с одним процессом страниц."""
+    flags = ["--autoplay-policy=no-user-gesture-required", *_LEAN_FLAGS]
     if lite_mode():
         flags += [
             "--enable-low-end-device-mode",
@@ -104,24 +108,31 @@ def is_edge_window(hwnd: int) -> bool:
     return _pid_exe(pid.value) == "msedge.exe"
 
 
-def animax_hwnds() -> list[int]:
-    """Видимые окна Animax (Edge --app): заголовок «Animax» или «Animax …»."""
-    found: list[int] = []
-
-    def cb(hwnd, _):
-        if _user32.IsWindowVisible(hwnd):
-            _user32.GetWindowTextW(hwnd, _wtext, 256)
-            t = _wtext.value or ""
-            if (t == "Animax" or t.startswith("Animax ")) and is_edge_window(hwnd):
-                found.append(hwnd)
-        return True  # продолжать перечисление
-
-    _user32.EnumWindows(_ENUM_PROC(cb), 0)
-    return found
-
-
 def foreground_window() -> int:
     return _user32.GetForegroundWindow()
+
+
+_DWMWA_DARK, _DWMWA_CAPTION_COLOR = 20, 35
+_CAPTION = {True: 0x00150E0C, False: 0x00FFFFFF}  # COLORREF 0x00BBGGRR: тёмная — #0c0e15 (как меню), светлая — белый
+
+
+def dark_title(hwnd: int, dark: bool = True) -> None:
+    """Заголовок окна под тему приложения: тёмный или светлый, на Windows 11 — ещё и цвет бокового меню,
+    чтобы заголовок сливался с окном. На старой Windows атрибутов нет — заголовок останется обычным."""
+    dwm = getattr(ctypes.windll, "dwmapi", None)
+    if dwm is None:
+        return
+    for attr, value in ((_DWMWA_DARK, int(dark)), (_DWMWA_CAPTION_COLOR, _CAPTION[dark])):
+        v = ctypes.c_int(value)
+        try:
+            dwm.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(v), ctypes.sizeof(v))
+        except OSError:
+            pass
+
+
+def bring_to_front(hwnd: int) -> None:
+    _user32.ShowWindow(hwnd, 9)  # SW_RESTORE — если свёрнуто
+    _user32.SetForegroundWindow(hwnd)
 
 
 def set_topmost(hwnd: int, on: bool) -> None:
@@ -147,41 +158,55 @@ def _win_toast(title: str, body: str, launch: str = ""):
         return False, str(e)[:200]
 
 
-def pin_newest_window(timeout: float = 6.0) -> None:
-    """Догоняет только что открытое окно (плеер) и делает его поверх всех окон."""
-    before = set(animax_hwnds())
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        fresh = [h for h in animax_hwnds() if h not in before]
-        if fresh:
-            for h in fresh:
-                set_topmost(h, True)
-            return
-        time.sleep(0.3)
-
-
 def open_app_window(url_fragment: str, port: int, size: str = "1180,680") -> bool:
-    """Открывает отдельное окно приложения (Edge --app) с адресом Animax, например плеер.
+    """Открывает отдельное окно плеера: своё (WebView2) или, если его нет, Edge --app.
 
     Окно живёт независимо от основного: закрыл — главный остался на месте.
-    После создания окно плеера ставится поверх всех окон (режим «всегда поверх»)."""
+    «Поверх всех окон» — только кнопкой 📌 в плеере (раньше включалось само — мешало)."""
+    url = f"http://127.0.0.1:{port}/{url_fragment.lstrip('/')}"
+    if ON_OPEN:  # своё окно (WebView2)
+        for f in ON_OPEN:
+            f(url)
+        return True
     edge = find_edge()
     if not edge:
         return False
-    subprocess.Popen([edge, *edge_flags(f"http://127.0.0.1:{port}/{url_fragment.lstrip('/')}", size)])
-    threading.Thread(target=pin_newest_window, daemon=True).start()
+    subprocess.Popen([edge, *edge_flags(url, size)])
     return True
 
 
 def close_windows() -> None:
-    """Закрывает окна Animax: процессы Edge, запущенные с профилем Animax."""
+    """Закрывает окна Анимир: процессы Edge, запущенные с профилем Анимир."""
     ps = ("Get-CimInstance Win32_Process -Filter \"Name='msedge.exe'\" | "
           f"Where-Object {{ $_.CommandLine -like '*{WINDOW_PROFILE}*' }} | "
           "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }")
     subprocess.run(["powershell", "-NoProfile", "-Command", ps], creationflags=subprocess.CREATE_NO_WINDOW, timeout=15)
 
 
-ON_QUIT: list = []  # что сделать перед выходом (Animax.pyw убирает значок из трея)
+ON_QUIT: list = []  # что сделать перед выходом (Animir.pyw убирает значок из трея)
+ON_SHOW: list = []  # как показать своё окно (WebView2); пусто — окно открывает Edge
+ON_OPEN: list = []  # как открыть своё окно плеера по адресу; пусто — откроется Edge
+PLAYER: dict = {}  # своё окно плеера: "info" → что в нём идёт, "close" → закрыть его
+
+
+def player_info() -> dict:
+    """Что идёт в отдельном окне плеера: {"open", "title", "hash"}. Окна Edge не видны — для них {"open": False}."""
+    f = PLAYER.get("info")
+    return f() if f else {"open": False}
+
+
+def close_player() -> bool:
+    f = PLAYER.get("close")
+    if f:
+        f()
+    return bool(f)
+
+
+def show_main() -> bool:
+    """Показать своё главное окно. False — своего окна нет (работаем через Edge)."""
+    for f in ON_SHOW:
+        f()
+    return bool(ON_SHOW)
 
 
 def quit_app() -> None:

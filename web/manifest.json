@@ -1,9 +1,9 @@
 {
-  "name": "Animax",
-  "short_name": "Animax",
+  "name": "Анимир",
+  "short_name": "Анимир",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0e0f14",
+  "background_color": "#07080d",
   "theme_color": "#0e0f14",
   "icons": [
     { "src": "icon-48.png", "sizes": "48x48", "type": "image/png" },

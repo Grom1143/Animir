@@ -1,5 +1,5 @@
 'use strict';
-// Animax — профиль и настройки.
+// Анимир — профиль и настройки.
 
 // ================= Профиль =================
 function pageProfile(view, q) {
@@ -13,7 +13,7 @@ function pageProfile(view, q) {
       <div class="avatar" id="ava" title="Изменить фото" style="${st.avatar ? `background-image:url('${st.avatar}')` : ''}">${st.avatar ? '' : esc(nick[0].toUpperCase())}</div>
       <div style="flex:1;padding-bottom:4px"><input id="nick" value="${esc(nick)}" maxlength="32" title="Изменить никнейм">
         <div class="st-text"><input id="stx" value="${esc(st.status)}" maxlength="80" placeholder="Напиши статус…"></div>
-        <div class="muted" style="padding-left:7px;font-size:12px">В Animax с ${fmtDate(S.createdAt)} · профиль хранится только на этом компьютере</div></div>
+        <div class="muted" style="padding-left:7px;font-size:12px">В Анимир с ${fmtDate(S.createdAt)} · профиль хранится только на этом компьютере</div></div>
       <button class="btn" id="pedit">✎ Редактировать профиль</button>
     </div>
     ${st.about ? `<div class="profile-about">${esc(st.about)}</div>` : ''}
@@ -49,7 +49,7 @@ function pageProfile(view, q) {
   else if (sec === 'reviews') profileReviews(box);
   else {
     const seen = [...new Map(S.history.filter(h => h.anime).map(h => [h.anime.id, h])).values()];
-    box.innerHTML = seen.length ? `<div class="grid">${seen.slice(0, 40).map(historyCard).join('')}</div>` : emptyHtml('↺', 'Пока ничего', 'Здесь появятся тайтлы, которые ты смотрел в Animax.');
+    box.innerHTML = seen.length ? `<div class="grid">${seen.slice(0, 40).map(historyCard).join('')}</div>` : emptyHtml('↺', 'Пока ничего', 'Здесь появятся тайтлы, которые ты смотрел в Анимир.');
   }
 }
 // Редактор профиля: всё в одном окне, изменения применяются только по «Сохранить»
@@ -208,6 +208,7 @@ function profileStats(box, all) {
       <a class="stat" href="#/bookmarks?tab=favorites"><b>${all.filter(e => e.fav).length}</b><span>В избранном</span></a>
       <a class="stat" href="#/collections"><b>${S.collections.length}</b><span>Коллекций</span></a>
     </div>
+    <a class="year-link" href="#/year"><b>🎆 Мой ${new Date().getFullYear()} в аниме</b><span>серии, часы, жанры, студии и рекорды года →</span></a>
     ${unrated ? `<div class="hint" style="margin-top:18px"><span>★</span><div>Есть просмотренные, но не оценённые тайтлы: ${unrated}. <a class="linkbtn" href="#/rate">Оценить</a></div></div>` : ''}
     <div class="sec-head"><h2>Динамика просмотра серий</h2><span class="sub">за 2 недели</span></div>
     <div class="people"><div class="days-bars">${days.map((d, i) => `<div class="d" title="${d.toLocaleDateString('ru-RU')}: ${perDay[i]}">${perDay[i] ? `<b>${perDay[i]}</b>` : ''}<i style="height:${perDay[i] / maxD * 100}%"></i>${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}</div>`).join('')}</div></div>
@@ -251,7 +252,7 @@ async function renderAccount(box) {
   const copyBtn = t => `<button class="btn sm" data-copy="${esc(t)}">⧉</button>`;
   if (au.logged) {
     box.innerHTML = `<div class="set"><div><div>Вход выполнен: <b>${esc(au.user?.nickname || '')}</b></div>
-      <div class="d">Можно писать комментарии и отвечать в обсуждениях. Ответы тебе Animax покажет в уведомлениях.</div></div>
+      <div class="d">Можно писать комментарии и отвечать в обсуждениях. Ответы тебе Анимир покажет в уведомлениях.</div></div>
       <div class="ctrl"><a class="btn" href="https://shikimori.io/${encodeURIComponent(au.user?.nickname || '')}" target="_blank" rel="noopener">Профиль ↗</a><button class="btn" id="a-out">Выйти</button></div></div>`;
     const hasRates = (au.scope || '').includes('user_rates');
     const lack = ['user_rates', 'comments', 'topics'].filter(x => !(au.scope || '').includes(x));
@@ -259,7 +260,7 @@ async function renderAccount(box) {
       Поставь эти галочки в своём приложении на <a class="linkbtn" href="https://shikimori.io/oauth/applications" target="_blank" rel="noopener">shikimori.io → Приложения</a>, сохрани, затем «Выйти» и войди снова.</div></div>`);
     box.insertAdjacentHTML('beforeend', `<div class="set-group">Синхронизация с Shikimori</div>
       ${hasRates ? `<div class="set"><div><div>Синхронизировать закладки, оценки и серии</div>
-          <div class="d">Списки «Смотрю», «В планах» и т.д., оценки и число просмотренных серий совпадают в Animax и на Shikimori. Побеждает более позднее изменение.
+          <div class="d">Списки «Смотрю», «В планах» и т.д., оценки и число просмотренных серий совпадают в Анимир и на Shikimori. Побеждает более позднее изменение.
           ${S.settings.shikiSyncAt ? 'Последняя синхронизация: ' + fmtWhen(S.settings.shikiSyncAt) : 'Ещё не синхронизировалось'}</div></div>
           <div class="ctrl"><label class="switch"><input type="checkbox" id="a-sync" ${S.settings.shikiSync !== false ? 'checked' : ''}><span></span></label>
           <button class="btn" id="a-sync-now">⟳ Сейчас</button></div></div>`
@@ -272,8 +273,8 @@ async function renderAccount(box) {
     return;
   }
   box.innerHTML = `
-    <div class="acc-intro"><b>Зачем это нужно.</b> Комментарии в Animax публикуются на сайте Shikimori — так их видят и могут ответить другие люди. А закладки и оценки
-      будут совпадать с твоим списком на Shikimori. Для этого Shikimori выдаёт Animax два ключа (как логин и пароль, но только для Animax и только для списка и комментариев).
+    <div class="acc-intro"><b>Зачем это нужно.</b> Комментарии в Анимир публикуются на сайте Shikimori — так их видят и могут ответить другие люди. А закладки и оценки
+      будут совпадать с твоим списком на Shikimori. Для этого Shikimori выдаёт Анимир два ключа (как логин и пароль, но только для Анимир и только для списка и комментариев).
       Настраивается <b>один раз</b>, займёт пару минут. Ссылки ниже откроются в твоём обычном браузере.</div>
 
     <div class="acc-step"><div class="acc-n">1</div><div>
@@ -283,7 +284,7 @@ async function renderAccount(box) {
     </div></div>
 
     <div class="acc-step"><div class="acc-n">2</div><div>
-      <h4>Создай приложение для Animax</h4>
+      <h4>Создай приложение для Анимир</h4>
       <ol>
         <li>Открой страницу приложений: <a class="btn sm" href="https://shikimori.io/oauth/applications" target="_blank" rel="noopener">shikimori.io → Приложения ↗</a></li>
         <li>Нажми ссылку <b>«создать»</b> рядом с заголовком «OAuth приложения».</li>
@@ -306,16 +307,16 @@ async function renderAccount(box) {
 
     <div class="acc-step"><div class="acc-n">4</div><div>
       <h4>Войди через Shikimori</h4>
-      <p>Откроется браузер — нажми там <b>«Разрешить»</b>. После этого Animax сам увидит вход.</p>
+      <p>Откроется браузер — нажми там <b>«Разрешить»</b>. После этого Анимир сам увидит вход.</p>
       <button class="btn primary" id="a-in" ${au.configured ? '' : 'disabled'}>Войти через Shikimori</button>
       ${au.configured ? '' : '<span class="muted" style="font-size:13px;margin-left:8px">сначала сохрани ключи (шаг 3)</span>'}
       <details class="acc-more"><summary>Не получилось?</summary>
-        <p>Если после «Разрешить» Animax так и не показал вход, в адресной строке браузера будет <code>…/oauth/callback?code=<b>КОД</b></code>. Скопируй код и вставь:</p>
+        <p>Если после «Разрешить» Анимир так и не показал вход, в адресной строке браузера будет <code>…/oauth/callback?code=<b>КОД</b></code>. Скопируй код и вставь:</p>
         <div class="acc-form"><input class="input" id="a-code" placeholder="Код" style="width:200px"><button class="btn" id="a-code-ok">OK</button></div>
         <p>Название приложения на Shikimori отличается от «${esc(au.app_name)}»? Впиши его сюда: <input class="input" id="a-name" value="${esc(au.app_name)}" style="width:160px"> и снова нажми «Сохранить ключи».</p>
       </details>
     </div></div>
-    <p class="muted" style="font-size:12px">Ключи и вход хранятся только на этом компьютере (%APPDATA%\\Animax\\auth.json).</p>`;
+    <p class="muted" style="font-size:12px">Ключи и вход хранятся только на этом компьютере (%APPDATA%\\Анимир\\auth.json).</p>`;
   $$('[data-copy]', box).forEach(b => b.onclick = () => copy(b.dataset.copy, 'Скопировано'));
   $('#a-save').onclick = async () => {
     const body = { app_name: $('#a-name').value, client_id: $('#a-id').value, client_secret: $('#a-sec').value };
@@ -358,8 +359,8 @@ function pageSettings(view, q) {
     ${row('Цвет акцента', 'Кнопки, выделения, полоса прогресса', `<div class="swatches">${ACCENTS.map(c => `<button style="background:${c}" data-c="${c}" class="${st.accent === c ? 'on' : ''}"></button>`).join('')}</div>`)}
     ${row('Профиль', 'Никнейм, фото, обложка и статус', '<a class="btn" href="#/profile">Открыть</a>')}`;
   else if (sec === 'notify') body = `
-    ${row('Получать уведомления о сериях', 'Animax проверяет новые серии при запуске и каждые полчаса', sw('notify', st.notify))}
-    ${row('На рабочий стол', 'Тост Windows от сервера Animax — приходит даже когда окно свернуто', sw('notifyDesktop', st.notifyDesktop !== false))}
+    ${row('Получать уведомления о сериях', 'Анимир проверяет новые серии при запуске и каждые полчаса', sw('notify', st.notify))}
+    ${row('На рабочий стол', 'Тост Windows от сервера Анимир — приходит даже когда окно свернуто', sw('notifyDesktop', st.notifyDesktop !== false))}
     ${row('Из каких списков', 'Тайтлы из этих закладок попадут в проверку', `<button class="btn" id="nl">${names(LIST_NAME, st.notifyLists.join(',')) || 'Ни из каких'}</button>`)}
     ${row('Одно уведомление на тайтл', 'Если вышло несколько серий сразу — одно сообщение «Вышли серии 5–7»', sw('notifyOne', st.notifyOne))}
     <div class="set-group">Новые релизы — все аниме, не только из закладок</div>
@@ -378,6 +379,9 @@ function pageSettings(view, q) {
     ${row('Видеоплеер', 'Где открывать файлы из медиатеки', `<div class="radio-cards" style="width:440px">
       <label class="${st.externalPlayer ? '' : 'on'}"><input type="radio" name="pl" value="0" ${st.externalPlayer ? '' : 'checked'}><b>Встроенный</b><small>Запоминает место, отмечает серии, горячие клавиши</small></label>
       <label class="${st.externalPlayer ? 'on' : ''}"><input type="radio" name="pl" value="1" ${st.externalPlayer ? 'checked' : ''}><b>Системный</b><small>VLC, MPC и т. п. — для форматов, которые встроенный не тянет</small></label></div>`)}
+    ${row('Окно плеера', 'Где идёт просмотр. Видео одновременно играет только одно — перед новым спросим', `<div class="radio-cards" style="width:440px">
+      <label class="${st.playerWindow === 'separate' ? '' : 'on'}"><input type="radio" name="pw" value="main" ${st.playerWindow === 'separate' ? '' : 'checked'}><b>В основном окне</b><small>Каталог и плеер в одном окне, «Назад» — к тайтлу</small></label>
+      <label class="${st.playerWindow === 'separate' ? 'on' : ''}"><input type="radio" name="pw" value="separate" ${st.playerWindow === 'separate' ? 'checked' : ''}><b>В отдельном окне</b><small>Смотришь и листаешь каталог; 📌 в плеере — поверх всех окон</small></label></div>`)}
     ${row('Перемотка опенинга', 'На сколько перематывает кнопка «⏩ Опенинг» и клавиша S (не меньше 5 секунд)', `<input class="input" id="sk-m" type="number" min="0" max="10" value="${Math.floor(st.skipLen / 60)}" style="width:64px"> мин <input class="input" id="sk-s" type="number" min="0" max="59" value="${st.skipLen % 60}" style="width:64px"> с`)}
     ${row('Автопереход к следующей серии', 'Через 5 секунд после конца серии', sw('autoNext', st.autoNext))}
     ${row('Скорость по умолчанию', '', sel('speed', [0.75, 1, 1.25, 1.5, 2].map(r => [r, r === 1 ? 'Обычная' : r + '×']), st.speed))}
@@ -391,8 +395,9 @@ function pageSettings(view, q) {
     ${row('Вкладка в закладках по умолчанию', '', sel('bookmarksTab', BM_TABS, st.bookmarksTab))}
     ${row('Формат времени просмотра в профиле', '', sel('timeFormat', [['dh', 'Дни и часы'], ['h', 'Часы']], st.timeFormat))}
     ${row('Компактное меню', 'Меньше отступы в боковом меню', sw('compactNav', st.compactNav))}
+    ${row('Небо по времени суток', 'Фон меняется вместе с часами: рассвет, день, закат и звёздная ночь', sw('sky', st.sky !== false))}
     ${row('Снег зимой', 'Снежинки в строке поиска с декабря по февраль', sw('snow', st.snow))}
-    ${row('Лёгкий режим', `Для слабых компьютеров: меньше памяти и нагрузки — без анимаций, с картинками попроще и видео до 720p; на ПК с малой памятью ещё и без видеокарты.${SYS?.ram_gb ? ` У этого компьютера ${SYS.ram_gb} ГБ памяти и ${plural(SYS.cores, 'ядро', 'ядра', 'ядер')}${SYS.low_end ? ' — лёгкий режим нужен' : ''}.` : ''} Окно применит его после перезапуска Animax.`,
+    ${row('Лёгкий режим', `Для слабых компьютеров: меньше памяти и нагрузки — без анимаций, с картинками попроще и видео до 720p; на ПК с малой памятью ещё и без видеокарты.${SYS?.ram_gb ? ` У этого компьютера ${SYS.ram_gb} ГБ памяти и ${plural(SYS.cores, 'ядро', 'ядра', 'ядер')}${SYS.low_end ? ' — лёгкий режим нужен' : ''}.` : ''} Окно применит его после перезапуска Анимир.`,
       sel('lite', [['auto', 'Как у компьютера'], ['on', 'Включён'], ['off', 'Выключен']], st.lite || 'auto'))}
     ${row('Подсказки', 'Снова показать все скрытые подсказки', '<button class="btn" id="hints">Вернуть</button>')}`;
   else if (sec === 'data') body = `
@@ -405,7 +410,7 @@ function pageSettings(view, q) {
     ${row('Постеры и кадры на диске', 'Ускоряет повторное открытие страниц', '<span class="muted" id="cache-sz">…</span><button class="btn" id="cache-clr">Очистить</button>')}`;
   else if (sec === 'account') body = '<div id="acc"><div class="loading">…</div></div>';
   else body = `
-    ${row('Animax ' + APP_VERSION, 'Аниме-клиент для ПК: каталог, закладки, расписание, онлайн-озвучки, медиатека и плеер. Продолжение AnyX — закладки и настройки из него переносятся сами.', '')}
+    ${row('Анимир ' + APP_VERSION, 'Аниме-клиент для ПК: каталог, закладки, расписание, онлайн-озвучки, медиатека и плеер. Продолжение AnyX — закладки и настройки из него переносятся сами.', '')}
     ${row('Данные о тайтлах', 'Shikimori (shikimori.io): каталог, оценки, статистика, комментарии', '<a class="btn" href="https://shikimori.io" target="_blank" rel="noopener">Открыть ↗</a>')}
     ${row('Видео', 'Твои файлы, ссылки на потоки (свой медиасервер) и официальные ролики YouTube', '')}
     ${row('Горячие клавиши', 'Поиск, навигация и управление плеером с клавиатуры. Окно со списком открывается и клавишей ?', '<button class="btn" id="keys">⌨ Показать</button>')}`;
@@ -437,6 +442,7 @@ function pageSettings(view, q) {
     save();
     route();
   });
+  $$('input[name=pw]', view).forEach(r => r.onchange = () => { st.playerWindow = r.value; save(); route(); });
   $$('input[name=pl]', view).forEach(r => r.onchange = () => { st.externalPlayer = r.value === '1'; save(); route(); });
   const sk = () => { st.skipLen = Math.max(5, (+$('#sk-m').value || 0) * 60 + (+$('#sk-s').value || 0)); save(); };
   $('#sk-m')?.addEventListener('change', sk);
@@ -448,17 +454,18 @@ function pageSettings(view, q) {
   $$('input[name=vw]', view).forEach(r => r.onchange = () => { st.view = r.value; save(); route(); });
   bind('homeTab', v => { st.homeTab = v; });
   $('#keys')?.addEventListener('click', keysHelp);
-  bind('lite', v => { st.lite = v; initLite(); saveNow().catch(() => {}); toast(LITE ? 'Лёгкий режим включён. Окно станет легче после перезапуска Animax' : 'Лёгкий режим выключен'); });
+  bind('lite', v => { st.lite = v; initLite(); saveNow().catch(() => {}); toast(LITE ? 'Лёгкий режим включён. Окно станет легче после перезапуска Анимир' : 'Лёгкий режим выключен'); });
   bind('bookmarksTab', v => { st.bookmarksTab = v; });
   bind('timeFormat', v => { st.timeFormat = v; });
   bind('compactNav', v => { st.compactNav = v; applyTheme(); });
   bind('snow', v => { st.snow = v; snowfall(); });
+  bind('sky', v => { st.sky = v; applySky(); });
   $('#hints')?.addEventListener('click', () => { st.hints = {}; save(); toast('Подсказки снова будут показываться'); });
   // данные
   $('#imp')?.addEventListener('click', () => $('#imp-f').click());
   $('#imp-f')?.addEventListener('change', e => importShikimori(e.target.files[0]));
   $('#exp')?.addEventListener('click', exportDialog);
-  $('#bk')?.addEventListener('click', () => download(`Animax-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(S, null, 1), 'application/json'));
+  $('#bk')?.addEventListener('click', () => download(`Animir-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(S, null, 1), 'application/json'));
   $('#rs')?.addEventListener('click', () => $('#rs-f').click());
   $('#rs-f')?.addEventListener('change', async e => {
     const file = e.target.files[0];
@@ -466,7 +473,7 @@ function pageSettings(view, q) {
     if (!file) return;
     try {
       const j = JSON.parse(await file.text());
-      if (!j.list) throw new Error('не похоже на копию Animax или AnyX');
+      if (!j.list) throw new Error('не похоже на копию Анимир или AnyX');
       if (!(await confirmBox('Заменить текущие данные данными из файла?', 'Заменить'))) return;
       // _replace: именно заменить, а не слить с текущим состоянием (как при обычном сохранении)
       const r = await fetch('/api/state', { method: 'POST', body: JSON.stringify({ ...j, _replace: true, _win: WIN }) });
@@ -510,7 +517,7 @@ function exportDialog() {
       out = list.map((e, i) => `${i + 1}. ${title(e.anime)}${opt.orig && e.anime.name ? ` (${e.anime.name})` : ''}${opt.st && e.status ? ' — ' + LIST_NAME[e.status] : ''}${opt.sc && e.score ? ' — ' + scoreText(e.score) : ''}${opt.ep && e.ep ? ` — ${e.ep} эп.` : ''}`).join('\r\n');
     }
     closeModal();
-    download(`Animax-закладки-${new Date().toISOString().slice(0, 10)}.${fmt}`, out, fmt === 'csv' ? 'text/csv' : 'text/plain');
+    download(`Анимир-закладки-${new Date().toISOString().slice(0, 10)}.${fmt}`, out, fmt === 'csv' ? 'text/csv' : 'text/plain');
   };
 }
 // Импорт списка аниме, выгруженного из Shikimori (JSON)

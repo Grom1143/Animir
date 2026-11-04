@@ -1,7 +1,10 @@
-"""Animax — запуск: поднимает сервер и открывает окно приложения (Edge в режиме приложения).
+"""Анимир — запуск: поднимает сервер и открывает окно приложения.
 
-Крестик закрывает только окно — сервер продолжает работать в фоне, а в трее (у часов) висит значок Animax:
-клик по нему открывает окно. Полностью выключает всё «Выход» — в приложении, в меню значка или «Закрыть Animax.bat».
+Окно — своё, на WebView2 (app_window.py). Если pywebview не установлен или WebView2 не запустился —
+как раньше, Edge в режиме приложения.
+
+Крестик закрывает только окно — сервер продолжает работать в фоне, а в трее (у часов) висит значок Анимир:
+клик по нему открывает окно. Полностью выключает всё «Выход» — в приложении, в меню значка или «Закрыть Анимир.bat».
 """
 
 import ctypes
@@ -18,6 +21,7 @@ import winreg
 from ctypes import wintypes
 from pathlib import Path
 
+import app_window
 import windows
 from config import APP_DIR, DATA_DIR, FROZEN, SHIKI
 import server
@@ -27,11 +31,11 @@ from tray import Tray
 
 PORT = 8790
 URL = f"http://127.0.0.1:{PORT}/"
-ICON = APP_DIR / "animax.ico"
+ICON = APP_DIR / "animir.ico"
 
 # ---------- чёткий значок окна ----------
 # Edge собирает значок окна из маленькой иконки сайта и растягивает её — на панели задач выходит мутно.
-# Поэтому сами ставим окну значки из animax.ico ровно того размера, который нужен при текущем масштабе экрана.
+# Поэтому сами ставим окну значки из animir.ico ровно того размера, который нужен при текущем масштабе экрана.
 user32 = ctypes.windll.user32
 user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
 user32.LoadImageW.restype = wintypes.HANDLE
@@ -49,14 +53,14 @@ except (AttributeError, OSError):
     pass
 
 
-def animax_windows() -> list[int]:
+def animir_windows() -> list[int]:
     found = []
     buf = ctypes.create_unicode_buffer(256)
 
     def cb(hwnd, _):
         if user32.IsWindowVisible(hwnd):
             user32.GetWindowTextW(hwnd, buf, 256)
-            if (buf.value == "Animax" or buf.value.startswith("Animax ")) and windows.is_edge_window(hwnd):
+            if (buf.value == "Анимир" or buf.value.startswith("Анимир ")) and windows.is_edge_window(hwnd):
                 found.append(hwnd)
         return True
 
@@ -88,7 +92,7 @@ def icon_burst(seconds: float = 10) -> None:
     """Окно открыл уже работающий Edge, следить не за чем — просто несколько секунд ставим значки."""
     until = time.time() + seconds
     while time.time() < until:
-        for hwnd in animax_windows():
+        for hwnd in animir_windows():
             set_icons(hwnd)
         time.sleep(0.5)
 
@@ -97,20 +101,20 @@ def icon_keeper(win: subprocess.Popen) -> None:
     # первые секунды — часто (окно только появилось и Edge ещё меняет значок), дальше — изредка
     started = time.time()
     while win.poll() is None:
-        for hwnd in animax_windows():
+        for hwnd in animir_windows():
             set_icons(hwnd)
         time.sleep(0.5 if time.time() - started < 15 else 5)
 
 
-# ---------- ссылки animax: из уведомлений Windows ----------
-# Клик по уведомлению открывает animax:open?h=<экран Animax>. Windows запускает этот файл с такой ссылкой,
-# а он передаёт экран уже работающему Animax (или запускает его) и выводит окно вперёд.
-PROTOCOL = "animax"
+# ---------- ссылки animir: из уведомлений Windows ----------
+# Клик по уведомлению открывает animir:open?h=<экран Анимир>. Windows запускает этот файл с такой ссылкой,
+# а он передаёт экран уже работающему Анимир (или запускает его) и выводит окно вперёд.
+PROTOCOL = "animir"
 
 
 def register_protocol() -> None:
-    """Регистрирует animax: для текущего пользователя (HKCU, права администратора не нужны)."""
-    if FROZEN:  # Animax.exe запускает сам себя
+    """Регистрирует animir: для текущего пользователя (HKCU, права администратора не нужны)."""
+    if FROZEN:  # Animir.exe запускает сам себя
         cmd = f'"{sys.executable}" "%1"'
     else:
         exe = Path(sys.executable)
@@ -120,7 +124,7 @@ def register_protocol() -> None:
     base = rf"Software\Classes\{PROTOCOL}"
     try:
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base) as k:
-            winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "URL:Animax")
+            winreg.SetValueEx(k, "", 0, winreg.REG_SZ, "URL:Animir")
             winreg.SetValueEx(k, "URL Protocol", 0, winreg.REG_SZ, "")
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, base + r"\DefaultIcon") as k:
             winreg.SetValueEx(k, "", 0, winreg.REG_SZ, str(ICON))
@@ -131,7 +135,7 @@ def register_protocol() -> None:
 
 
 def nav_from_args() -> str | None:
-    """Экран из ссылки animax:open?h=%23%2Fanime%2F1 → «#/anime/1»."""
+    """Экран из ссылки animir:open?h=%23%2Fanime%2F1 → «#/anime/1»."""
     for a in sys.argv[1:]:
         if a.lower().startswith(PROTOCOL + ":"):
             h = urllib.parse.parse_qs(urllib.parse.urlsplit(a).query).get("h", [""])[0]
@@ -140,8 +144,21 @@ def nav_from_args() -> str | None:
     return None
 
 
+def ask_running_to_show() -> bool:
+    """Просит уже запущенный Анимир показать своё окно. False — у него окна Edge, их выводим сами."""
+    try:
+        # окно принадлежит другому процессу, а Windows разрешает выводить окна вперёд только тому,
+        # кого запустил пользователь (нам), — делимся этим правом
+        user32.AllowSetForegroundWindow(-1)  # ASFW_ANY
+        req = urllib.request.Request(URL + "api/show", data=b"{}", method="POST")
+        with urllib.request.urlopen(req, timeout=3) as r:
+            return bool(json.load(r).get("ok"))
+    except (OSError, ValueError):
+        return False
+
+
 def send_nav(h: str) -> None:
-    """Передаёт экран уже запущенному Animax: окно заберёт его и перейдёт туда."""
+    """Передаёт экран уже запущенному Анимир: окно заберёт его и перейдёт туда."""
     try:
         req = urllib.request.Request(URL + "api/goto", data=json.dumps({"hash": h}).encode(), method="POST")
         urllib.request.urlopen(req, timeout=3).close()
@@ -151,7 +168,7 @@ def send_nav(h: str) -> None:
 
 # ---------- запуск ----------
 def ping_app() -> str | None:
-    """Кто отвечает на нашем порту: «Animax», старый «AnyX» или никто (None)."""
+    """Кто отвечает на нашем порту: «Анимир», старые «Animax» и «AnyX» или никто (None)."""
     try:
         with urllib.request.urlopen(URL + "api/ping", timeout=1) as r:
             return json.load(r).get("app")
@@ -160,7 +177,7 @@ def ping_app() -> str | None:
 
 
 def already_running() -> bool:
-    return ping_app() == "Animax"
+    return ping_app() == "Анимир"
 
 
 def _log_startup(text: str) -> None:
@@ -187,7 +204,7 @@ def open_window() -> subprocess.Popen | None:
         if win.poll() is None:
             break
         if win.returncode == 0:
-            # Edge с профилем Animax уже работал (например, открыто окно плеера): он сам открыл окно,
+            # Edge с профилем Анимир уже работал (например, открыто окно плеера): он сам открыл окно,
             # а запущенный нами процесс передал ему работу и вышел. Это не ошибка — раньше здесь
             # запускали Edge повторно и получали второе одинаковое окно.
             threading.Thread(target=icon_burst, daemon=False).start()
@@ -214,7 +231,9 @@ def _open_window_safe() -> None:
 
 def show_window() -> None:
     """Окно уже открыто — выводим его вперёд, иначе открываем новое."""
-    wins = animax_windows()
+    if windows.show_main():  # своё окно (WebView2)
+        return
+    wins = animir_windows()
     if wins:
         user32.ShowWindow(wins[0], 9)  # SW_RESTORE — если свёрнуто
         user32.SetForegroundWindow(wins[0])
@@ -227,13 +246,49 @@ def quit_all() -> None:
     os._exit(0)
 
 
+# ---------- своё окно (WebView2) ----------
+def _tray_thread() -> None:
+    # значок в трее — в своём потоке: главный поток занят окном. Сообщения Windows приходят в поток,
+    # который создал окно значка, поэтому и создаём, и крутим его здесь.
+    tray = Tray(str(ICON), "Анимир — работает в фоне", on_open=show_window, on_quit=quit_all)
+    windows.ON_QUIT.append(tray.remove)
+    tray.run()
+
+
+def _on_window_shown(hwnd: int) -> None:
+    if hwnd:
+        set_icons(hwnd)  # своя иконка вместо значка python.exe / WebView2
+        windows.dark_title(hwnd)
+
+
+def run_own_window() -> bool:
+    """Главное окно на WebView2 и цикл до «Выхода». False — не вышло, работаем через Edge."""
+    try:
+        # своя группа на панели задач (а не «Python»), чтобы там был значок Анимир
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Animir")
+    except (AttributeError, OSError):
+        pass
+    try:
+        app_window.create(URL, _on_window_shown)
+        app_window.run(lambda: threading.Thread(target=_tray_thread, daemon=True).start())
+        return True
+    except Exception as e:  # noqa: BLE001 — любое падение WebView2 — повод открыть Edge
+        _log_startup(f"Своё окно не открылось, открываю Edge: {type(e).__name__}: {e}")
+        windows.ON_SHOW.clear()
+        windows.ON_OPEN.clear()
+        windows.PLAYER.clear()
+        return False
+
+
 def main():
     register_protocol()
     nav = nav_from_args()
     if already_running():
         if nav:
             send_nav(nav)
-        if animax_windows():
+        if ask_running_to_show():
+            return
+        if animir_windows():
             show_window()
             return
         win = open_window()
@@ -250,24 +305,28 @@ def main():
             if already_running():
                 if nav:
                     send_nav(nav)
-                show_window()
+                if not ask_running_to_show():
+                    show_window()
                 return
-        if ping_app() == "AnyX":
-            text = ("Сейчас запущен старый AnyX — он занимает тот же порт 8790.\n\n"
-                    "Закрой его: значок AnyX в трее (у часов) → «Выход», — и запусти Animax снова. "
-                    "Закладки и настройки из AnyX Animax перенёс сам.")
+        old = ping_app()
+        if old in ("Animax", "AnyX"):
+            text = (f"Сейчас запущен старый {old} — он занимает тот же порт 8790.\n\n"
+                    f"Закрой его: значок {old} в трее (у часов) → «Выход», — и запусти Анимир снова. "
+                    f"Закладки и настройки из {old} Анимир перенёс сам.")
         else:
             text = ("Порт 8790 занят другой программой.\n\n"
-                    "Закрой её (или перезагрузи компьютер) и запусти Animax снова.")
-        ctypes.windll.user32.MessageBoxW(None, text, "Animax", 0x10)
+                    "Закрой её (или перезагрузи компьютер) и запусти Анимир снова.")
+        ctypes.windll.user32.MessageBoxW(None, text, "Анимир", 0x10)
         return
     if nav:
         server.set_pending_nav(nav)  # окно откроется и сразу перейдёт к уведомлению
     shiki_net.warm_up(SHIKI)  # пока открывается окно, соединения с Shikimori уже будут готовы
     threading.Thread(target=srv.serve_forever, daemon=True).start()
+    if app_window.available() and run_own_window():
+        os._exit(0)
     show_window()
     # значок в трее и цикл сообщений Windows — в главном потоке; живём, пока не нажмут «Выход»
-    tray = Tray(str(ICON), "Animax — работает в фоне", on_open=show_window, on_quit=quit_all)
+    tray = Tray(str(ICON), "Анимир — работает в фоне", on_open=show_window, on_quit=quit_all)
     windows.ON_QUIT.append(tray.remove)
     tray.run()
 
@@ -283,9 +342,9 @@ def _fatal(exc: BaseException) -> None:
     try:
         ctypes.windll.user32.MessageBoxW(
             None,
-            "Animax не смог запуститься.\n\n" + str(exc)[:600] +
+            "Анимир не смог запуститься.\n\n" + str(exc)[:600] +
             f"\n\nПодробности: {DATA_DIR / 'error.log'}",
-            "Animax", 0x10)
+            "Анимир", 0x10)
     except OSError:
         pass
 

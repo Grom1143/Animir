@@ -1,6 +1,6 @@
-"""Animax — значок в трее (область уведомлений справа внизу, у часов).
+"""Анимир — значок в трее (область уведомлений справа внизу, у часов).
 
-Висит, пока Animax работает в фоне. Клик — открыть окно, правый клик — меню «Открыть Animax / Выход».
+Висит, пока Анимир работает в фоне. Клик — открыть окно, правый клик — меню «Открыть Анимир / Выход».
 Написано на чистом Windows API через ctypes, чтобы не ставить лишних библиотек.
 """
 
@@ -68,12 +68,12 @@ class Tray:
         self.on_open, self.on_quit = on_open, on_quit
         self._proc = WNDPROC(self._wndproc)  # держим ссылку, иначе сборщик мусора удалит колбэк
         hinst = kernel32.GetModuleHandleW(None)
-        wc = WNDCLASSW(lpfnWndProc=self._proc, hInstance=hinst, lpszClassName="AnimaxTray")
+        wc = WNDCLASSW(lpfnWndProc=self._proc, hInstance=hinst, lpszClassName="AnimirTray")
         user32.RegisterClassW(ctypes.byref(wc))
         # после перезапуска проводника значки в трее пропадают — Windows присылает это сообщение, добавляем заново.
         # Узнаём его номер до создания окна: сообщения приходят уже во время CreateWindowExW.
         self.wm_taskbar = user32.RegisterWindowMessageW("TaskbarCreated")
-        self.hwnd = user32.CreateWindowExW(0, "AnimaxTray", "Animax tray", 0, 0, 0, 0, 0, None, None, hinst, None)
+        self.hwnd = user32.CreateWindowExW(0, "AnimirTray", "Анимир tray", 0, 0, 0, 0, 0, None, None, hinst, None)
         size = user32.GetSystemMetrics(49)  # SM_CXSMICON — размер маленького значка с учётом масштаба
         hicon = user32.LoadImageW(None, icon_path, IMAGE_ICON, size, size, LR_LOADFROMFILE)
         self.nid = NOTIFYICONDATAW(cbSize=ctypes.sizeof(NOTIFYICONDATAW), hWnd=self.hwnd, uID=1,
@@ -82,7 +82,7 @@ class Tray:
 
     def _menu(self):
         m = user32.CreatePopupMenu()
-        user32.AppendMenuW(m, MF_STRING, CMD_OPEN, "Открыть Animax")
+        user32.AppendMenuW(m, MF_STRING, CMD_OPEN, "Открыть Анимир")
         user32.AppendMenuW(m, MF_SEPARATOR, 0, None)
         user32.AppendMenuW(m, MF_STRING, CMD_QUIT, "Выход")
         pt = wintypes.POINT()

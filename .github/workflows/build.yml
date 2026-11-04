@@ -25,12 +25,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r packaging/requirements-build.txt
 
-      - name: Build Animax.exe
-        run: python -m PyInstaller --noconfirm --clean packaging/Animax.spec --distpath dist-exe --workpath build
+      - name: Build Animir.exe
+        run: python -m PyInstaller --noconfirm --clean packaging/Animir.spec --distpath dist-exe --workpath build
 
       - name: Prepare installer inputs
         shell: pwsh
-        run: Copy-Item dist-exe\Animax.exe Animax.exe -Force
+        run: Copy-Item dist-exe\Animir.exe Animir.exe -Force
 
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
@@ -41,9 +41,9 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Animax-windows
+          name: Animir-windows
           path: |
-            dist-exe/Animax.exe
+            dist-exe/Animir.exe
             dist/*.exe
 
       - name: Publish GitHub release
@@ -51,5 +51,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist-exe/Animax.exe
+            dist-exe/Animir.exe
             dist/*.exe

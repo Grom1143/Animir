@@ -1,5 +1,5 @@
 'use strict';
-// Animax — расписание, релизы, уведомления.
+// Анимир — расписание, релизы, уведомления.
 
 // ================= Расписание =================
 async function pageSchedule(view, q, _, alive) {
@@ -122,7 +122,7 @@ async function releasesList(box, mode, kind, alive) {
       <div class="grid">${list.map(a => rlItem(a, 'ongoing')).join('')}</div>` : emptyHtml('📺', 'Ничего не нашлось');
     return;
   }
-  // завершённые: то, что Animax заметил сам (журнал), + вышедшее за этот и прошлый сезон
+  // завершённые: то, что Анимир заметил сам (журнал), + вышедшее за этот и прошлый сезон
   const prev = currentSeason(new Date(Date.now() - 92 * 864e5));
   const d = await gql(animes({ status: 'released', season: `${currentSeason()},${prev}`, kind: 'tv,ona', order: 'popularity', limit: 50 }, RL_FIELDS));
   if (!alive()) return;
@@ -152,7 +152,7 @@ async function checkNewEpisodes(silent = false) {
         const old = S.list[a.id]?.anime || S.subs[a.id];
         if (!old) continue;
         const from = old.episodesAired || 0, to = fresh.episodesAired;
-        const push = (text, type, ep) => { S.notifications.unshift({ id: uid(), type, anime: fresh, ep, at: Date.now(), read: false, text }); if (S.settings.notifyDesktop !== false) desktop(fresh.russian || fresh.name || 'Animax', text, `#/anime/${fresh.id}`); added++; };
+        const push = (text, type, ep) => { S.notifications.unshift({ id: uid(), type, anime: fresh, ep, at: Date.now(), read: false, text }); if (S.settings.notifyDesktop !== false) desktop(fresh.russian || fresh.name || 'Анимир', text, `#/anime/${fresh.id}`); added++; };
         const final = subMode(a.id) === 'final';
         if (old.status && old.status !== 'released' && fresh.status === 'released') {
           logFinished(fresh);
@@ -183,7 +183,7 @@ async function checkNewEpisodes(silent = false) {
           const note = (n, text) => {
             const href = `#/watch?o=${sub.id}&d=${encodeURIComponent(sub.dub)}&e=${n}`;
             S.notifications.unshift({ id: uid(), type: 'episode', anime: sub.anime, ep: n, at: Date.now(), read: false, text, href });
-            if (S.settings.notifyDesktop !== false) desktop(sub.anime.russian || sub.anime.name || 'Animax', text, href);
+            if (S.settings.notifyDesktop !== false) desktop(sub.anime.russian || sub.anime.name || 'Анимир', text, href);
             dubAdded++;
           };
           if (!sub.ep) note(to, `Появилась озвучка «${sub.dubLabel}»: ${plural(to, 'серия', 'серии', 'серий')}`);
@@ -268,7 +268,7 @@ function pageNotifications(view, q) {
     ${S.settings.notify ? '' : '<div class="hint"><span>🔕</span><div>Уведомления выключены. <a class="linkbtn" href="#/settings?s=notify">Открыть настройки</a></div></div>'}
     <div class="list">${list.map(n => `<a class="notif ${n.read ? '' : 'new'}" href="${n.href || '#/anime/' + n.anime.id}" data-aid="${n.anime.id}"><img src="${img(n.anime.poster, 120)}" alt="">
       <div class="b"><div><b>${esc(title(n.anime))}</b></div><div>${{ episode: '📺 ', reply: '💬 ' }[n.type || 'episode'] || '🎬 '}${esc(n.text)}</div><div class="m">${ago(n.at)}</div></div>${n.read ? '' : '<span style="color:var(--accent2)">●</span>'}</a>`).join('')
-      || emptyHtml('🔔', 'Нет уведомлений', 'Animax сообщит о новых сериях тайтлов из закладок и тех, где ты нажал 🔔, а ещё о премьерах и вышедших полностью аниме.')}</div>`;
+      || emptyHtml('🔔', 'Нет уведомлений', 'Анимир сообщит о новых сериях тайтлов из закладок и тех, где ты нажал 🔔, а ещё о премьерах и вышедших полностью аниме.')}</div>`;
   list.forEach(n => n.read = true);
   list.forEach(n => SNAPS.set(n.anime.id, n.anime));
   save();

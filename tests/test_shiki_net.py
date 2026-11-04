@@ -37,7 +37,7 @@ class HostPauseTest(unittest.TestCase):
         self.assertEqual(self.urlopen.call_count, shiki_net.HOST_FAILS)
 
     def test_shikimori_is_never_paused(self):
-        # С Shikimori все постеры: пара медленных ответов не должна оставить Animax без картинок на 5 минут
+        # С Shikimori все постеры: пара медленных ответов не должна оставить Анимир без картинок на 5 минут
         self.fail_times("https://shikimori.io/uploads/poster/animes/1/main.webp", 5)
         self.assertEqual(self.urlopen.call_count, 5)
 

@@ -1,4 +1,4 @@
-"""Animax — данные с Shikimori для сервера: запросы, кэш ответов (в памяти и на диске), отзывы, коллекции."""
+"""Анимир — данные с Shikimori для сервера: запросы, кэш ответов (в памяти и на диске), отзывы, коллекции."""
 import hashlib
 import json
 import re
@@ -27,7 +27,7 @@ def upstream(url: str, body: bytes | None = None, timeout: int = 20) -> bytes:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=body, headers=headers)
     # GET и GraphQL-запросы только читают — их можно слать по сохранённому соединению и повторять при обрыве.
-    # Мутацию (Animax их пока не шлёт) повторять нельзя: она могла дойти, и действие выполнилось бы дважды.
+    # Мутацию (Анимир их пока не шлёт) повторять нельзя: она могла дойти, и действие выполнилось бы дважды.
     idempotent = body is None or b"mutation" not in body
     return shiki_net.open_url(req, timeout, idempotent=idempotent)[1]
 
@@ -36,7 +36,7 @@ def _disk_file(key: str) -> Path:
     return API_DISK / (hashlib.sha1(key.encode()).hexdigest() + ".json")
 
 
-API_CACHE_MAX = 300  # ответов в памяти; раньше просроченные не удалялись и копились, пока Animax открыт
+API_CACHE_MAX = 300  # ответов в памяти; раньше просроченные не удалялись и копились, пока Анимир открыт
 
 
 def _remember(key: str, data: bytes) -> None:
@@ -139,7 +139,8 @@ def colls_search(q: dict) -> dict:
     # индекс ещё не собран — живой Shikimori: поиск по названию или новые коллекции
     if text:
         path = ("/collections.json" if page == 1 else f"/collections/p-{page}.json") + "?search=" + urllib.parse.quote(text)
-        items = shiki_colls.parse_previews(json.loads(shiki_text(path)).get("content", ""))
+        # ничего не найдено — Shikimori отвечает {"content": null}, а не пустой строкой
+        items = shiki_colls.parse_previews(json.loads(shiki_text(path)).get("content") or "")
         done = len(items) < 4
     else:
         rows = json.loads(shiki_text(f"/api/topics?forum=collections&limit=30&page={page}") or "[]")

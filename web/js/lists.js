@@ -1,5 +1,5 @@
 'use strict';
-// Animax — закладки, история, коллекции (свои и Shikimori).
+// Анимир — закладки, история, коллекции (свои и Shikimori).
 
 // ================= Закладки =================
 const BM_TABS = [['collections', 'Коллекции'], ['history', 'История'], ['favorites', 'Избранное'], ...LISTS];
@@ -75,6 +75,21 @@ const histHref = h => {
   if (m) return '#/watch?' + new URLSearchParams({ o: m[1], d: m[2], e: m[3] }).toString();
   return '#/watch?f=' + encodeURIComponent(h.file);
 };
+// Главная: крупная карточка последней недосмотренной серии — продолжить одной кнопкой с той же секунды
+function resumeCard(h) {
+  const p = S.progress[h.file] || {};
+  const a = h.anime || { id: 0, russian: h.name, poster: '' };
+  if (a.id) SNAPS.set(a.id, a);
+  const left = p.d ? Math.max(0, Math.round((p.d - p.t) / 60)) : 0;
+  return `<section class="resume" id="resume" ${a.id ? `data-aid="${a.id}" data-hist="${esc(h.file)}"` : ''}>
+    <div class="rs-bg" style="background-image:url('${img(a.poster)}')"></div>
+    <img class="rs-poster" src="${img(a.poster)}" alt="">
+    <div class="rs-body"><div class="rs-kicker">Продолжить с того места</div>
+      <div class="rs-t">${esc(a.id ? title(a) : h.name)}</div>
+      <div class="rs-m">${[h.ep != null ? h.ep + ' серия' : '', h.dub ? esc(h.dub) : '', p.d ? `${fmtTime(p.t)} из ${fmtTime(p.d)}` : '', left ? `осталось ${left} мин` : ''].filter(Boolean).join(' · ')}</div>
+      <div class="rs-bar"><i style="width:${p.d ? p.t / p.d * 100 : 0}%"></i></div></div>
+    <a class="btn primary resume-play" href="${histHref(h)}">▶ Продолжить</a></section>`;
+}
 function historyCard(h) {
   const p = S.progress[h.file] || {};
   const a = h.anime || { id: 0, russian: h.name, poster: '' };
@@ -175,8 +190,8 @@ async function pageCollections(view, q, _, alive) {
 async function myCollections(box, alive) {
   const au = await authStatus();
   const nick = au?.user?.nickname;
-  // сначала свои коллекции Animax, ниже — с Shikimori
-  box.innerHTML = `<div class="sec-head"><h2>В Animax</h2><span class="sub">хранятся только в этой программе</span></div><div id="sc-local"></div>
+  // сначала свои коллекции Анимир, ниже — с Shikimori
+  box.innerHTML = `<div class="sec-head"><h2>В Анимир</h2><span class="sub">хранятся только в этой программе</span></div><div id="sc-local"></div>
     <div class="sec-head" style="margin-top:28px"><h2>На Shikimori</h2>${nick ? `<span class="sub">${esc(nick)}</span>` : ''}
       <button class="btn sm" id="sc-new" style="margin-left:auto">＋ Создать на Shikimori ↗</button></div>
     <div id="sc-mine">${nick ? '<div class="loading">Загрузка…</div>' : `<div class="hint"><span>🔑</span><div>Войди в Shikimori — здесь появятся твои коллекции оттуда. <a class="linkbtn" href="#/settings?s=account">Войти</a></div></div>`}</div>`;
@@ -224,7 +239,7 @@ async function pageShikiColl(view, q, [id], alive) {
         <div class="muted" style="margin-top:4px">👍 ${c.up} · 👎 ${c.down} · 💬 ${c.comments}${c.spoilers ? ' · <span class="sc-tag">спойлеры</span>' : ''}</div>
         ${c.desc ? `<p class="desc sc-desc">${esc(c.desc)}</p>` : ''}
         <div class="actions"><button class="btn" id="sh">Открыть на Shikimori ↗</button>
-          ${anime.length ? '<button class="btn" id="rnd">🔀 Случайный тайтл</button><button class="btn" id="keep">⧉ Сохранить себе в Animax</button>' : ''}</div></div></div>
+          ${anime.length ? '<button class="btn" id="rnd">🔀 Случайный тайтл</button><button class="btn" id="keep">⧉ Сохранить себе в Анимир</button>' : ''}</div></div></div>
     ${anime.length ? `<div class="people" style="margin-bottom:22px"><div class="muted" style="margin-bottom:8px">Из аниме в твоих списках: <b style="color:var(--text)">${inLists}</b> из ${anime.length}</div>
       <div class="pbar">${counts.map(([k, n]) => `<i style="width:${n / anime.length * 100}%;background:${LIST_COLOR[k]}"></i>`).join('')}</div>
       <div class="plegend">${counts.map(([k, n]) => `<span style="--c:${LIST_COLOR[k]}">${LIST_NAME[k]}: <b>${n}</b></span>`).join('')}</div></div>` : ''}
@@ -237,7 +252,7 @@ async function pageShikiColl(view, q, [id], alive) {
     const local = { id: was?.id || uid(), shiki: c.id, name: c.title.slice(0, 60), desc: (c.desc || '').slice(0, 1000), items: anime, created: was?.created || Date.now(), updated: Date.now() };
     if (was) Object.assign(was, local); else S.collections.unshift(local);
     save();
-    toast(was ? 'Копия в Animax обновлена' : 'Сохранено в «Мои → В Animax»');
+    toast(was ? 'Копия в Анимир обновлена' : 'Сохранено в «Мои → В Анимир»');
   });
 }
 function collectionPicker(s) {

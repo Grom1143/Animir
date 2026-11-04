@@ -12,12 +12,12 @@ VSVersionInfo(
   kids=[
     StringFileInfo([
       StringTable('040904B0', [
-        StringStruct('CompanyName', 'Animax'),
-        StringStruct('FileDescription', 'Animax — аниме-клиент для Windows'),
+        StringStruct('CompanyName', 'Анимир'),
+        StringStruct('FileDescription', 'Анимир — аниме-клиент для Windows'),
         StringStruct('FileVersion', '1.0.0'),
-        StringStruct('InternalName', 'Animax'),
-        StringStruct('OriginalFilename', 'Animax.exe'),
-        StringStruct('ProductName', 'Animax'),
+        StringStruct('InternalName', 'Анимир'),
+        StringStruct('OriginalFilename', 'Animir.exe'),
+        StringStruct('ProductName', 'Анимир'),
         StringStruct('ProductVersion', '1.0.0'),
       ])
     ]),

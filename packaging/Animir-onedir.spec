@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""Animax — сборка «папкой» (onedir): без самораспаковки во временную папку.
+"""Анимир — сборка «папкой» (onedir): без самораспаковки во временную папку.
 Такой вариант заметно реже попадает под ложные ML-срабатывания антивирусов."""
 
 import os
@@ -8,17 +8,21 @@ import os
 ROOT = os.path.dirname(SPECPATH)
 
 a = Analysis(
-    [os.path.join(ROOT, 'Animax.pyw')],
+    [os.path.join(ROOT, 'Animir.pyw')],
     pathex=[ROOT],
     binaries=[],
     datas=[
         (os.path.join(ROOT, 'web'), 'web'),
-        (os.path.join(ROOT, 'animax.ico'), '.'),
+        (os.path.join(ROOT, 'animir.ico'), '.'),
         (os.path.join(ROOT, 'notify_toast.ps1'), '.'),
     ],
     hiddenimports=[
         'PIL.Image',
         'PIL.ImageFilter',
+        # pywebview выбирает движок окна на лету — модули Windows-окна (WinForms + WebView2) указываем явно
+        'webview.platforms.winforms',
+        'webview.platforms.edgechromium',
+        'clr',
     ],
     hookspath=[],
     hooksconfig={},
@@ -34,7 +38,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='Animax',
+    name='Animir',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -45,7 +49,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(ROOT, 'animax.ico'),
+    icon=os.path.join(ROOT, 'animir.ico'),
     version=os.path.join(SPECPATH, 'version_info.txt'),
 )
 
@@ -56,5 +60,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='Animax',
+    name='Animir',
 )

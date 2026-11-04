@@ -1,5 +1,5 @@
 'use strict';
-// Animax — страница тайтла: описание, оценки, комментарии, отзывы.
+// Анимир — страница тайтла: описание, оценки, комментарии, отзывы.
 
 // ================= Страница тайтла =================
 const ANIME_FIELDS = `id russian name japanese english synonyms kind score status episodes episodesAired duration rating origin franchise
@@ -105,9 +105,9 @@ function watchWhereDialog(a, legal = []) {
     return row(x, hit ? hit.url : x.url(q));
   }).join('');
   modal(`<h3>Где смотреть</h3>
-    <p class="muted">Официальные площадки: VK Видео, RuTube и YouTube — бесплатно; у Иви, Wink и Okko часть каталога открыта бесплатно с рекламой, остальное по подписке. Animax не ищет пиратские копии и не обходит защиты.</p>
+    <p class="muted">Официальные площадки: VK Видео, RuTube и YouTube — бесплатно; у Иви, Wink и Okko часть каталога открыта бесплатно с рекламой, остальное по подписке. Анимир не ищет пиратские копии и не обходит защиты.</p>
     <div class="list">${body}</div>
-    <p class="muted" style="font-size:12px">Свои файлы и домашний медиасервер играют прямо в Animax — раздел «Медиатека», а ссылку на ролик площадки можно добавить кнопкой 🔗 сверху.</p>
+    <p class="muted" style="font-size:12px">Свои файлы и домашний медиасервер играют прямо в Анимир — раздел «Медиатека», а ссылку на ролик площадки можно добавить кнопкой 🔗 сверху.</p>
     <div class="row-btns"><button class="btn" onclick="closeModal()">Закрыть</button></div>`);
 }
 
@@ -496,7 +496,7 @@ async function checkCommentReplies() {
 }
 
 // ---- моё мнение о тайтле: 👍 / 😐 / 👎. Влияет на рекомендации; на Shikimori мнение есть только у отзыва,
-// поэтому если отзыв написан — мнение в нём меняется вместе с мнением в Animax ----
+// поэтому если отзыв написан — мнение в нём меняется вместе с мнением в Анимир ----
 const myOpinion = id => S.opinions[id]?.tone || null;
 function migrateOpinions() {
   // раньше тон ставился у каждого комментария — переносим самый свежий на тайтл, отзыв главнее
@@ -527,7 +527,7 @@ function bindOpinion(root, a, after) {
     const tone = b.dataset.op === myOpinion(a.id) ? null : b.dataset.op;  // повторный клик снимает мнение
     $$('[data-op]', root).forEach(x => x.classList.toggle('on', x.dataset.op === tone));
     try { if (await setOpinion(a, tone)) toast('Мнение изменено и в отзыве на Shikimori'); }
-    catch (err) { toast('В Animax сохранено, но Shikimori не ответил: ' + err.message); }
+    catch (err) { toast('В Анимир сохранено, но Shikimori не ответил: ' + err.message); }
     after?.();
   });
 }
@@ -729,7 +729,7 @@ async function renderViewerReviews(box, a, alive) {
   };
   await load();
 }
-// Свой отзыв в общем списке: если на сайте поменяли мнение или пришли голоса — подтягиваем в Animax
+// Свой отзыв в общем списке: если на сайте поменяли мнение или пришли голоса — подтягиваем в Анимир
 function syncMyReviewFrom(a, items) {
   const r = myReview(a.id), x = r && items.find(i => i.id === r.id);
   if (!x) return false;

@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 >nul
-rem Безопасная портативная сборка Animax: папкой, без самораспаковки (onedir).
-rem Результат: ..\..\Animax-portable\Animax\Animax.exe
+rem Безопасная портативная сборка Анимир: папкой, без самораспаковки (onedir).
+rem Результат: ..\..\Animir-portable\Анимир\Animir.exe
 cd /d "%~dp0"
-python -m PyInstaller --noconfirm --clean Animax-onedir.spec --distpath "..\..\Animax-portable" --workpath "%TEMP%\Animax-onedir-build"
+python -m PyInstaller --noconfirm --clean Animir-onedir.spec --distpath "..\..\Animir-portable" --workpath "%TEMP%\Animir-onedir-build"
 if errorlevel 1 (
   echo.
   echo Сборка не удалась. Установи PyInstaller: python -m pip install -r packaging\requirements-build.txt
@@ -11,5 +11,5 @@ if errorlevel 1 (
   exit /b 1
 )
 echo.
-echo Готово: %~dp0..\..\Animax-portable\Animax\Animax.exe
+echo Готово: %~dp0..\..\Animir-portable\Анимир\Animir.exe
 pause

@@ -1,11 +1,11 @@
 param(
-  [string]$title = "Animax",
+  [string]$title = "Анимир",
   [string]$body = "",
   [string]$launch = ""
 )
 # Тост-уведомление Windows без сторонних модулей (WinRT из PowerShell).
 # AppId — системный powershell.exe, у него уже есть разрешение на уведомления.
-# launch — ссылка animax:open?h=... : клик по уведомлению откроет Animax на нужном экране.
+# launch — ссылка animir:open?h=... : клик по уведомлению откроет Анимир на нужном экране.
 try {
   $null = [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]
   $null = [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom, ContentType = WindowsRuntime]

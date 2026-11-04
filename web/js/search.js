@@ -1,5 +1,5 @@
 'use strict';
-// Animax — поиск, фильтр каталога, поиск по озвучкам.
+// Анимир — поиск, фильтр каталога, поиск по озвучкам.
 
 // ================= Поиск =================
 const searchInput = $('#search'), suggestBox = $('#suggest');
@@ -416,7 +416,7 @@ function dubPickerModal(pick, clearable = false) {
 
 async function pageDubs(view, q, _, alive) {
   if (SYS?.online === false) {
-    view.innerHTML = '<h1 class="page-title">Озвучки</h1>' + emptyHtml('🎙', 'В этой версии Animax онлайн-озвучек нет', 'Смотри свои файлы из «Медиатеки», ссылки на свой медиасервер (🔗) или официальные площадки — кнопка «Где смотреть» на странице тайтла.');
+    view.innerHTML = '<h1 class="page-title">Озвучки</h1>' + emptyHtml('🎙', 'В этой версии Анимир онлайн-озвучек нет', 'Смотри свои файлы из «Медиатеки», ссылки на свой медиасервер (🔗) или официальные площадки — кнопка «Где смотреть» на странице тайтла.');
     return;
   }
   const tid = q.get('tid');
