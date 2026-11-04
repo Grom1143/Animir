@@ -1,5 +1,5 @@
 /* ============================================================================
-   Animax — Aurora Glass
+   Анимир — Aurora Glass
    Слой оформления поверх base.css/pages.css: глубина, «стекло», мягкое свечение
    и динамическая подсветка (следит за курсором, постером и прокруткой).
    Подключается последним, поэтому аккуратно переопределяет базовые стили.
@@ -14,8 +14,8 @@
   --line: #242a3a;
   --text: #eef0f8;
   --muted: #99a1b7;
-  --accent: #8b6cff;
-  --accent2: #ff5c8a;
+  --accent: #5f7bff;
+  --accent2: #ff6b5e;
   --ok: #3ccf8e;
   --warn: #ffb547;
 
@@ -1354,6 +1354,49 @@ button.chip.on {
   .hero { min-height: 250px; }
 }
 
+/* ---------- небо по времени суток (data-sky ставит applySky в core.js) ---------- */
+:root { --sky-a: transparent; --sky-b: transparent; }
+:root[data-sky="morning"] { --sky-a: color-mix(in srgb, #ffa476 30%, transparent); --sky-b: color-mix(in srgb, #ff7fa8 18%, transparent); }
+:root[data-sky="day"]     { --sky-a: color-mix(in srgb, #5bb8ff 22%, transparent); --sky-b: color-mix(in srgb, #7fe0c8 12%, transparent); }
+:root[data-sky="evening"] { --sky-a: color-mix(in srgb, #ff6a3d 30%, transparent); --sky-b: color-mix(in srgb, #b847d6 26%, transparent); }
+:root[data-sky="night"]   { --sky-a: color-mix(in srgb, #3346ff 22%, transparent); --sky-b: color-mix(in srgb, #1a2470 40%, transparent); }
+:root[data-theme="light"][data-sky="morning"] { --sky-a: color-mix(in srgb, #ffb08a 34%, transparent); }
+:root[data-theme="light"][data-sky="day"]     { --sky-a: color-mix(in srgb, #7cc6ff 30%, transparent); }
+:root[data-theme="light"][data-sky="evening"] { --sky-a: color-mix(in srgb, #ff8a5c 32%, transparent); }
+:root[data-theme="light"][data-sky="night"]   { --sky-a: color-mix(in srgb, #6d7bff 26%, transparent); }
+:root[data-sky] body {
+  background:
+    radial-gradient(110% 70% at 50% -18%, var(--sky-a), transparent 72%),
+    radial-gradient(90% 60% at 50% 120%, var(--sky-b), transparent 72%),
+    radial-gradient(120% 90% at 100% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
+    radial-gradient(100% 80% at -10% 110%, color-mix(in srgb, var(--accent2) 9%, transparent), transparent 55%),
+    var(--bg);
+}
+/* ночью — звёзды своим слоем (под пятнами и сеткой body), медленно мерцают */
+:root[data-sky="night"]::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 18%, #fff, transparent 70%),
+    radial-gradient(1.2px 1.2px at 33% 9%, #fff, transparent 70%),
+    radial-gradient(1.4px 1.4px at 57% 22%, #fff, transparent 70%),
+    radial-gradient(1.2px 1.2px at 76% 12%, #fff, transparent 70%),
+    radial-gradient(2px 2px at 88% 30%, #fff, transparent 70%),
+    radial-gradient(1.2px 1.2px at 22% 36%, #fff, transparent 70%),
+    radial-gradient(1.4px 1.4px at 46% 44%, #fff, transparent 70%),
+    radial-gradient(1.2px 1.2px at 67% 52%, #fff, transparent 70%),
+    radial-gradient(1.6px 1.6px at 5% 60%, #fff, transparent 70%),
+    radial-gradient(1.2px 1.2px at 94% 70%, #fff, transparent 70%);
+  background-size: 560px 380px;
+  -webkit-mask-image: linear-gradient(#000 0%, transparent 80%);
+  mask-image: linear-gradient(#000 0%, transparent 80%);
+  opacity: .55;
+  animation: twinkle 6s ease-in-out infinite alternate;
+}
+@keyframes twinkle { from { opacity: .35; } to { opacity: .7; } }
+:root[data-theme="light"][data-sky="night"]::before { display: none; }
+.lite:root[data-sky="night"]::before { animation: none; }
+
+
 /* лёгкий режим: убираем дорогие эффекты */
 .lite body::before,
 .lite body::after,
@@ -1387,7 +1430,7 @@ button.chip.on {
 }
 
 /* ============================================================================
-   Animax — дополнения: типы сообщений, кнопка ✕ у окон, горячие клавиши, «Наверх»
+   Анимир — дополнения: типы сообщений, кнопка ✕ у окон, горячие клавиши, «Наверх»
    ========================================================================== */
 .toast { cursor: pointer; transition: opacity .2s, transform .2s; }
 .toast.ok { border-left-color: var(--ok); }

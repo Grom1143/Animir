@@ -1,5 +1,5 @@
 'use strict';
-// Animax — серии, онлайн-источники, выбор озвучки, ссылки на видеопотоки.
+// Анимир — серии, онлайн-источники, выбор озвучки, ссылки на видеопотоки.
 
 // ================= Серии тайтла =================
 // Серия может «играть» из файла в медиатеке или из сохранённой ссылки на поток.
@@ -481,7 +481,7 @@ function embedUrl(url) {
   if ((m = url.match(/ok\.ru\/video\/(\d+)/i))) return `https://ok.ru/videoembed/${m[1]}?autoplay=1`;
   return url;
 }
-// Во встроенный плеер пускаем только внешние https-адреса — не локальную сеть и не сам Animax
+// Во встроенный плеер пускаем только внешние https-адреса — не локальную сеть и не сам Анимир
 function safeEmbed(url) {
   try {
     const u = new URL(url);
@@ -493,12 +493,12 @@ function safeEmbed(url) {
 function streamDialog({ anime = null, ep = null, url = '' } = {}) {
   let linked = anime;
   const b = modal(`<h3>Открыть ссылку на видео</h3>
-    <p class="muted">Прямая ссылка на видео (<b>.mp4</b>, <b>.webm</b>, <b>.m3u8</b>) — например, со своего медиасервера — откроется в плеере Animax.
+    <p class="muted">Прямая ссылка на видео (<b>.mp4</b>, <b>.webm</b>, <b>.m3u8</b>) — например, со своего медиасервера — откроется в плеере Анимир.
       Ссылка на страницу ролика RUTUBE, VK Видео, ОК… — во встроенном плеере сайта; ролики YouTube открываются на самом YouTube.</p>
     <input class="input" id="su" style="width:100%" placeholder="https://…" value="${esc(url)}">
     <select class="select" id="sm" style="width:100%;margin-top:10px">
       <option value="auto">Определить автоматически</option>
-      <option value="direct">Видеофайл или HLS-поток — плеер Animax</option>
+      <option value="direct">Видеофайл или HLS-поток — плеер Анимир</option>
       <option value="embed">Страница или плеер сайта — встроить</option>
     </select>
     <div class="muted" id="sk" style="font-size:12px;margin-top:6px"></div>
@@ -512,7 +512,7 @@ function streamDialog({ anime = null, ep = null, url = '' } = {}) {
     const u = $('#su', b).value.trim();
     if (!/^https?:\/\//i.test(u)) { $('#sk', b).textContent = ''; return; }
     const mode = streamMode({ url: u, mode: $('#sm', b).value });
-    $('#sk', b).textContent = mode === 'direct' ? 'Будет играть в плеере Animax: запомнит место, отметит серию, горячие клавиши.'
+    $('#sk', b).textContent = mode === 'direct' ? 'Будет играть в плеере Анимир: запомнит место, отметит серию, горячие клавиши.'
       : `Будет встроен плеер сайта «${siteName(u)}». Место остановки запомнить не получится — серию можно отметить кнопкой.`;
   };
   $('#su', b).addEventListener('input', hintKind);

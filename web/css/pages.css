@@ -1,4 +1,4 @@
-/* Animax — разделы, добавленные во второй версии (главная/обзор/фильтр/релиз/закладки/профиль/настройки) */
+/* Анимир — разделы, добавленные во второй версии (главная/обзор/фильтр/релиз/закладки/профиль/настройки) */
 :root { --st-watching: #3ccf8e; --st-planned: #8b6cff; --st-completed: #2fb6ff; --st-on_hold: #ffb547; --st-dropped: #ff5c6a; }
 
 .splash { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: grid; place-content: center; justify-items: center; gap: 14px; font-size: 30px; font-weight: 800; transition: opacity .35s; }
@@ -469,3 +469,44 @@ button.tone-pill { cursor: pointer; }
 .lite *, .lite *::before, .lite *::after { transition: none !important; animation-duration: 0s !important; }
 .lite .card:hover .poster img { transform: none; }
 .lite .modal, .lite .ctx { box-shadow: none; backdrop-filter: none; }
+
+/* «Мой год в аниме» */
+.year-hero { position: relative; overflow: hidden; border-radius: var(--radius); padding: 28px 30px 18px; margin-bottom: 18px; color: #fff;
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 70%, #0b0d18) 0%, #0b0d18 60%),
+              radial-gradient(80% 120% at 100% 100%, color-mix(in srgb, var(--accent2) 55%, transparent) 0%, transparent 70%); }
+.year-hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 260px; height: 260px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.12); box-shadow: 0 0 0 28px rgba(255,255,255,.03), 0 0 0 70px rgba(255,255,255,.02); }
+.yh-in { display: flex; gap: 24px; align-items: center; position: relative; z-index: 1; }
+.yh-y { font-size: 72px; font-weight: 800; line-height: 1; letter-spacing: -2px;
+  background: linear-gradient(135deg, #fff, color-mix(in srgb, var(--accent2) 70%, #fff)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.year-hero h1 { margin: 0 0 6px; font-size: 26px; }
+.year-hero p { margin: 0; color: #dfe3ee; }
+.year-hero .chips { margin-top: 16px; position: relative; z-index: 1; }
+.chips a.chip { color: var(--muted); text-decoration: none; }
+.chips a.chip.on, .chips a.chip:hover { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.year-hero .chips a.chip { color: #dfe3ee; background: rgba(255,255,255,.08); }
+.year-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 0 26px; }
+.days-bars.months .d.peak i { box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent); }
+.year-facts { margin-top: 22px; }
+.year-link { display: flex; flex-direction: column; gap: 3px; margin-top: 18px; padding: 14px 18px; border-radius: var(--radius); text-decoration: none; color: var(--text);
+  background: linear-gradient(110deg, color-mix(in srgb, var(--accent) 26%, var(--card)), color-mix(in srgb, var(--accent2) 18%, var(--card)));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); transition: transform .18s; }
+.year-link:hover { transform: translateY(-2px); }
+.year-link span { color: var(--muted); font-size: 13px; }
+@media (max-width: 700px) { .yh-in { flex-direction: column; align-items: flex-start; gap: 8px; } .yh-y { font-size: 52px; } .year-cols { grid-template-columns: 1fr; } }
+
+/* Главная: «Продолжить с того места» */
+.resume { position: relative; overflow: hidden; display: flex; align-items: center; gap: 18px; padding: 16px 20px; margin: 0 0 18px;
+  border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); background: var(--card); }
+.resume .rs-bg { position: absolute; inset: -20px; background-size: cover; background-position: center 30%; filter: blur(24px) saturate(1.3) brightness(.45); opacity: .7; }
+.resume::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--card) 40%, transparent), var(--card) 85%); }
+.resume > :not(.rs-bg) { position: relative; z-index: 1; }
+.rs-poster { width: 64px; aspect-ratio: 2/3; object-fit: cover; border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,.45); flex: none; }
+.rs-body { flex: 1; min-width: 0; }
+.rs-kicker { font-size: 12px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--accent); }
+.rs-t { font-size: 19px; font-weight: 700; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-m { color: var(--muted); font-size: 13px; }
+.rs-bar { height: 5px; border-radius: 4px; background: var(--card2); margin-top: 10px; max-width: 520px; overflow: hidden; }
+.rs-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.resume-play { flex: none; }
+@media (max-width: 600px) { .resume { flex-wrap: wrap; } .resume-play { width: 100%; text-align: center; } }

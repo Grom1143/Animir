@@ -1,11 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Анимир: планета с орбитой, в планете — ▶. Цвета — «закат над миром»: индиго → коралл -->
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8b6cff"/>
-      <stop offset="1" stop-color="#ff5c8a"/>
+      <stop offset="0" stop-color="#4f6bff"/>
+      <stop offset=".55" stop-color="#9a63f0"/>
+      <stop offset="1" stop-color="#ff7a59"/>
     </linearGradient>
+    <mask id="m">
+      <rect width="64" height="64" fill="#fff"/>
+      <polygon points="28,25.5 28,40.5 40.5,33" fill="#000"/>
+    </mask>
   </defs>
   <rect width="64" height="64" rx="16" fill="url(#g)"/>
-  <polygon points="14,50 27,14 37,14 50,50 41.5,50 32,23 22.5,50" fill="#fff"/>
-  <polygon points="29.3,36 29.3,46 36.8,41" fill="#fff"/>
+  <g transform="rotate(-18 32 33)" fill="none" stroke="#fff" stroke-linecap="round">
+    <!-- задняя половина орбиты: за планетой, полупрозрачная -->
+    <path d="M5 33 A27 8.5 0 0 1 59 33" stroke-width="3" stroke-opacity=".55"/>
+  </g>
+  <circle cx="32" cy="33" r="15.5" fill="#fff" mask="url(#m)"/>
+  <g transform="rotate(-18 32 33)" fill="none" stroke="#fff" stroke-linecap="round">
+    <!-- передняя половина: поверх планеты -->
+    <path d="M5 33 A27 8.5 0 0 0 59 33" stroke-width="3"/>
+  </g>
 </svg>

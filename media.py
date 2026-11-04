@@ -1,4 +1,4 @@
-"""Animax — медиатека: свои папки с видео, субтитры, выбор папки, увеличение мелких картинок."""
+"""Анимир — медиатека: свои папки с видео, субтитры, выбор папки, увеличение мелких картинок."""
 import os
 import re
 import subprocess
@@ -105,17 +105,17 @@ def srt_to_vtt(text: str) -> str:
 
 def _pick_folder_ps() -> str:
     """Выбор папки в exe: системный диалог через PowerShell (tkinter в сборку не входит)."""
-    out = Path(os.environ.get("TEMP", ".")) / f"animax-folder-{os.getpid()}-{os.urandom(3).hex()}.txt"
+    out = Path(os.environ.get("TEMP", ".")) / f"animir-folder-{os.getpid()}-{os.urandom(3).hex()}.txt"
     script = r"""
 Add-Type -AssemblyName System.Windows.Forms
 $d = New-Object System.Windows.Forms.FolderBrowserDialog
 $d.Description = 'Папка с аниме'
 $d.ShowNewFolderButton = $false
 if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-  [IO.File]::WriteAllText($env:ANIMAX_DIR_OUT, $d.SelectedPath, (New-Object Text.UTF8Encoding($false)))
+  [IO.File]::WriteAllText($env:ANIMIR_DIR_OUT, $d.SelectedPath, (New-Object Text.UTF8Encoding($false)))
 }
 """
-    env = dict(os.environ, ANIMAX_DIR_OUT=str(out))
+    env = dict(os.environ, ANIMIR_DIR_OUT=str(out))
     try:
         subprocess.run(
             ["powershell.exe", "-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-Command", script],

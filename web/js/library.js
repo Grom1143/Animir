@@ -1,5 +1,5 @@
 'use strict';
-// Animax — медиатека и встроенный плеер.
+// Анимир — медиатека и встроенный плеер.
 
 // ================= Медиатека =================
 let libCache = null;
@@ -199,7 +199,7 @@ async function pageWatch(view, q, _, alive) {
   view.innerHTML = '';
   player = createPlayer(cur, list);
   const who = cur.anime ? title(cur.anime) : cur.dir ? folderTitle(cur.dir) : cur.name;
-  document.title = `Animax · ${who}${cur.ep != null ? ' — серия ' + cur.ep : ''}`;
+  document.title = `Анимир · ${who}${cur.ep != null ? ' — серия ' + cur.ep : ''}`;
 }
 function fileSource(f) {
   const link = S.library.links[f.dir] || null;
@@ -295,7 +295,7 @@ function createPlayer(cur, list) {
         <div style="flex:1;min-width:0"><div class="t">${esc(link ? title(link) : cur.dir ? folderTitle(cur.dir) : 'Видео по ссылке')}</div><div class="m">${cur.ep != null ? 'Серия ' + cur.ep + ' · ' : ''}${cur.dub ? esc(cur.dub) + ' · ' : ''}${esc(cur.name)}</div></div>
         <button class="pl-btn txt" id="b-speed" title="Скорость">⏱ ${st.speed === 1 ? 'Обычная' : st.speed + '×'} ▾</button>
         <button class="pl-btn txt" id="b-quality" title="Качество" hidden>⚙ Авто ▾</button>
-        <button class="pl-btn txt${PLAYER_WINDOW ? ' on' : ''}" id="b-pin" title="Поверх всех окон">📌</button>
+        <button class="pl-btn txt" id="b-pin" title="Поверх всех окон">📌</button>
         <button class="pl-btn txt" id="b-fit" title="Масштаб">⤢ ${{ contain: 'Вписать', cover: 'Заполнить', fill: 'Растянуть' }[st.fit]}</button>
       </div>
       <div class="pl-bottom">
@@ -311,7 +311,7 @@ function createPlayer(cur, list) {
           <button class="pl-btn txt" id="b-skip" title="Пропустить опенинг (S)">⏩ Опенинг +${fmtTime(st.skipLen)}</button>
           <button class="pl-btn" id="b-mute" title="Звук (M)">🔊</button><input class="pl-vol" id="vol" type="range" min="0" max="1" step="0.05">
           ${cur.sub ? '<button class="pl-btn txt" id="b-sub" title="Субтитры (C)">СУБ</button>' : ''}
-          <button class="pl-btn" id="b-pip" title="Картинка в картинке">⧉</button>
+          <button class="pl-btn" id="b-pip" title="Картинка в картинке (P)"${document.pictureInPictureEnabled ? '' : ' hidden'}>⧉</button>
           <button class="pl-btn" id="b-full" title="Полный экран (F)">⛶</button>
         </div>
       </div>
@@ -559,7 +559,7 @@ function createPlayer(cur, list) {
   };
   const FITS = ['contain', 'cover', 'fill'], FIT_N = { contain: 'Вписать', cover: 'Заполнить', fill: 'Растянуть' };
   // 📌 Поверх всех окон (актуально для отдельного окна плеера)
-  let pinned = PLAYER_WINDOW;
+  let pinned = false;  // «поверх всех» — только по кнопке: само по себе мешало
   $('#b-pin', root).onclick = () => {
     pinned = !pinned;
     $('#b-pin', root).classList.toggle('on', pinned);
@@ -575,7 +575,13 @@ function createPlayer(cur, list) {
   };
   const toggleSub = () => { const t = v.textTracks[0]; if (!t) return; t.mode = t.mode === 'showing' ? 'hidden' : 'showing'; osd(t.mode === 'showing' ? 'Субтитры включены' : 'Субтитры выключены'); };
   $('#b-sub', root)?.addEventListener('click', toggleSub);
-  $('#b-pip', root).onclick = () => document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture().catch(() => {});
+  // Картинка в картинке: маленькое окошко поверх всех окон — можно листать каталог или работать, не теряя серию
+  const pip = () => {
+    if (!document.pictureInPictureEnabled) return;
+    if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+    else v.requestPictureInPicture().catch(() => osd('Картинка в картинке недоступна'));
+  };
+  $('#b-pip', root).onclick = pip;
   $('#b-full', root).onclick = full;
   root.addEventListener('click', e => { if (menu && !e.target.closest('.pl-menu') && !e.target.closest('#b-quality') && !e.target.closest('#b-speed')) closeMenu(); });
 
@@ -592,6 +598,7 @@ function createPlayer(cur, list) {
       arrowup: () => vol(0.05), arrowdown: () => vol(-0.05),
       s: () => seekBy(st.skipLen), ы: () => seekBy(st.skipLen),
       c: toggleSub, с: toggleSub,
+      p: pip, з: pip,
       '[': () => setSpeed(SPEEDS[Math.max(0, SPEEDS.indexOf(v.playbackRate) - 1)] ?? 1), ']': () => setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, SPEEDS.indexOf(v.playbackRate) + 1)] ?? 1),
       escape: () => { if (menu) closeMenu(); else if (!document.fullscreenElement) back(); },
     };
@@ -613,6 +620,7 @@ function createPlayer(cur, list) {
       v.removeAttribute('src');
       v.load();
       if (document.fullscreenElement) document.exitFullscreen();
+      if (document.pictureInPictureElement === v) document.exitPictureInPicture().catch(() => {});  // ушли со страницы — окошко не должно висеть пустым
       root.remove();
     },
   };

@@ -1,5 +1,5 @@
 'use strict';
-// Animax — снег зимой и запуск приложения.
+// Анимир — снег зимой и запуск приложения.
 
 // ================= Снег зимой =================
 let snowRaf = 0;
@@ -37,12 +37,12 @@ const routes = [
   [/^\/schedule$/, pageSchedule], [/^\/releases$/, pageReleases], [/^\/bookmarks$/, pageBookmarks],
   [/^\/collections$/, pageCollections], [/^\/scoll\/(\d+)$/, pageShikiColl], [/^\/collection\/(\w+)$/, pageCollection], [/^\/collection\/(\w+)\/edit$/, pageCollectionEdit],
   [/^\/library$/, pageLibrary], [/^\/folder$/, pageFolder], [/^\/watch$/, pageWatch],
-  [/^\/notifications$/, pageNotifications], [/^\/profile$/, pageProfile], [/^\/rate$/, pageRate], [/^\/settings$/, pageSettings],
+  [/^\/notifications$/, pageNotifications], [/^\/profile$/, pageProfile], [/^\/rate$/, pageRate], [/^\/year$/, pageYear], [/^\/settings$/, pageSettings],
 ];
 $('#random-btn').onclick = randomAnime;
 // Выход: сервер закроет окно и выключится сам. Крестик окна закрывает только окно.
 $('#quit-btn').onclick = async () => {
-  if (!await confirmBox('Закрыть Animax полностью?', 'Выйти')) return;
+  if (!await confirmBox('Закрыть Анимир полностью?', 'Выйти')) return;
   await saveNow().catch(() => {});
   fetch('/api/quit', { method: 'POST' }).catch(() => {});
 };
@@ -58,7 +58,7 @@ const KEYS_HELP = [
     [['Esc'], 'Закрыть окно или меню'], [['Home'], 'Наверх страницы'], [['?'], 'Это окно'], [['~Правый клик по карточке'], 'Быстрые действия']]],
   ['Плеер', [[['Пробел', 'или', 'K'], 'Пауза / продолжить'], [['←', '|', '→'], '−10 / +10 секунд'], [['↑', '|', '↓'], 'Громкость'],
     [['S'], 'Пропустить опенинг'], [['Shift+N', '|', 'Shift+P'], 'Следующая / предыдущая серия'], [['F'], 'Полный экран'],
-    [['M'], 'Без звука'], [['C'], 'Субтитры'], [['[', '|', ']'], 'Медленнее / быстрее'],
+    [['M'], 'Без звука'], [['C'], 'Субтитры'], [['P'], 'Картинка в картинке'], [['[', '|', ']'], 'Медленнее / быстрее'],
     [['~Удержать кнопку мыши'], 'Ускорение 2×'], [['~Двойной клик по краю'], '−10 / +10 секунд']]],
 ];
 const keyHtml = k => k === 'или' || k === '|' ? `<i>${k === '|' ? '/' : k}</i>` : k.startsWith('~') ? `<em>${esc(k.slice(1))}</em>` : `<kbd>${esc(k)}</kbd>`;

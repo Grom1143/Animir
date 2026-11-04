@@ -4,9 +4,9 @@ using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 
-[assembly: AssemblyTitle("Animax")]
-[assembly: AssemblyDescription("Animax launcher")]
-[assembly: AssemblyProduct("Animax")]
+[assembly: AssemblyTitle("Анимир")]
+[assembly: AssemblyDescription("Анимир launcher")]
+[assembly: AssemblyProduct("Анимир")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
@@ -16,9 +16,9 @@ static class Program
     static void Main()
     {
         string dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        string app = Path.Combine(dir, "Animax.pyw");
+        string app = Path.Combine(dir, "Animir.pyw");
 
-        // 1) обычный запуск из исходников: pythonw.exe + Animax.pyw
+        // 1) обычный запуск из исходников: pythonw.exe + Animir.pyw
         if (File.Exists(app))
         {
             string py = FindPython();
@@ -40,10 +40,10 @@ static class Program
         // 2) портативная сборка рядом с лаунчером
         string[] candidates =
         {
-            Path.Combine(dir, "Animax-portable", "Animax", "Animax.exe"),
-            Path.Combine(dir, "Animax", "Animax.exe"),
-            Path.Combine(dir, "portable", "Animax", "Animax.exe"),
-            Path.Combine(dir, "..", "Animax-portable", "Animax", "Animax.exe")
+            Path.Combine(dir, "Animir-portable", "Animir", "Animir.exe"),
+            Path.Combine(dir, "Animir", "Animir.exe"),
+            Path.Combine(dir, "portable", "Animir", "Animir.exe"),
+            Path.Combine(dir, "..", "Animir-portable", "Animir", "Animir.exe")
         };
         foreach (string c in candidates)
         {
@@ -63,10 +63,10 @@ static class Program
         }
 
         MessageBox.Show(
-            "Не найден Python или папка с приложением Animax.\n\n" +
+            "Не найден Python или папка с приложением Анимир.\n\n" +
             "Установи Python с python.org (галочка «Add python.exe to PATH») " +
-            "или положи рядом папку Animax-portable.",
-            "Animax", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            "или положи рядом папку Animir-portable.",
+            "Анимир", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
     static string FindPython()

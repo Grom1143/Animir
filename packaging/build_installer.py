@@ -1,11 +1,11 @@
-"""Сборка установщика Animax (Inno Setup 6).
+"""Сборка установщика Анимир (Inno Setup 6).
 
 Порядок:
-  1) packaging\\build.bat — собрать ..\\Сборка Animax\\Animax.exe
+  1) packaging\\build.bat — собрать ..\\Сборка Animir\\Animir.exe
   2) python packaging\\build_installer.py
 
-Скрипт сам найдёт exe в ..\\Сборка Animax и скопирует его в папку исходников.
-Результат: dist\\Animax-1.0.0-win64-setup.exe
+Скрипт сам найдёт exe в ..\\Сборка Animir и скопирует его в папку исходников.
+Результат: dist\\Animir-1.0.0-win64-setup.exe
 """
 from __future__ import annotations
 
@@ -16,10 +16,10 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent  # packaging/
-ROOT = HERE.parent  # исходники Animax
+ROOT = HERE.parent  # исходники Анимир
 DIST = ROOT / "dist"
-EXE = ROOT / "Animax.exe"
-BUILT = ROOT.parent / "Сборка Animax" / "Animax.exe"
+EXE = ROOT / "Animir.exe"
+BUILT = ROOT.parent / "Сборка Animir" / "Animir.exe"
 
 
 def find_iscc() -> Path | None:
@@ -41,7 +41,7 @@ def main() -> int:
         shutil.copy2(BUILT, EXE)
         print(f"Скопирован {BUILT} → {EXE}")
     if not EXE.is_file():
-        print("Не найден Animax.exe. Сначала выполни packaging\\build.bat.")
+        print("Не найден Animir.exe. Сначала выполни packaging\\build.bat.")
         return 1
     if not (HERE / "README.txt").is_file():
         print("Не найден README.txt — он устанавливается вместе с приложением.")
@@ -60,7 +60,7 @@ def main() -> int:
         print("Inno Setup завершился с ошибкой.")
         return result.returncode
 
-    setups = sorted(DIST.glob("Animax-*-setup.exe"))
+    setups = sorted(DIST.glob("Animir-*-setup.exe"))
     if not setups:
         print("Установщик не появился в dist.")
         return 1

@@ -10,9 +10,9 @@ env/
 build/
 dist/
 dist-exe/
-Сборка Animax/
-Animax.exe
-Animax-*-setup.exe
+Сборка Animir/
+Animir.exe
+Animir-*-setup.exe
 *.spec.bak
 source.zip
 

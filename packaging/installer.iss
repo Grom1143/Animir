@@ -1,17 +1,17 @@
-; Animax — установщик для Windows 10/11 (64 бита)
+; Анимир — установщик для Windows 10/11 (64 бита)
 ; Сборка: python packaging\build_installer.py  (нужен Inno Setup 6)
 
-#define MyAppName "Animax"
+#define MyAppName "Анимир"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "OVER_LORD"
 #define MyAppURL "https://github.com/0verLorD228"
-#define MyAppExeName "Animax.exe"
+#define MyAppExeName "Animir.exe"
 
 [Setup]
 ; файл лежит в packaging/, а пути ниже считаются от корня исходников
 SourceDir=..
-; свой AppId: Animax — отдельная программа, установщик не должен перезаписать установленный AnyX
-AppId={{87F84988-AB76-4E35-99A1-60D855159907}
+; свой AppId: Анимир — отдельная программа, установщик не должен перезаписать установленные Animax или AnyX
+AppId={{D49337E7-8EA9-40BB-82F3-B06683F41595}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
@@ -19,13 +19,13 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={localappdata}\Programs\Animax
+DefaultDirName={localappdata}\Programs\Animir
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=dist
-OutputBaseFilename=Animax-{#MyAppVersion}-win64-setup
-SetupIconFile=animax.ico
+OutputBaseFilename=Animir-{#MyAppVersion}-win64-setup
+SetupIconFile=animir.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max
 SolidCompression=yes
@@ -35,7 +35,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 CloseApplications=yes
 RestartApplications=no
-CloseApplicationsFilter=Animax.exe
+CloseApplicationsFilter=Animir.exe
 VersionInfoVersion=1.0.0.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} installer
@@ -50,7 +50,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "Animax.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "Animir.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "packaging\README.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
@@ -60,4 +60,4 @@ Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
-; Данные пользователя (%APPDATA%\Animax) при удалении не трогаем.
+; Данные пользователя (%APPDATA%\Animir) при удалении не трогаем.

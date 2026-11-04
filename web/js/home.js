@@ -1,5 +1,5 @@
 'use strict';
-// Animax — Главная, Обзор, рекомендации, популярное, случайное.
+// Анимир — Главная, Обзор, рекомендации, популярное, случайное.
 
 // ================= Главная =================
 function currentSeason(d = new Date()) {
@@ -23,7 +23,8 @@ const tabName = k => k === 'mytab' ? S.myTab.name : HOME_TABS[k][0];
 
 async function pageHome(view, q, _, alive) {
   const tab = HOME_TABS[q.get('tab')] ? q.get('tab') : S.settings.homeTab in HOME_TABS ? S.settings.homeTab : 'latest';
-  view.innerHTML = `
+  const last = continueItems()[0];
+  view.innerHTML = `${last ? resumeCard(last) : ''}
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px">
       <div class="tabs" style="margin:0;flex:1">${Object.keys(HOME_TABS).map(k => `<a class="tab ${k === tab ? 'on' : ''}" data-tab="${k}" href="#/?tab=${k}" title="${HOME_TABS[k][2]}">${esc(tabName(k))}${k === S.settings.homeTab ? ' <small>★</small>' : ''}</a>`).join('')}</div>
       <button class="icon-btn" id="tab-set" title="Настройка вкладок">☰</button>
@@ -46,7 +47,7 @@ async function pageHome(view, q, _, alive) {
     const r = $('#tab-set').getBoundingClientRect();
     const items = [
       ['★', 'Изменить вкладку по умолчанию', async () => {
-        const [k] = (await picker('Вкладка по умолчанию', Object.keys(HOME_TABS).map(k => ({ v: k, label: tabName(k) })), [S.settings.homeTab], { multi: false, note: 'Выбранная вкладка будет открываться при запуске Animax.' })) || [];
+        const [k] = (await picker('Вкладка по умолчанию', Object.keys(HOME_TABS).map(k => ({ v: k, label: tabName(k) })), [S.settings.homeTab], { multi: false, note: 'Выбранная вкладка будет открываться при запуске Анимир.' })) || [];
         if (k) { S.settings.homeTab = k; save(); route(); }
       }],
       ['⚲', 'Настроить мою вкладку', () => go('#/filter?target=mytab&' + filterToQuery(S.myTab.filter || {}))],
@@ -75,7 +76,7 @@ async function pageHome(view, q, _, alive) {
   if (rl) {
     const kind = RL_KINDS[q.get('k')] ? q.get('k') : 'all';
     box.innerHTML = `<div class="tabs rl-kinds">${Object.entries(RL_KINDS).map(([k, n]) => `<a class="tab ${k === kind ? 'on' : ''}" href="#/?tab=${tab}&k=${k}">${n}</a>`).join('')}</div>
-      ${hint('releases', 'Включи «Следить» у анонса — Animax сообщит, когда начнётся показ, а потом о новых сериях. Донхуа (китайская анимация) определяется по названиям приблизительно.')}
+      ${hint('releases', 'Включи «Следить» у анонса — Анимир сообщит, когда начнётся показ, а потом о новых сериях. Донхуа (китайская анимация) определяется по названиям приблизительно.')}
       <div id="rl"><div class="loading">Загрузка…</div></div>`;
     return releasesList($('#rl'), rl, kind, alive);
   }
