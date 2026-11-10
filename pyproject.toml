@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "animir"
+version = "1.0.3"
+description = "Анимир - аниме-клиент для Windows: каталог Shikimori, онлайн-озвучки, плеер и скачивание серий"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Grom1143" }]
+keywords = ["anime", "windows", "shikimori", "player", "desktop"]
+classifiers = [
+  "Environment :: Win32 (MS Windows)",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: Russian",
+  "Programming Language :: Python :: 3",
+  "Topic :: Multimedia :: Video :: Display",
+]
+dependencies = ["pywebview>=6.0"]
+
+[project.optional-dependencies]
+images = ["Pillow>=10"]
+dev = ["playwright>=1.40", "Pillow>=10"]
+
+[project.gui-scripts]
+animir = "animir.app.startup:run"
+
+[project.urls]
+Homepage = "https://github.com/Grom1143/Animir"
+Changelog = "https://github.com/Grom1143/Animir/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+animir = ["web/**/*", "*.ico", "*.ps1"]

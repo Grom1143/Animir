@@ -13,13 +13,13 @@ ROOT = os.path.dirname(SPECPATH)
 
 a = Analysis(
     [os.path.join(ROOT, 'Animir.pyw')],
-    pathex=[ROOT],
+    pathex=[ROOT, os.path.join(ROOT, 'src')],
     binaries=[],
     datas=[
-        (os.path.join(ROOT, 'web'), 'web'),
-        (os.path.join(ROOT, 'animir.ico'), '.'),
-        (os.path.join(ROOT, 'notify_toast.ps1'), '.'),
-        (os.path.join(ROOT, 'ensure_shortcut.ps1'), '.'),
+        (os.path.join(ROOT, 'src', 'animir', 'web'), 'web'),
+        (os.path.join(ROOT, 'src', 'animir', 'animir.ico'), '.'),
+        (os.path.join(ROOT, 'src', 'animir', 'notify_toast.ps1'), '.'),
+        (os.path.join(ROOT, 'src', 'animir', 'ensure_shortcut.ps1'), '.'),
     ],
     hiddenimports=[
         # импортируются внутри функций - PyInstaller их не всегда видит
@@ -58,6 +58,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(ROOT, 'animir.ico'),
+    icon=os.path.join(ROOT, 'src', 'animir', 'animir.ico'),
     version=os.path.join(SPECPATH, 'version_info.txt'),
 )

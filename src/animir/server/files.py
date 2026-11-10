@@ -7,11 +7,11 @@ import time
 import urllib.parse
 from pathlib import Path
 
-import shiki_net
-from config import IMG_CACHE, IMG_HOSTS, SHIKI, SUB_EXT, USER_AGENT, WEB_DIR
-from media import enhanced, is_allowed_media, srt_to_vtt
-from server_routes import get
-from state import lite_mode
+import animir.shikimori.net as shiki_net
+from animir.config import IMG_CACHE, IMG_HOSTS, SHIKI, SUB_EXT, USER_AGENT, WEB_DIR
+from animir.media import enhanced, is_allowed_media, srt_to_vtt
+from animir.server.routes import get
+from animir.state import lite_mode
 
 # Кэш картинок не должен расти бесконечно: на слабом ПК держим его меньше.
 _img_lock = threading.Lock()

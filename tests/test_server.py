@@ -21,11 +21,11 @@ from unittest import mock
 # Не tempfile.mkdtemp: он даёт папку с правами «только владелец», и в ограниченной песочнице
 # внутри неё ничего не создать. config.py сам создаст эту папку при импорте.
 os.environ["APPDATA"] = os.path.join(tempfile.gettempdir(), f"animir-test-{uuid.uuid4().hex[:8]}")
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-import server  # noqa: E402
-import server_files  # noqa: E402
-import shiki_data  # noqa: E402
+import animir.server.http as server  # noqa: E402
+import animir.server.files as server_files  # noqa: E402
+import animir.shikimori.data as shiki_data  # noqa: E402
 
 
 class ServerTest(unittest.TestCase):
@@ -197,12 +197,12 @@ class RouteTableTest(unittest.TestCase):
             "/api/shiki/review/delete"]
 
     def test_every_route_is_in_the_table(self):
-        import server_routes
+        import animir.server.routes as server_routes
         self.assertEqual(sorted(set(self.GET) - set(server_routes.GET)), [])
         self.assertEqual(sorted(set(self.POST) - set(server_routes.POST)), [])
 
     def test_same_path_cannot_be_taken_twice(self):
-        import server_routes
+        import animir.server.routes as server_routes
         with self.assertRaises(ValueError):
             server_routes.get("/api/ping")(lambda self, q: None)
 

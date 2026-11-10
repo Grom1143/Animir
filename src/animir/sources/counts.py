@@ -6,9 +6,9 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-import shiki_net
-from config import DATA_DIR
-from state import lite_mode
+import animir.shikimori.net as shiki_net
+from animir.config import DATA_DIR
+from animir.state import lite_mode
 from .net import USER_AGENT
 from .kodik import kodik_token
 from .search import _shiki_candidates

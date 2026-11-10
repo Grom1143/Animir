@@ -11,11 +11,11 @@ import urllib.error
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # корень проекта: sources, shiki_net
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))  # корень проекта: sources, shiki_net
 sys.path.insert(0, str(Path(__file__).resolve().parent))          # папка tests: test_shiki_net
 
-import shiki_net  # noqa: E402
-import sources  # noqa: E402
+import animir.shikimori.net as shiki_net  # noqa: E402
+import animir.sources as sources  # noqa: E402
 from test_shiki_net import QuietServer, Upstream  # noqa: E402
 
 

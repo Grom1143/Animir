@@ -10,8 +10,8 @@ import collections
 import json
 import threading
 
-from config import STATE_FILE
-from sysinfo import low_end
+from animir.config import STATE_FILE
+from animir.sysinfo import low_end
 
 _state_lock = threading.Lock()
 

@@ -6,9 +6,7 @@ import time
 import urllib.parse
 import urllib.request
 
-import shiki_net
-
-
+import animir.shikimori.net as shiki_net
 USER_AGENT = "Animir desktop (personal use)"
 SHIKI = "https://shikimori.io"
 

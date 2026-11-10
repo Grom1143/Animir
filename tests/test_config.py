@@ -8,9 +8,9 @@ import uuid
 from pathlib import Path
 
 os.environ["APPDATA"] = os.path.join(tempfile.gettempdir(), f"animir-test-{uuid.uuid4().hex[:8]}")
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-import config  # noqa: E402
+import animir.config as config  # noqa: E402
 
 
 class MigrateTest(unittest.TestCase):

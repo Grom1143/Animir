@@ -5,8 +5,8 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-import shiki_net
-from state import lite_mode
+import animir.shikimori.net as shiki_net
+from animir.state import lite_mode
 from .net import SHIKI, SourceError, USER_AGENT, _get, cached
 from .kodik import _kdk_api, kodik_token
 

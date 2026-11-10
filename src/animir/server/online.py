@@ -3,12 +3,12 @@ import os
 import urllib.error
 from pathlib import Path
 
-import downloader
-from config import SAFE_VAL
-from server_routes import get, post
+import animir.downloads as downloader
+from animir.config import SAFE_VAL
+from animir.server.routes import get, post
 
 try:  # онлайн-источники - необязательная часть: в сборке без них Анимир работает как каталог и медиатека
-    import sources as online
+    import animir.sources as online
 except ImportError:
     online = None
 

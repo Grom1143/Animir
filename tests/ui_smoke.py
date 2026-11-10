@@ -41,8 +41,8 @@ def free_port() -> int:
 
 
 def start_server(port: int, data: str) -> subprocess.Popen:
-    env = {**os.environ, "APPDATA": data}
-    proc = subprocess.Popen([sys.executable, "server.py", str(port)], cwd=ROOT, env=env,
+    env = {**os.environ, "APPDATA": data, "PYTHONPATH": str(ROOT / "src")}
+    proc = subprocess.Popen([sys.executable, "-m", "animir.server", str(port)], cwd=ROOT, env=env,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(60):
         try:

@@ -4,14 +4,14 @@ import threading
 import urllib.parse
 from pathlib import Path
 
-import server_online
-import sysinfo
-import windows
-from config import IMG_CACHE, SHIKI
-from media import is_allowed_media, pick_folder, scan_library
-from server_routes import get, post
-from shiki_data import clear_api_cache
-from state import lite_mode, read_for, write_from
+import animir.server.online as server_online
+import animir.sysinfo as sysinfo
+import animir.app.windows as windows
+from animir.config import IMG_CACHE, SHIKI
+from animir.media import is_allowed_media, pick_folder, scan_library
+from animir.server.routes import get, post
+from animir.shikimori.data import clear_api_cache
+from animir.state import lite_mode, read_for, write_from
 
 # Экран, на который должно перейти главное окно (клик по уведомлению Windows → Animir.pyw → сюда).
 # Окно спрашивает /api/goto раз в пару секунд и забирает его.
