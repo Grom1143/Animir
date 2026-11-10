@@ -8,7 +8,7 @@
 
 import os
 
-# спек лежит в packaging/, исходники — уровнем выше
+# спек лежит в packaging/, исходники - уровнем выше
 ROOT = os.path.dirname(SPECPATH)
 
 a = Analysis(
@@ -19,12 +19,13 @@ a = Analysis(
         (os.path.join(ROOT, 'web'), 'web'),
         (os.path.join(ROOT, 'animir.ico'), '.'),
         (os.path.join(ROOT, 'notify_toast.ps1'), '.'),
+        (os.path.join(ROOT, 'ensure_shortcut.ps1'), '.'),
     ],
     hiddenimports=[
-        # импортируются внутри функций — PyInstaller их не всегда видит
+        # импортируются внутри функций - PyInstaller их не всегда видит
         'PIL.Image',
         'PIL.ImageFilter',
-        # pywebview выбирает движок окна на лету — модули Windows-окна (WinForms + WebView2) указываем явно
+        # pywebview выбирает движок окна на лету - модули Windows-окна (WinForms + WebView2) указываем явно
         'webview.platforms.winforms',
         'webview.platforms.edgechromium',
         'clr',

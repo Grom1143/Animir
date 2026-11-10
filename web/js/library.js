@@ -1,5 +1,5 @@
 'use strict';
-// Анимир — медиатека и встроенный плеер.
+// Анимир - медиатека и встроенный плеер.
 
 // ================= Медиатека =================
 let libCache = null;
@@ -44,7 +44,7 @@ async function pageLibrary(view, q, _, alive) {
   const groups = new Map();
   files.forEach(f => { if (!groups.has(f.dir)) groups.set(f.dir, []); groups.get(f.dir).push(f); });
   view.innerHTML = `<h1 class="page-title">Медиатека</h1>
-    <p class="muted" style="max-width:780px;margin-top:-6px">Папки с сериями на этом компьютере или в сети (например, <code>\\\\NAS\\Аниме</code>) — видео играет прямо оттуда, копировать ничего не нужно. Есть домашний медиасервер? Жми 🔗 сверху и открывай поток по ссылке.</p>
+    <p class="muted" style="max-width:780px;margin-top:-6px">Папки с сериями на этом компьютере или в сети (например, <code>\\\\NAS\\Аниме</code>) - видео играет прямо оттуда, копировать ничего не нужно. Есть домашний медиасервер? Жми 🔗 сверху и открывай поток по ссылке.</p>
     <div class="list" style="max-width:780px">${S.library.folders.map((f, i) => `<div class="folder"><span class="p">📁 ${esc(f)}</span><button class="btn sm" data-rmf="${i}">Убрать</button></div>`).join('')}</div>
     <div class="actions" style="margin-bottom:10px"><button class="btn primary" id="pick">＋ Добавить папку</button>
       <input class="input" id="manual" placeholder="или вставь путь: D:\\Аниме или \\\\NAS\\Аниме" style="width:360px"><button class="btn" id="add-manual">Добавить</button>
@@ -58,7 +58,7 @@ async function pageLibrary(view, q, _, alive) {
         <div class="t">${esc(l ? title(l) : folderTitle(dir))}</div><div class="m">${l ? esc(folderTitle(dir)) : 'Не привязано к тайтлу'}</div></a>`;
     }).join('')}</div>` : S.library.folders.length ? emptyHtml('📁', 'Видео не найдено', 'Поддерживаются MP4, MKV, WEBM, AVI, MOV, TS.') : ''}
     ${S.streams.length ? `<div class="sec-head"><h2>Сохранённые ссылки</h2><span class="sub">${S.streams.length}</span></div>
-      <div class="eps-list">${S.streams.map(x => `<div class="ep" data-href="#/watch?s=${x.id}"><div class="n">🔗</div><div class="b"><div class="t">${esc(x.title || (x.anime ? title(x.anime) + (x.ep ? ' — серия ' + x.ep : '') : x.url))}</div>
+      <div class="eps-list">${S.streams.map(x => `<div class="ep" data-href="#/watch?s=${x.id}"><div class="n">🔗</div><div class="b"><div class="t">${esc(x.title || (x.anime ? title(x.anime) + (x.ep ? ' - серия ' + x.ep : '') : x.url))}</div>
         <div class="m">${esc(x.url)}</div></div><button class="btn sm" data-rms="${x.id}">✕</button></div>`).join('')}</div>` : ''}`;
 
   const addFolder = p => {
@@ -120,7 +120,7 @@ function linkPicker(dir) {
       const d = await gql(animes({ search: text, limit: 8 }));
       const list = d.animes.map(snap);
       $('#lres', box).innerHTML = list.map(a => `<div class="wide-card" data-id="${a.id}"><img src="${img(a.poster)}" alt="">
-        <div class="wc-b"><div class="t">${esc(title(a))}</div><div class="m">${esc(a.name)} · ${esc(metaLine(a))}</div></div></div>`).join('') || '<div class="muted">Ничего не нашлось — попробуй другое название (можно латиницей).</div>';
+        <div class="wc-b"><div class="t">${esc(title(a))}</div><div class="m">${esc(a.name)} · ${esc(metaLine(a))}</div></div></div>`).join('') || '<div class="muted">Ничего не нашлось - попробуй другое название (можно латиницей).</div>';
       $$('[data-id]', box).forEach(el => el.onclick = () => {
         S.library.links[dir] = list.find(a => a.id === +el.dataset.id);
         save();
@@ -137,6 +137,9 @@ function linkPicker(dir) {
 
 // ================= Плеер =================
 let player = null;
+// Ночной кинозал: сколько серий посмотрено с включённым режимом и какая была последней.
+// Счётчик живёт вне плеера: каждая серия - это новый экран и новый плеер.
+let nightCount = 0, nightLastKey = '';
 function closePlayer() {
   if (!player) return;
   player.destroy();
@@ -150,7 +153,7 @@ async function pageWatch(view, q, _, alive) {
     const a = await loadAnime(q.get('o'));
     if (!alive()) return;
     const s = snap(a);
-    // d не задан — подставляем запомненную озвучку этого тайтла, иначе первую доступную;
+    // d не задан - подставляем запомненную озвучку этого тайтла, иначе первую доступную;
     // label озвучки пригодится и для заголовка, и для истории просмотра
     const dubs = await onlineDubs(s);
     const dub = dubs.find(x => x.key === ((q.get('d') || (S.onlineDubs || {})[s.id] || '').split('#')[0]));
@@ -181,7 +184,7 @@ async function pageWatch(view, q, _, alive) {
     if (!f) { view.innerHTML = emptyHtml('📁', 'Файл не найден', 'Возможно, его переместили или папку убрали из медиатеки.') + '<div style="text-align:center"><a class="btn" href="#/library">В медиатеку</a></div>'; return; }
     cur = fileSource(f);
   }
-  // Плейлист: все источники тайтла по порядку серий, иначе — файлы той же папки
+  // Плейлист: все источники тайтла по порядку серий, иначе - файлы той же папки
   // (для онлайн-ветки список по выбранной озвучке уже собран выше)
   if (cur.anime && !q.get('o')) {
     const src = await sourcesFor(cur.anime);
@@ -199,17 +202,17 @@ async function pageWatch(view, q, _, alive) {
   view.innerHTML = '';
   player = createPlayer(cur, list);
   const who = cur.anime ? title(cur.anime) : cur.dir ? folderTitle(cur.dir) : cur.name;
-  document.title = `Анимир · ${who}${cur.ep != null ? ' — серия ' + cur.ep : ''}`;
+  document.title = `Анимир · ${who}${cur.ep != null ? ' - серия ' + cur.ep : ''}`;
 }
 function fileSource(f) {
   const link = S.library.links[f.dir] || null;
   return { key: f.path, path: f.path, url: '/media?path=' + encodeURIComponent(f.path), name: f.name, dir: f.dir, sub: f.sub, anime: link, ep: epNum(f.name), href: '#/watch?f=' + encodeURIComponent(f.path) };
 }
 function streamSource(x) {
-  return { key: x.url, url: x.url, name: x.title || (x.anime ? title(x.anime) + (x.ep ? ` — серия ${x.ep}` : '') : x.url), anime: x.anime, ep: x.ep, stream: x.id, href: '#/watch?s=' + x.id, hls: /\.m3u8(\?|$)/i.test(x.url), embed: streamMode(x) === 'embed', site: x.site || siteName(x.url) };
+  return { key: x.url, url: x.url, name: x.title || (x.anime ? title(x.anime) + (x.ep ? ` - серия ${x.ep}` : '') : x.url), anime: x.anime, ep: x.ep, stream: x.id, href: '#/watch?s=' + x.id, hls: /\.m3u8(\?|$)/i.test(x.url), embed: streamMode(x) === 'embed', site: x.site || siteName(x.url) };
 }
 
-// Плеер сайта в рамке (iframe). Прогресс внутри чужого плеера не виден — поэтому есть кнопка «Просмотрено».
+// Плеер сайта в рамке (iframe). Прогресс внутри чужого плеера не виден - поэтому есть кнопка «Просмотрено».
 function createEmbedPlayer(cur, list) {
   const link = cur.anime;
   const src = embedUrl(cur.url);
@@ -247,7 +250,7 @@ function createEmbedPlayer(cur, list) {
       referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"></iframe>`}`;
   document.body.append(root);
   if (yt) { window.open(ytWatch(yt), '_blank'); $('#e-yt', root).onclick = () => window.open(ytWatch(yt), '_blank'); }
-  // в историю — сразу при открытии
+  // в историю - сразу при открытии
   S.history = [{ file: cur.key, stream: cur.stream, name: cur.name, dub: cur.dub || null, ep: cur.ep, anime: link || null, at: Date.now() }, ...S.history.filter(h => h.file !== cur.key)].slice(0, 300);
   save();
   $('#e-back', root).onclick = back;
@@ -260,7 +263,7 @@ function createEmbedPlayer(cur, list) {
     S.progress[cur.key] = { ...(S.progress[cur.key] || {}), done: on, at: Date.now() };
     save();
     e.currentTarget.textContent = on ? '✓ Просмотрено' : '○ Отметить просмотренной';
-    if (on && next) toast('Отмечено. Следующая серия — кнопка «След. ⏭»');
+    if (on && next) toast('Отмечено. Следующая серия - кнопка «След. ⏭»');
   });
   const keys = e => {
     if (!$('#modal').hidden) return;
@@ -283,6 +286,7 @@ function createPlayer(cur, list) {
   const idx = list.findIndex(x => x.key === cur.key);
   const prev = list[idx - 1], next = list[idx + 1];
   const st = S.settings;
+  if (st.night && nightLastKey !== cur.key) { nightCount++; nightLastKey = cur.key; }
   const root = document.createElement('div');
   root.className = 'player-page';
   root.innerHTML = `
@@ -296,6 +300,8 @@ function createPlayer(cur, list) {
         <button class="pl-btn txt" id="b-speed" title="Скорость">⏱ ${st.speed === 1 ? 'Обычная' : st.speed + '×'} ▾</button>
         <button class="pl-btn txt" id="b-quality" title="Качество" hidden>⚙ Авто ▾</button>
         <button class="pl-btn txt" id="b-pin" title="Поверх всех окон">📌</button>
+        <button class="pl-btn txt ${S.settings.night ? 'on' : ''}" id="b-night" title="Ночной кинозал">🌙</button>
+        ${/^o:/.test(cur.key) ? '<button class="pl-btn txt" id="b-dl" title="Скачать эту серию">⬇</button>' : ''}
         <button class="pl-btn txt" id="b-fit" title="Масштаб">⤢ ${{ contain: 'Вписать', cover: 'Заполнить', fill: 'Растянуть' }[st.fit]}</button>
       </div>
       <div class="pl-bottom">
@@ -344,12 +350,12 @@ function createPlayer(cur, list) {
       hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) showError(data.details); });
     } else v.src = cur.url;
     v.addEventListener('loadedmetadata', restore, { once: true });
-    st.q = +q;  // выбор качества запоминается — применяется и к следующим сериям
+    st.q = +q;  // выбор качества запоминается - применяется и к следующим сериям
     save();
     $('#b-quality', root).textContent = `⚙ ${q}p ▾`;
     osd(`Качество ${q}p`);
   };
-  // Edge/Chromium рапортует canPlayType('mpegurl')='maybe', но HLS не играет —
+  // Edge/Chromium рапортует canPlayType('mpegurl')='maybe', но HLS не играет -
   // поэтому при поддержке MSE всегда prefer hls.js, на Safari остаётся нативный путь
   let hls = null;
   if (cur.hls && window.Hls?.isSupported()) {
@@ -359,7 +365,7 @@ function createPlayer(cur, list) {
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       if (hls.levels.length > 1 || quals.length > 1) {
         if (LITE) {
-          // авто-качество не выше 720p — меньше нагрузка на процессор и память
+          // авто-качество не выше 720p - меньше нагрузка на процессор и память
           const cap = hls.levels.map((l, i) => ({ h: l.height || 0, i })).filter(x => x.h && x.h <= 720).pop();
           if (cap) hls.autoLevelCapping = cap.i;
         } else if (hls.levels.length > 1 && st.q) {
@@ -374,7 +380,7 @@ function createPlayer(cur, list) {
     });
     hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) showError(data.details); });
   } else {
-    // если пользователь ранее выбирал качество — стартуем с него (в лёгком режиме — не выше 720p)
+    // если пользователь ранее выбирал качество - стартуем с него (в лёгком режиме - не выше 720p)
     const saved = quals.find(x => +x.q === +st.q && (!LITE || +x.q <= 720))
       || (LITE ? quals.find(x => +x.q <= 720) : null);
     if (saved) { cur.q = +saved.q; cur.url = saved.url; }
@@ -385,7 +391,8 @@ function createPlayer(cur, list) {
       q.textContent = `⚙ ${cur.q ? cur.q + 'p' : 'Авто'} ▾`;
     }
   }
-  v.volume = st.volume ?? 1;
+  // ночью громкость не выше 60 %: сохраняется обычная, при выключенном режиме вернётся
+  v.volume = st.night ? Math.min(st.volume ?? 1, 0.6) : (st.volume ?? 1);
   v.playbackRate = st.speed || 1;
   if (cur.sub) {
     const tr = document.createElement('track');
@@ -438,8 +445,11 @@ function createPlayer(cur, list) {
 
   function showError(details = '') {
     const c = $('#pl-center', root);
+    const tsHint = cur.path && /\.ts$/i.test(cur.path)
+      ? '<p class="muted">Это скачанная HLS-серия в формате .ts: встроенный плеер его не читает. Открой системным плеером (VLC, MPC) - кнопка ниже.</p>' : '';
     c.innerHTML = `<div class="msg"><h3 style="margin-top:0">Не получается воспроизвести</h3>
       <p class="muted">${cur.path ? 'Скорее всего, видео или звук закодированы в формате, который встроенный плеер не понимает (например, MKV со звуком AC3/DTS или HEVC без кодека).' : 'Ссылка не открылась: сервер недоступен, ссылка устарела или сервер не разрешает воспроизведение из других программ (CORS).'}</p>
+      ${tsHint}
       ${details ? `<p class="muted" style="font-size:12px">${esc(details)}</p>` : ''}
       <div style="display:flex;gap:10px;justify-content:center">${cur.path ? '<button class="btn primary" id="ext">Открыть в системном плеере</button>' : ''}${next ? '<button class="btn" id="enext">Следующая серия</button>' : ''}<button class="btn" id="eb">Назад</button></div></div>`;
     $('#ext', root)?.addEventListener('click', () => fetch('/api/open-external', { method: 'POST', body: JSON.stringify({ path: cur.path }) }));
@@ -463,10 +473,20 @@ function createPlayer(cur, list) {
   v.addEventListener('volumechange', () => {
     $('#b-mute', root).textContent = v.muted || !v.volume ? '🔇' : '🔊';
     $('#vol', root).value = v.muted ? 0 : v.volume;
-    st.volume = v.volume;
+    if (!S.settings.night) st.volume = v.volume;  // ночью громкость не запоминаем: это разовое понижение
   });
   v.addEventListener('ended', () => {
     store(true);
+    // Ночной кинозал: посмотрел N серий - один короткий вопрос вместо автозапуска следующей
+    if (st.night && +st.nightPause > 0 && nightCount >= +st.nightPause) {
+      const c0 = $('#pl-center', root);
+      c0.innerHTML = `<div class="msg"><div class="muted">Ночной кинозал: ${nightCount} ${plural(nightCount, 'серия', 'серии', 'серий')} подряд</div>
+        <h3 style="margin:6px 0 14px">${next ? 'Ещё одну или спать?' : 'Это была последняя серия'}</h3>
+        <div style="display:flex;gap:10px;justify-content:center">${next ? '<button class="btn primary" id="ny">Ещё одну</button>' : ''}<button class="btn" id="ns">Спать</button></div></div>`;
+      $('#ny', root)?.addEventListener('click', () => { nightCount = 0; playSrc(next); });
+      $('#ns', root).onclick = () => { nightCount = 0; back(); };
+      return;
+    }
     if (!next || !st.autoNext) return;
     let left = 5;
     const c = $('#pl-center', root);
@@ -493,7 +513,7 @@ function createPlayer(cur, list) {
     if (dragging) seekTo(x);
   });
 
-  // Клик — пауза; двойной клик по краям — ±10 с, в центре — полный экран; удержание — ускорение 2×
+  // Клик - пауза; двойной клик по краям - ±10 с, в центре - полный экран; удержание - ускорение 2×
   let clickT = null, holdT = null, holding = false, justHeld = false;
   const wave = (side, text) => { const w = document.createElement('div'); w.className = 'pl-wave ' + side; w.textContent = text; root.append(w); setTimeout(() => w.remove(), 700); };
   const onDown = () => {
@@ -508,7 +528,7 @@ function createPlayer(cur, list) {
     clearTimeout(holdT);
     if (!holding) return;
     holding = false;
-    justHeld = true;  // следующий click — конец удержания, а не пауза
+    justHeld = true;  // следующий click - конец удержания, а не пауза
     setTimeout(() => { justHeld = false; }, 0);
     v.playbackRate = st.speed || 1;
     $('#fast', root)?.remove();
@@ -559,13 +579,27 @@ function createPlayer(cur, list) {
   };
   const FITS = ['contain', 'cover', 'fill'], FIT_N = { contain: 'Вписать', cover: 'Заполнить', fill: 'Растянуть' };
   // 📌 Поверх всех окон (актуально для отдельного окна плеера)
-  let pinned = false;  // «поверх всех» — только по кнопке: само по себе мешало
+  let pinned = false;  // «поверх всех» - только по кнопке: само по себе мешало
   $('#b-pin', root).onclick = () => {
     pinned = !pinned;
     $('#b-pin', root).classList.toggle('on', pinned);
     fetch('/api/pin-window', { method: 'POST', body: JSON.stringify({ on: pinned }) });
     osd(pinned ? 'Поверх всех окон' : 'Обычный режим');
   };
+  $('#b-night', root).onclick = () => {
+    st.night = !st.night;
+    applyNight();
+    if (st.night) nightCount = 1, nightLastKey = cur.key; else nightCount = 0;
+    $('#b-night', root).classList.toggle('on', st.night);
+    save();
+    osd(st.night ? 'Ночной кинозал' : 'Обычный режим');
+  };
+  $('#b-dl', root)?.addEventListener('click', () => {
+    const m = /^o:(\d+):(.+):(\d+)$/.exec(cur.key);
+    if (!m) return;
+    dlStart(m[1], m[2], cur.dub || cur.site || '', title(cur.anime), [ +m[3] ]);
+    osd('Скачивается серия ' + m[3]);
+  });
   $('#b-fit', root).onclick = e => {
     st.fit = FITS[(FITS.indexOf(st.fit) + 1) % FITS.length];
     v.className = 'fit-' + st.fit;
@@ -575,7 +609,7 @@ function createPlayer(cur, list) {
   };
   const toggleSub = () => { const t = v.textTracks[0]; if (!t) return; t.mode = t.mode === 'showing' ? 'hidden' : 'showing'; osd(t.mode === 'showing' ? 'Субтитры включены' : 'Субтитры выключены'); };
   $('#b-sub', root)?.addEventListener('click', toggleSub);
-  // Картинка в картинке: маленькое окошко поверх всех окон — можно листать каталог или работать, не теряя серию
+  // Картинка в картинке: маленькое окошко поверх всех окон - можно листать каталог или работать, не теряя серию
   const pip = () => {
     if (!document.pictureInPictureEnabled) return;
     if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
@@ -620,7 +654,7 @@ function createPlayer(cur, list) {
       v.removeAttribute('src');
       v.load();
       if (document.fullscreenElement) document.exitFullscreen();
-      if (document.pictureInPictureElement === v) document.exitPictureInPicture().catch(() => {});  // ушли со страницы — окошко не должно висеть пустым
+      if (document.pictureInPictureElement === v) document.exitPictureInPicture().catch(() => {});  // ушли со страницы - окошко не должно висеть пустым
       root.remove();
     },
   };

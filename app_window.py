@@ -1,14 +1,15 @@
-"""Анимир — свои окна на WebView2 (pywebview) вместо Edge --app: главное и окна плеера.
+"""Анимир - свои окна на WebView2 (pywebview) вместо Edge --app: главное и окна плеера.
 
 Окна принадлежат процессу Анимира: не нужно искать чужие окна msedge.exe, догонять их значок и убивать процессы
-Edge при выходе. Движок тот же (WebView2 — компонент Windows на основе Edge), поэтому весь web/ работает как был.
-Крестик главного окна прячет его — Анимир остаётся в трее. Окно плеера закрывается по-настоящему.
+Edge при выходе. Движок тот же (WebView2 - компонент Windows на основе Edge), поэтому весь web/ работает как был.
+Крестик главного окна прячет его - Анимир остаётся в трее. Окно плеера закрывается по-настоящему.
 
-Нет pywebview или WebView2 — Animir.pyw откроет окна в Edge, как раньше.
+Нет pywebview или WebView2 - Animir.pyw откроет окна в Edge, как раньше.
 """
 import json
 import os
 import threading
+from pathlib import Path
 
 import windows
 from config import DATA_DIR
@@ -19,16 +20,16 @@ except ImportError:
     webview = None
 
 TITLE = "Анимир"
-BG = "#07080D"  # фон приложения — без белой вспышки, пока страница грузится
+BG = "#07080D"  # фон приложения - без белой вспышки, пока страница грузится
 _main = None  # главное окно (webview.Window)
-_player = None  # окно плеера — не больше одного: два видео сразу никому не нужны
+_player = None  # окно плеера - не больше одного: два видео сразу никому не нужны
 _on_shown = None  # что сделать с номером окна, когда оно появилось (значок, тёмный заголовок)
 
 # Связь страницы с окном, без правок в web/:
 # - видео во весь экран: WebView2 растягивает его только на своё место в окне, а рамка и заголовок остаются,
 #   поэтому страница сообщает о полном экране, и мы разворачиваем само окно;
-# - тема: светлая тема приложения — светлый заголовок окна, тёмная — тёмный;
-# - window.close(): WebView2 сам окно не закрывает — закрываем мы («Назад» в окне плеера).
+# - тема: светлая тема приложения - светлый заголовок окна, тёмная - тёмный;
+# - window.close(): WebView2 сам окно не закрывает - закрываем мы («Назад» в окне плеера).
 _BRIDGE_JS = """
 if (!window.__animirBridge) {
   window.__animirBridge = true;
@@ -64,14 +65,39 @@ class _Api:
             self._full = bool(on)
             self._win.toggle_fullscreen()
             if self._full:
-                # pywebview берёт размер экрана в логических точках; при масштабе 125–150 % окно выходило меньше
+                # pywebview берёт размер экрана в логических точках; при масштабе 125-150 % окно выходило меньше
                 # монитора, и по краям оставались светлые полосы. Дотягиваем окно до монитора в настоящих пикселях.
                 threading.Timer(0.15, _cover_monitor, (hwnd(self._win),)).start()
 
     def close(self, _=None):
-        # из обработчика вызова страницы окно не уничтожить — оно ждёт ответа; делаем это чуть позже
+        # из обработчика вызова страницы окно не уничтожить - оно ждёт ответа; делаем это чуть позже
         target = self._win.hide if self._win is _main else self._win.destroy
         threading.Timer(0.05, target).start()
+
+    def save_file(self, name, data_url):
+        """Сохранить файл, который страница собрала сама (картинку года, экспорт закладок).
+
+        В WebView2 скачивание по ссылке молча не срабатывает, поэтому пишем файл прямо здесь.
+        Возвращает путь или пустую строку."""
+        try:
+            import base64
+            import re
+            head, _sep, b64 = str(data_url).partition(",")
+            if "base64" not in head:
+                b64 = base64.b64encode(str(data_url).encode("utf-8")).decode()
+            data = base64.b64decode(b64)
+            safe = re.sub(r'[<>:"/\\|?*\x00-\x1f]', " ", str(name)).strip(" .")[:120] or "файл"
+            out_dir = Path(os.environ.get("USERPROFILE") or Path.home()) / "Downloads"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out = out_dir / safe
+            i = 1
+            while out.exists():
+                out = out_dir / f"{Path(safe).stem} ({i}){Path(safe).suffix}"
+                i += 1
+            out.write_bytes(data)
+            return str(out)
+        except Exception:  # noqa: BLE001 - сохранение не должно ронять окно
+            return ""
 
 
 def _cover_monitor(h: int) -> None:
@@ -89,9 +115,14 @@ def _cover_monitor(h: int) -> None:
         if not mon or not u.GetMonitorInfoW(mon, ctypes.byref(mi)):
             return
         r = mi.rcMonitor
+        # Окно на 1 пиксель больше монитора: у развёрнутого окна Windows рисует по краю рамку
+        # в 1 пиксель, и она видна серой полосой вокруг видео. За краем экрана её не видно.
+        pad = 1
         # HWND_TOP, SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED
-        u.SetWindowPos(wintypes.HWND(h), None, r.left, r.top, r.right - r.left, r.bottom - r.top, 0x0004 | 0x0010 | 0x0020)
-    except Exception:  # noqa: BLE001 — не вышло подогнать: остаётся как сделал pywebview
+        u.SetWindowPos(wintypes.HWND(h), None, r.left - pad, r.top - pad,
+                       r.right - r.left + 2 * pad, r.bottom - r.top + 2 * pad,
+                       0x0004 | 0x0010 | 0x0020)
+    except Exception:  # noqa: BLE001 - не вышло подогнать: остаётся как сделал pywebview
         pass
 
 
@@ -103,7 +134,7 @@ def hwnd(win=None) -> int:
     """Номер окна для Windows API (значки, «поверх всех окон»)."""
     try:
         return int((win or _main).native.Handle.ToInt64())
-    except Exception:  # noqa: BLE001 — окно ещё не создано
+    except Exception:  # noqa: BLE001 - окно ещё не создано
         return 0
 
 
@@ -131,8 +162,8 @@ def _window(url: str, width: int, height: int, **kw):
 
 
 def open_player(url: str) -> None:
-    """Отдельное окно плеера. Уже открыто — переключаем его на новый адрес (спросила страница) и выводим вперёд.
-    «Поверх всех окон» — только кнопкой 📌 в плеере."""
+    """Отдельное окно плеера. Уже открыто - переключаем его на новый адрес (спросила страница) и выводим вперёд.
+    «Поверх всех окон» - только кнопкой 📌 в плеере."""
     global _player
     win = _player
     if win is not None:
@@ -156,8 +187,8 @@ def _forget_player(win) -> None:
 
 
 def _player_info() -> dict:
-    """Что идёт в окне плеера — для вопроса «переключить?» перед новой серией.
-    Окно не ответило за 2 с (грузится) — всё равно «открыто», просто без названия: сервер не должен ждать окно."""
+    """Что идёт в окне плеера - для вопроса «переключить?» перед новой серией.
+    Окно не ответило за 2 с (грузится) - всё равно «открыто», просто без названия: сервер не должен ждать окно."""
     win = _player
     if win is None:
         return {"open": False}
@@ -166,7 +197,7 @@ def _player_info() -> dict:
     def ask():
         try:
             got.update(json.loads(win.evaluate_js("JSON.stringify({title: document.title, hash: location.hash})")))
-        except Exception:  # noqa: BLE001 — окно как раз закрывается
+        except Exception:  # noqa: BLE001 - окно как раз закрывается
             pass
 
     t = threading.Thread(target=ask, daemon=True)
@@ -182,19 +213,19 @@ def _close_player() -> None:
 
 
 def _hide_main():
-    # крестик не закрывает Анимир, а прячет окно в трей; прятать — из другого потока,
+    # крестик не закрывает Анимир, а прячет окно в трей; прятать - из другого потока,
     # потому что обработчик закрытия выполняется в потоке окна и ждёт нашего ответа
     threading.Thread(target=_main.hide, daemon=True).start()
     return False  # отменить закрытие
 
 
 def create(url: str, on_shown) -> None:
-    """Создаёт главное окно (ещё не показывает). on_shown(hwnd) — когда любое окно появится на экране."""
+    """Создаёт главное окно (ещё не показывает). on_shown(hwnd) - когда любое окно появится на экране."""
     global _main, _on_shown
     _on_shown = on_shown
-    # флаги движка (автовоспроизведение, лёгкий режим) — те же, что были у Edge --app
+    # флаги движка (автовоспроизведение, лёгкий режим) - те же, что были у Edge --app
     flags = windows.engine_flags()
-    # для разработки: ANIMIR_DEVTOOLS_PORT=9222 — к окну можно подключиться отладчиком или Playwright (connect_over_cdp)
+    # для разработки: ANIMIR_DEVTOOLS_PORT=9222 - к окну можно подключиться отладчиком или Playwright (connect_over_cdp)
     if os.environ.get("ANIMIR_DEVTOOLS_PORT", "").isdigit():
         flags.append("--remote-debugging-port=" + os.environ["ANIMIR_DEVTOOLS_PORT"])
     os.environ["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] = " ".join(flags)
@@ -207,6 +238,6 @@ def create(url: str, on_shown) -> None:
 
 
 def run(on_started) -> None:
-    """Цикл окон — только в главном потоке, возвращается после выхода. on_started — в отдельном потоке."""
+    """Цикл окон - только в главном потоке, возвращается после выхода. on_started - в отдельном потоке."""
     webview.start(on_started, gui="edgechromium", private_mode=False,
                   storage_path=str(DATA_DIR / "webview"))

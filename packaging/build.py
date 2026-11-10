@@ -24,7 +24,7 @@ def main() -> int:
         pass
 
     if not (ROOT / "web" / "index.html").is_file():
-        print("Не найден web/index.html — запусти сборку из папки Анимир.")
+        print("Не найден web/index.html - запусти сборку из папки Анимир.")
         return 1
     try:
         import PyInstaller  # noqa: F401
@@ -53,7 +53,7 @@ def main() -> int:
     try:
         subprocess.run(cmd, cwd=ROOT, check=True)
     except subprocess.CalledProcessError:
-        print("\nСборка не удалась — смотри сообщения PyInstaller выше.")
+        print("\nСборка не удалась - смотри сообщения PyInstaller выше.")
         return 1
     except KeyboardInterrupt:
         print("\nСборка отменена.")

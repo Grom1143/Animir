@@ -1,12 +1,12 @@
-"""Анимир — коллекции Shikimori (чужие и свои).
+"""Анимир - коллекции Shikimori (чужие и свои).
 
 В API Shikimori коллекций нет, поэтому читаем открытые страницы:
-  /api/topics?forum=collections — список всех опубликованных коллекций (JSON, по 30, новые сначала);
-  /collections.json?search=...  — поиск Shikimori (только по названию);
-  /collections/<id>             — сама коллекция: описание, группы, тайтлы и подписи к ним;
-  /<ник>/collections            — коллекции пользователя.
+  /api/topics?forum=collections - список всех опубликованных коллекций (JSON, по 30, новые сначала);
+  /collections.json?search=...  - поиск Shikimori (только по названию);
+  /collections/<id>             - сама коллекция: описание, группы, тайтлы и подписи к ним;
+  /<ник>/collections            - коллекции пользователя.
 Поиск по описанию Shikimori не умеет, поэтому сервер Анимир потихоньку обходит коллекции
-и складывает описания в локальный индекс (см. Index) — по нему и ищем.
+и складывает описания в локальный индекс (см. Index) - по нему и ищем.
 """
 
 import html
@@ -162,7 +162,7 @@ class Index:
                 "busy": self.busy, "listed": bool(self.data.get("listed_at"))}
 
     def put(self, item: dict, full: bool):
-        """Записать коллекцию в индекс (full — со страницы коллекции, с описанием и тайтлами)."""
+        """Записать коллекцию в индекс (full - со страницы коллекции, с описанием и тайтлами)."""
         cid = str(item["id"])
         with self.lock:
             old = self.data["items"].get(cid, {})
@@ -212,7 +212,7 @@ class Index:
             for n, cid in enumerate(todo):
                 try:
                     self.put(parse_detail(self.fetch_text(f"/collections/{cid}")), True)
-                except Exception:  # noqa: BLE001 — одна битая коллекция не должна останавливать обход
+                except Exception:  # noqa: BLE001 - одна битая коллекция не должна останавливать обход
                     pass
                 if n % 20 == 19:
                     self.save()
@@ -253,13 +253,13 @@ class Index:
         if sort in keys:
             out.sort(key=keys[sort], reverse=True)
         elif words:
-            out.sort(key=lambda x: x[0], reverse=True)  # по совпадению; при равенстве — новые выше (порядок order)
+            out.sort(key=lambda x: x[0], reverse=True)  # по совпадению; при равенстве - новые выше (порядок order)
         items = [dict(r, match=_snippet(r, words)) for _, r in out[(page - 1) * per: page * per]]
         return {"items": items, "total": len(out), "done": page * per >= len(out)}
 
 
 def _snippet(r: dict, words: list) -> str:
-    """Кусочек описания вокруг найденного слова — чтобы было видно, почему коллекция попала в выдачу."""
+    """Кусочек описания вокруг найденного слова - чтобы было видно, почему коллекция попала в выдачу."""
     desc = r.get("desc") or ""
     if not words or not desc:
         return ""

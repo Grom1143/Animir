@@ -1,4 +1,4 @@
-"""Анимир — внешние источники онлайн-серий (Anixart, AniLiberty, Kodik).
+"""Анимир - внешние источники онлайн-серий (Anixart, AniLiberty, Kodik).
 
 Каждый источник описывается одинаково: список «озвучек» (dubs) по Shikimori-ID
 и разрешение конкретной серии в ссылку на видео или embed-плеер.
@@ -6,13 +6,13 @@
   online_dubs(shikimori_id)  -> {"dubs": [{key, src, label, type, count}], "errors": []}
   online_stream(id, dub_key, ep) -> {"url", "mode", "site", "count"}
 
-Пакет: net — сеть и кэш, aniliberty / kodik / anixart — по файлу на источник, search — поиск по озвучкам,
-counts — сколько тайтлов у озвучки. Здесь — слияние озвучек разных источников и всё, что зовёт сервер.
+Пакет: net - сеть и кэш, aniliberty / kodik / anixart - по файлу на источник, search - поиск по озвучкам,
+counts - сколько тайтлов у озвучки. Здесь - слияние озвучек разных источников и всё, что зовёт сервер.
 
 Схема повторяет подход Anixart: серверная часть тянет каталог у источников,
 пользователь выбирает озвучку и серию. Прямые ссылки достаются «алгоритмом»
 из кода плеера источника и кэшируются; если плеер поменялся и алгоритм
-сломался — откат на встроенный плеер источника (embed), как делает Anixart.
+сломался - откат на встроенный плеер источника (embed), как делает Anixart.
 """
 
 import re
@@ -29,8 +29,8 @@ from .shiki import _part_chain
 # Одна студия в источниках встречается под разными именами: «AniDUB» / «AniDUB Online»,
 # «AniLiberty» / «AniLibria.TV», «SHIZA Project» / «SHIZA Project 18+», «Dream Cast» /
 # «DreamCast»… Схлопываем такие записи: на каждый тип (озвучка/сабы) остаётся самая
-# полная. Если это прямая запись из API AniLiberty — имя «AniLiberty», если старая
-# (Anixart/Kodik) — «AniLibria».
+# полная. Если это прямая запись из API AniLiberty - имя «AniLiberty», если старая
+# (Anixart/Kodik) - «AniLibria».
 _DUB_QUAL = ("online", "онлайн", "site", "сайт", "studio", "студия", "project", "проект",
              "tv", "тв", "hd", "ru", "old", "старая", "старое",
              "official", "официальный", "channel", "канал", "subtitles", "сабы", "субтитры",
@@ -62,7 +62,7 @@ def _dub_merge(dubs: list[dict]) -> list[dict]:
     groups: dict[tuple[str, str], list[tuple[int, dict]]] = {}
     for i, d in enumerate(dubs):
         key = _dub_key(d.get("label"))
-        if key != "anilibria" and len(key) < 4:  # пустое/слишком короткое — не группируем
+        if key != "anilibria" and len(key) < 4:  # пустое/слишком короткое - не группируем
             key = f"#{i}"
         groups.setdefault((key, d.get("type") or ""), []).append((i, d))
     drop: set[int] = set()
@@ -74,7 +74,7 @@ def _dub_merge(dubs: list[dict]) -> list[dict]:
             continue
         # имя без лишнего хвоста, если оно есть в этой группе
         if key == "anilibria":
-            # самая полная запись; при равенстве серий — прямая из API AniLiberty
+            # самая полная запись; при равенстве серий - прямая из API AniLiberty
             best_i, best = max(fam, key=lambda p: (int(p[1].get("count") or 0),
                                                    p[1].get("src") == "AniLiberty"))
             best["label"] = "AniLiberty" if best.get("src") == "AniLiberty" else "AniLibria"
@@ -93,7 +93,7 @@ def online_dubs(sid: str) -> dict:
     """Список озвучек для тайтла по Shikimori-ID."""
     errors: list[str] = []
     dubs: list[dict] = []
-    # Источники не зависят друг от друга — спрашиваем их одновременно: время ответа теперь равно
+    # Источники не зависят друг от друга - спрашиваем их одновременно: время ответа теперь равно
     # самому медленному источнику, а не сумме всех (у популярных тайтлов было 15+ секунд).
     # Порядок результатов прежний (Anixart → AniLiberty → Kodik): от него зависит слияние дублей.
     sources = (_anix_dubs, _aniliberty_dubs, _kodik_dubs)
@@ -109,6 +109,13 @@ def online_dubs(sid: str) -> dict:
     dubs = _dub_merge(dubs)
     if not dubs and errors:
         return {"dubs": [], "errors": errors}
+    # Популярность студии: сколько из топ-300 тайтлов она озвучила (скан в counts.py).
+    # Сначала голосовые озвучки, потом субтитры; внутри - самые заметные студии.
+    from .counts import pop_of  # локально: counts тянет сеть и нужен только здесь
+    for d in dubs:
+        d["pop"] = pop_of(d.get("label"))
+    dubs.sort(key=lambda d: (d.get("type") == "subtitles", -d["pop"],
+                             -int(d.get("count") or 0), d.get("label") or ""))
     return {"dubs": dubs, "errors": []}
 
 
@@ -128,7 +135,7 @@ def online_stream(sid: str, dub_key: str, ep: str) -> dict:
     if dub_key.startswith("al:"):
         rest = dub_key.split(":", 1)[1].split(":")
         rid, offset = rest[0], 0
-        if len(rest) > 1 and rest[1].isdigit():  # al:{rid}:{offset} — «часть серии»
+        if len(rest) > 1 and rest[1].isdigit():  # al:{rid}:{offset} - «часть серии»
             offset = int(rest[1])
         want = int(ep) + offset  # серия нашей части = серия базовой записи + смещение
         eps = cached(f"al:eps:{rid}", 1800, lambda: _al_eps(int(rid)))
@@ -177,6 +184,8 @@ def online_stream(sid: str, dub_key: str, ep: str) -> dict:
 
 # Остальное, что зовёт сервер (server.py: import sources as online)
 from .search import dubs_catalog, dubs_list  # noqa: E402
-from .counts import dubs_counts, dubs_counts_bg  # noqa: E402
+from .counts import dubs_counts, dubs_counts_bg, dubs_labels, pop_of  # noqa: E402
+from .health import health_check  # noqa: E402
 
-__all__ = ["SourceError", "online_dubs", "online_stream", "dubs_list", "dubs_catalog", "dubs_counts", "dubs_counts_bg"]
+__all__ = ["SourceError", "online_dubs", "online_stream", "dubs_list", "dubs_catalog",
+           "dubs_counts", "dubs_counts_bg", "dubs_labels", "pop_of", "health_check"]

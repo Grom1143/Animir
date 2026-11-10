@@ -1,7 +1,7 @@
-"""Анимир — вход через Shikimori (OAuth) и запросы от имени пользователя.
+"""Анимир - вход через Shikimori (OAuth) и запросы от имени пользователя.
 
 Нужен, чтобы писать комментарии в обсуждения Shikimori: их видят и отвечают все пользователи сайта.
-Ключи приложения и токены лежат в %APPDATA%\\Анимир\\auth.json — только на этом компьютере,
+Ключи приложения и токены лежат в %APPDATA%\\Анимир\\auth.json - только на этом компьютере,
 в интерфейс (state.json) они не попадают.
 """
 
@@ -112,7 +112,7 @@ def _fresh_token() -> tuple[dict, str]:
         a = _load()
         if not a.get("refresh_token"):
             raise AuthError("Нужно войти через Shikimori (Настройки → Аккаунт)")
-        if time.time() > a.get("expires_at", 0) - 120:  # токен живёт сутки — обновляем заранее
+        if time.time() > a.get("expires_at", 0) - 120:  # токен живёт сутки - обновляем заранее
             a = _token_request(a, {"grant_type": "refresh_token", "refresh_token": a["refresh_token"]})
             _save(a)
         return a, a["access_token"]
@@ -123,7 +123,7 @@ def api(method: str, path: str, payload: dict | None = None) -> tuple[int, bytes
     a, token = _fresh_token()
     body = json.dumps(payload).encode() if payload is not None else None
     code, data = _http(method, SHIKI + path, a["app_name"], body, "application/json" if body else None, token)
-    if code == 401:  # токен отозвали или он протух раньше срока — пробуем один раз обновить
+    if code == 401:  # токен отозвали или он протух раньше срока - пробуем один раз обновить
         with _lock:
             a["expires_at"] = 0
             _save(a)
@@ -150,12 +150,12 @@ def _me() -> int:
 
 
 def list_rates() -> list:
-    """Все записи списка аниме пользователя: статус, оценка 0–10, серии, время изменения."""
+    """Все записи списка аниме пользователя: статус, оценка 0-10, серии, время изменения."""
     out, page = [], 1
     while True:
         code, data = api("GET", f"/api/v2/user_rates?user_id={_me()}&target_type=Anime&limit=1000&page={page}")
         if code != 200:
-            raise AuthError(f"Shikimori не отдал список ({code}) — проверь, что у приложения включено право user_rates")
+            raise AuthError(f"Shikimori не отдал список ({code}) - проверь, что у приложения включено право user_rates")
         chunk = json.loads(data or b"[]")
         out += chunk
         if len(chunk) < 1000:
@@ -163,9 +163,34 @@ def list_rates() -> list:
         page += 1
 
 
+def update_progress(target_id: int, episodes: int) -> tuple[int, bytes]:
+    """Тихо обновить прогресс: только число серий, статус и оценку не трогаем.
+
+    Если записи в списке ещё нет - создаём «Смотрю». Если прогресс на Shikimori уже больше,
+    назад не откатываем (могли смотреть с другого устройства)."""
+    target_id, episodes = int(target_id), int(episodes)
+    if target_id <= 0 or episodes <= 0:
+        return 400, b'{"error": "need id and ep"}'
+    code, data = api("GET", f"/api/v2/user_rates?user_id={_me()}&target_id={target_id}&target_type=Anime")
+    if code == 200:
+        try:
+            arr = json.loads(data or b"[]") or []
+        except ValueError:
+            arr = []
+        if arr:
+            rate = arr[0]
+            if int(rate.get("episodes") or 0) >= episodes:
+                return 200, b'{"skip": true}'
+            return api("PATCH", f"/api/v2/user_rates/{int(rate['id'])}", {"user_rate": {"episodes": episodes}})
+    return api("POST", "/api/v2/user_rates", {"user_rate": {
+        "user_id": _me(), "target_id": target_id, "target_type": "Anime",
+        "status": "watching", "episodes": episodes,
+    }})
+
+
 def save_rate(target_id: int, status: str, score: int, episodes: int, rate_id: int | None) -> tuple[int, bytes]:
     fields = {"status": status, "score": max(0, min(10, int(score))), "episodes": max(0, int(episodes))}
-    if not rate_id:  # запись могла появиться на сайте — тогда обновляем её, а не создаём вторую
+    if not rate_id:  # запись могла появиться на сайте - тогда обновляем её, а не создаём вторую
         code, data = api("GET", f"/api/v2/user_rates?user_id={_me()}&target_id={int(target_id)}&target_type=Anime")
         found = json.loads(data or b"[]") if code == 200 else []
         rate_id = found[0]["id"] if found else None
@@ -180,7 +205,7 @@ def create_review(anime_id: int, body: str, opinion: str) -> tuple[int, bytes]:
 
 
 def update_review(review_id: int, fields: dict) -> tuple[int, bytes]:
-    # ответ содержит свежие голоса (cached_votes_up / down) — отдельного метода «прочитать отзыв» в API нет
+    # ответ содержит свежие голоса (cached_votes_up / down) - отдельного метода «прочитать отзыв» в API нет
     return api("PATCH", f"/api/reviews/{int(review_id)}", {"frontend": False, "review": fields})
 
 

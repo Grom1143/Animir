@@ -1,4 +1,4 @@
-"""Анимир — маршруты Shikimori: каталог (GraphQL / REST), отзывы, коллекции, вход и действия от имени пользователя."""
+"""Анимир - маршруты Shikimori: каталог (GraphQL / REST), отзывы, коллекции, вход и действия от имени пользователя."""
 import functools
 import hashlib
 import json
@@ -14,7 +14,7 @@ JSON = "application/json; charset=utf-8"
 
 
 def shiki_errors(fn):
-    """Нет входа — 401, нет связи с Shikimori — 502: одинаково для всех действий от имени пользователя."""
+    """Нет входа - 401, нет связи с Shikimori - 502: одинаково для всех действий от имени пользователя."""
     @functools.wraps(fn)
     def wrapper(self, *args):
         try:
@@ -55,7 +55,7 @@ class ShikiRoutes:
         self.drop_if_fresh(key)
         fetch = lambda: upstream(SHIKI + "/api/graphql", body)  # noqa: E731
         try:
-            # случайную выборку не кэшируем — иначе 10 минут подряд выпадает один и тот же тайтл
+            # случайную выборку не кэшируем - иначе 10 минут подряд выпадает один и тот же тайтл
             data = fetch() if b"order: random" in body else cached_api(key, fetch)
         except (urllib.error.URLError, TimeoutError) as e:
             return self.send_json({"errors": [{"message": f"Нет связи с Shikimori: {e}"}]}, 502)
@@ -90,15 +90,15 @@ class ShikiRoutes:
     @get("/api/attitudes")
     def attitudes(self, q):
         """Отношение комментаторов к тайтлу: ?anime=<id>&users=1,2,3 →
-        {uid: {score, status, opinion}} — оценка и статус из открытого списка пользователя,
-        opinion — мнение его отзыва на этот тайтл, если отзыв есть."""
+        {uid: {score, status, opinion}} - оценка и статус из открытого списка пользователя,
+        opinion - мнение его отзыва на этот тайтл, если отзыв есть."""
         aid = q.get("anime", [""])[0]
         users = [u for u in q.get("users", [""])[0].split(",") if u.isdigit()][:40]
         if not aid.isdigit():
             return self.send_json({"error": "bad request"}, 400)
         opinions = {}
         try:
-            for page in range(1, 6):  # первые 40 отзывов — дальше слишком долго
+            for page in range(1, 6):  # первые 40 отзывов - дальше слишком долго
                 d = reviews_page(int(aid), "", page)
                 for r in d["items"]:
                     opinions.setdefault(r["user"]["id"], r["opinion"])
@@ -112,7 +112,7 @@ class ShikiRoutes:
             try:
                 rate = (json.loads(cached_api("rest:" + path, lambda: upstream(SHIKI + path))) or [{}])[0]
             except (urllib.error.URLError, TimeoutError, ValueError):
-                rate = {}  # закрытый список или нет связи — просто не знаем
+                rate = {}  # закрытый список или нет связи - просто не знаем
             out[u] = {"score": rate.get("score") or 0, "status": rate.get("status") or "", "opinion": opinions.get(int(u), "")}
         self.send_json(out)
 
@@ -225,7 +225,7 @@ class ShikiRoutes:
     def review(self):
         b = self.json_body()
         op = b.get("opinion") if b.get("opinion") in ("positive", "neutral", "negative") else "neutral"
-        if b.get("id"):  # изменить (или просто обновить голоса — тогда шлём то же мнение)
+        if b.get("id"):  # изменить (или просто обновить голоса - тогда шлём то же мнение)
             fields = {"opinion": op}
             if b.get("body"):
                 fields["body"] = str(b["body"])[:20000]
@@ -243,6 +243,16 @@ class ShikiRoutes:
         b = self.json_body()
         self.send_upstream(shiki_auth.save_rate(b.get("target_id", 0), str(b.get("status", "planned")),
                                                 b.get("score", 0), b.get("episodes", 0), b.get("rate_id")))
+
+    @post("/api/shiki/progress")
+    def progress(self):
+        # тихий автосинк: отметить серию и на Shikimori (только число серий).
+        # Не вошли - отвечаем 200 и "auth", чтобы очередь не копила одно и то же.
+        b = self.json_body()
+        try:
+            self.send_upstream(shiki_auth.update_progress(b.get("id", 0), b.get("ep", 0)))
+        except shiki_auth.AuthError as e:
+            self.send_json({"skip": True, "auth": True, "why": str(e)})
 
     @post("/api/shiki/rate/delete")
     @shiki_errors

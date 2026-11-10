@@ -1,6 +1,6 @@
-"""Анимир — значок в трее (область уведомлений справа внизу, у часов).
+"""Анимир - значок в трее (область уведомлений справа внизу, у часов).
 
-Висит, пока Анимир работает в фоне. Клик — открыть окно, правый клик — меню «Открыть Анимир / Выход».
+Висит, пока Анимир работает в фоне. Клик - открыть окно, правый клик - меню «Открыть Анимир / Выход».
 Написано на чистом Windows API через ctypes, чтобы не ставить лишних библиотек.
 """
 
@@ -70,11 +70,11 @@ class Tray:
         hinst = kernel32.GetModuleHandleW(None)
         wc = WNDCLASSW(lpfnWndProc=self._proc, hInstance=hinst, lpszClassName="AnimirTray")
         user32.RegisterClassW(ctypes.byref(wc))
-        # после перезапуска проводника значки в трее пропадают — Windows присылает это сообщение, добавляем заново.
+        # после перезапуска проводника значки в трее пропадают - Windows присылает это сообщение, добавляем заново.
         # Узнаём его номер до создания окна: сообщения приходят уже во время CreateWindowExW.
         self.wm_taskbar = user32.RegisterWindowMessageW("TaskbarCreated")
         self.hwnd = user32.CreateWindowExW(0, "AnimirTray", "Анимир tray", 0, 0, 0, 0, 0, None, None, hinst, None)
-        size = user32.GetSystemMetrics(49)  # SM_CXSMICON — размер маленького значка с учётом масштаба
+        size = user32.GetSystemMetrics(49)  # SM_CXSMICON - размер маленького значка с учётом масштаба
         hicon = user32.LoadImageW(None, icon_path, IMAGE_ICON, size, size, LR_LOADFROMFILE)
         self.nid = NOTIFYICONDATAW(cbSize=ctypes.sizeof(NOTIFYICONDATAW), hWnd=self.hwnd, uID=1,
                                    uFlags=NIF_MESSAGE | NIF_ICON | NIF_TIP, uCallbackMessage=WM_TRAY, hIcon=hicon, szTip=tip)
@@ -115,7 +115,7 @@ class Tray:
         shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self.nid))
 
     def run(self):
-        """Цикл сообщений Windows — должен крутиться в том же потоке, где создан значок."""
+        """Цикл сообщений Windows - должен крутиться в том же потоке, где создан значок."""
         msg = wintypes.MSG()
         while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
             user32.TranslateMessage(ctypes.byref(msg))

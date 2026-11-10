@@ -1,32 +1,44 @@
 'use strict';
-// Анимир — серии, онлайн-источники, выбор озвучки, ссылки на видеопотоки.
+// Анимир - серии, онлайн-источники, выбор озвучки, ссылки на видеопотоки.
 
 // ================= Серии тайтла =================
 // Серия может «играть» из файла в медиатеке или из сохранённой ссылки на поток.
 // ================= Онлайн-источники (AniLiberty, Kodik) =================
 // Каталог озвучек и серий берётся у источников через сервер (как в Anixart).
 // Выбор озвучки запоминается («запоминать вариант и источник») в S.onlineDubs.
-const onlineDubsCache = new Map(); // animeId -> { at, p } — p: промис со списком озвучек
+const onlineDubsCache = new Map(); // animeId -> { at, p } - p: промис со списком озвучек
+const onlineErrors = new Map();    // animeId -> почему часть источников не ответила (частая причина - VPN)
 
 // Первый поиск озвучек тайтла занимает несколько секунд, поэтому страница тайтла запускает его заранее,
 // а одновременные запросы (страница серий, проверка подписок) ждут один и тот же ответ.
 function onlineDubs(a) {
   const hit = onlineDubsCache.get(+a.id);
   if (hit && Date.now() - hit.at < 300000) return hit.p;
-  const p = fetch('/api/online?p=' + a.id).then(r => r.json()).then(r => (r && r.dubs) || []).catch(() => null);
+  const p = fetch('/api/online?p=' + a.id).then(r => r.json())
+    .then(r => { onlineErrors.set(+a.id, (r && r.errors) || []); return (r && r.dubs) || []; })
+    .catch(() => null);
   onlineDubsCache.set(+a.id, { at: Date.now(), p: p.then(d => d || []) });
-  p.then(d => { if (!d) onlineDubsCache.delete(+a.id); });  // не было связи — в следующий раз спросим снова
+  p.then(d => { if (!d) onlineDubsCache.delete(+a.id); });  // не было связи - в следующий раз спросим снова
   return onlineDubsCache.get(+a.id).p;
 }
 const dubsReady = id => !!onlineDubsCache.get(+id);
+// Если источник не ответил, честно говорим об этом: чаще всего это включённый VPN или блокировка
+const dubsProblem = id => {
+  const errs = (onlineErrors.get(+id) || []).filter(Boolean);
+  if (!errs.length) return '';
+  const first = errs[0];
+  return `<div class="muted" style="margin:0 0 12px">Часть источников не ответила (${esc(first.slice(0, 120))}). `
+    + 'Если включён VPN, выключи его для Анимира или добавь приложение в исключения - аниме-сайты часто '
+    + 'не пускают адреса VPN.</div>';
+};
 
 // ================= популярность озвучек =================
 // Порядок по образцу Anixart: сначала известные студии (по популярности),
-// затем остальные — их расставляем по количеству серий (больше эпизодов = выше).
+// затем остальные - их расставляем по количеству серий (больше эпизодов = выше).
 const onlineHref = (animeId, dubKey, ep) =>
   `#/watch?o=${animeId}&d=${encodeURIComponent(dubKey)}&e=${ep}`;
 const DUB_RANK = new Map(Object.entries({
-  // 1..30 — список пользователя
+  // 1..30 - список пользователя
   'дублированный': 1, 'дубляж': 1,
   'anilibria': 2, 'анилибрия': 2,
   'aniliberty': 2, 'анилиберти': 2,
@@ -56,7 +68,7 @@ const DUB_RANK = new Map(Object.entries({
   'anilot': 28, 'анилот': 28,
   'nextvoice': 29, 'некствойс': 29,
   'anitime': 30, 'анитайм': 30,
-  // добавил от себя — тоже часто встречаются (31+)
+  // добавил от себя - тоже часто встречаются (31+)
   'studioband': 31, 'студиобенд': 31,
   'kansai': 32, 'кансай': 32,
   'amazingdubbing': 33, 'амейзинг': 33,
@@ -73,6 +85,11 @@ const dubRank = label => {
 };
 // «AniLiberty · AniLiberty» не показываем дважды
 const dubName = d => d && d.src && d.src !== d.label ? `${d.src} · ${d.label}` : (d?.label || d?.src || '');
+// Популярность озвучки: сколько популярных тайтлов озвучила студия (считает сервер). Серым на плашке.
+const dubPop = d => {
+  const n = Math.round(+(d?.pop || 0));
+  return n ? `<i class="dub-pop" title="Студия озвучила ${n} из 300 самых популярных тайтлов">${n}</i>` : '';
+};
 // Та же нормализация имени студии, что и на сервере (sources.py): «AniDUB Online 18+» → «anidub»
 const DUB_QUAL = /(online|онлайн|site|сайт|studio|студия|project|проект|tv|тв|hd|ru|old|старая|старое|official|официальный|channel|канал|subtitles|сабы|субтитры|plus|плюс|kodik|libria|cr|18)$/;
 function dubKey(label) {
@@ -144,16 +161,17 @@ async function pageEpisodes(view, q, [id], alive) {
     <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px"><a href="#/anime/${id}"><img src="${img(s.poster)}" style="width:60px;border-radius:8px" alt=""></a>
       <div style="flex:1"><h1 class="page-title" style="margin:0">${esc(title(a))}</h1><div class="muted">Выбери серию · просмотрено ${Object.keys(marks).length} из ${a.episodes || a.episodesAired || '?'}</div></div>
       <button class="icon-btn" id="ep-more" title="Ещё">⋮</button></div>
-    ${hint('episodes', 'Кружок слева — отметка «просмотрено». Серии играют из твоих файлов (привяжи папку ниже), из сохранённых ссылок или онлайн из озвучек ниже (AniLiberty, Kodik). Если у серии нет источника, её всё равно можно отметить.')}
+    ${hint('episodes', 'Кружок слева - отметка «просмотрено». Серии играют из твоих файлов (привяжи папку ниже), из сохранённых ссылок или онлайн из озвучек ниже (AniLiberty, Kodik). Если у серии нет источника, её всё равно можно отметить.')}
     <div class="ep-tools">
       <div class="tabs" style="margin:0"><a class="tab ${only === 'all' ? 'on' : ''}" href="${qs({ only: '' }).replace('only=&', '').replace(/[?&]only=$/, '')}">Все</a>
         <a class="tab ${only === 'src' ? 'on' : ''}" href="${qs({ only: 'src' })}">С источником</a><a class="tab ${only === 'new' ? 'on' : ''}" href="${qs({ only: 'new' })}">Непросмотренные</a></div>
       <a class="btn sm" href="${desc ? qs({ sort: '' }).replace(/sort=&?/, '') : qs({ sort: 'desc' })}">${desc ? '↓ С конца' : '↑ С начала'}</a>
       <button class="btn sm" id="add-link">🔗 Добавить ссылку на серию</button>
     </div>
-    ${dubs.length ? `<div class="sec-head" style="margin:16px 0 8px"><h2>Онлайн-озвучки</h2><span class="sub">${dubs.length}</span></div>
-      <div class="tabs" style="margin-bottom:6px;flex-wrap:wrap">${dubs.map(d => `<a class="tab ${d.key === dubSel ? 'on' : ''}" data-dub="${esc(d.key === dubSel ? '' : d.key)}" href="${dubHref(d.key === dubSel ? '' : d.key)}">${esc(dubName(d))}${d.type === 'subtitles' ? ' · субтитры' : ''} (${d.count})</a>`).join('')}</div>
-      ${dubs[0] && !dubSel ? `<div class="muted" style="margin:0 0 14px">Серии открываются с первой озвучки (${esc(dubs[0].src)} · ${esc(dubs[0].label)}) — кликни любую. Выбор другой озвучки запоминается.</div>` : ''}` : ''}
+    ${dubs.length ? `<div class="sec-head" style="margin:16px 0 8px"><h2>Онлайн-озвучки</h2><span class="sub">${dubs.length}</span><button class="btn sm" id="dl-dub" style="margin-left:auto">⬇ Скачать</button></div>
+      ${dubsProblem(s.id)}
+      <div class="tabs dubs-tabs" style="margin-bottom:6px">${dubs.map(d => `<a class="tab ${d.key === dubSel ? 'on' : ''}" data-dub="${esc(d.key === dubSel ? '' : d.key)}" href="${dubHref(d.key === dubSel ? '' : d.key)}">${esc(dubName(d))}${d.type === 'subtitles' ? ' · субтитры' : ''} (${d.count})${dubPop(d)}</a>`).join('')}</div>
+      ${dubs[0] && !dubSel ? `<div class="muted" style="margin:0 0 14px">Серии открываются с первой озвучки (${esc(dubs[0].src)} · ${esc(dubs[0].label)}) - кликни любую. Выбор другой озвучки запоминается.</div>` : ''}` : ''}
     <div class="eps-list">${nums.map(n => episodeItem(n, src.byEp.get(n) || [], marks[n], a)).join('') || emptyHtml('📺', a.status === 'anons' ? 'Тайтл ещё не вышел' : 'Серий нет', a.status === 'anons' && a.airedOn?.date ? 'Выход: ' + fmtDate(a.airedOn.date) : '')}</div>
     ${src.loose.length ? `<div class="section"><h3>Файлы без номера серии</h3><div class="eps-list">${src.loose.map(x => x.stream ? streamRow(x.stream) : episodeRow(x)).join('')}</div></div>` : ''}
     <div class="section"><h3>Папки с сериями</h3><div class="list" id="dirs"></div></div>`;
@@ -166,6 +184,12 @@ async function pageEpisodes(view, q, [id], alive) {
   $$('[data-link]', dirsBox).forEach(b => b.onclick = () => { S.library.links[b.dataset.link] = s; save(); toast('Папка привязана'); route(); });
   $$('[data-unlink]', dirsBox).forEach(b => b.onclick = () => { delete S.library.links[b.dataset.unlink]; save(); route(); });
   $('#add-link').onclick = () => streamDialog({ anime: s, ep: nums.find(n => !marks[n]) || null });
+  $('#dl-dub')?.addEventListener('click', async () => {
+    const dub = dubs.find(d => d.key === dubSel) || dubs[0];
+    if (!dub) { toast('Сначала выбери онлайн-озвучку'); return; }
+    const eps = await dlPickEpisodes(s, dub, marks);
+    if (eps) dlStart(s.id, dub.key, dub.label, title(a), eps);
+  });
   $$('.ep', view).forEach(el => {
     el.onclick = e => {
       if (e.target.closest('.chk')) {
@@ -176,12 +200,18 @@ async function pageEpisodes(view, q, [id], alive) {
       }
       if (el.dataset.href) watchOpen(el.dataset.href);
       else if (el.dataset.play) watchOpen('#/watch?f=' + encodeURIComponent(el.dataset.play));
-      else toast('У этой серии нет источника — привяжи папку или добавь ссылку');
+      else toast('У этой серии нет источника - привяжи папку или добавь ссылку');
     };
   });
   $('#ep-more').onclick = () => {
     const r = $('#ep-more').getBoundingClientRect();
     const items = [
+      ['⬇', 'Скачать озвучку', async () => {
+        const dub = dubs.find(x => x.key === dubSel) || dubs[0];
+        if (!dub) { toast('Сначала выбери онлайн-озвучку'); return; }
+        const eps = await dlPickEpisodes(s, dub, marks);
+        if (eps) dlStart(s.id, dub.key, dub.label, title(a), eps);
+      }],
       ['✓', 'Все серии просмотрены', () => { for (let n = 1; n <= (a.episodes || a.episodesAired); n++) if (!marksOf(s.id)[n]) setMark(s, n, true); route(); }],
       ['✕', 'Удалить все отметки', async () => { if (await confirmBox('Удалить все отметки о просмотре?', 'Удалить')) { delete S.marks[s.id]; syncEp(s); route(); } }],
       ['📁', 'Медиатека', () => go('#/library')],
@@ -211,7 +241,7 @@ async function pagePlay(view, q, [id], alive) {
   const s = snap(a);
   const marks = marksOf(s.id);
   const src0 = await sourcesFor(s); // локальные файлы и ссылки (без онлайн)
-  // Клипы, трейлеры и реклама — не сериалы: онлайн-озвучек у них не бывает,
+  // Клипы, трейлеры и реклама - не сериалы: онлайн-озвучек у них не бывает,
   // не ждём медленные источники и сразу показываем официальный ролик.
   const clip = ['music', 'pv', 'cm'].includes(a.kind);
   if (!clip && !dubsReady(s.id)) slowLoading(view, 'Ищу онлайн-озвучки: Anixart, AniLiberty, Kodik…', alive);
@@ -227,8 +257,8 @@ async function pagePlay(view, q, [id], alive) {
   nFiles += src0.loose.filter(x => !x.stream).length;
   nLinks += src0.loose.filter(x => x.stream).length;
 
-  // шаг 1 — озвучка (по названию), шаг 2 — источник (если у озвучки их несколько).
-  // одна и та же озвучка бывает в нескольких источниках — группируем по label
+  // шаг 1 - озвучка (по названию), шаг 2 - источник (если у озвучки их несколько).
+  // одна и та же озвучка бывает в нескольких источниках - группируем по label
   const dubGroups = [];
   const seenGrp = new Map();
   for (const d of dubs) {
@@ -238,26 +268,27 @@ async function pagePlay(view, q, [id], alive) {
     if (!g) { g = { label, entries: [] }; seenGrp.set(lk, g); dubGroups.push(g); }
     g.entries.push(d);
   }
-  dubGroups.sort((x, y) => dubRank(x.label) - dubRank(y.label)
+  dubGroups.sort((x, y) => Math.max(...y.entries.map(e => e.pop || 0)) - Math.max(...x.entries.map(e => e.pop || 0))
+    || dubRank(x.label) - dubRank(y.label)
     || Math.max(...y.entries.map(e => e.count || 1)) - Math.max(...x.entries.map(e => e.count || 1))
     || x.label.localeCompare(y.label, 'ru'));
 
   const rememberedKey = (S.onlineDubs || {})[s.id];
   const rememberedGroup = rememberedKey ? dubGroups.find(g => g.entries.some(e => e.key === rememberedKey)) : null;
   const rememberedSrc = (S.watchSrc ||= {})[s.id];
-  // reset=1 — явное «Выбрать другую озвучку»: запомненный выбор игнорируем
+  // reset=1 - явное «Выбрать другую озвучку»: запомненный выбор игнорируем
   const reset = q.get('reset') === '1';
   const modeSel = reset ? '' : ['local', 'links'].includes(q.get('mode')) ? q.get('mode')
     : ['local', 'links'].includes(rememberedSrc || '') ? rememberedSrc : '';
 
-  // выбор озвучки и источника; одна озвучка в одном источнике — сразу к сериям
+  // выбор озвучки и источника; одна озвучка в одном источнике - сразу к сериям
   let gSel = '', keySel = null, singleAuto = false;
   if (!reset && q.get('g') && dubGroups.some(g => g.label === q.get('g'))) {
     gSel = q.get('g');
   } else if (!reset && rememberedGroup && !modeSel) {
     gSel = rememberedGroup.label; // запомненная озвучка
   } else if (!modeSel && dubGroups.length === 1 && dubGroups[0].entries.length === 1) {
-    gSel = dubGroups[0].label; // одна озвучка в одном источнике — без выбора
+    gSel = dubGroups[0].label; // одна озвучка в одном источнике - без выбора
     singleAuto = true;
   }
   const groupObj = gSel ? (dubGroups.find(g => g.label === gSel) || null) : null;
@@ -278,7 +309,8 @@ async function pagePlay(view, q, [id], alive) {
       <div style="flex:1"><h1 class="page-title" style="margin:0">${esc(title(a))}</h1><div class="muted">${clip
         ? `${esc({ music: 'Клип', pv: 'Трейлер', cm: 'Рекламный ролик' }[a.kind] || 'Клип')}${a.airedOn?.year ? ' · ' + a.airedOn.year : ''} · <a class="linkbtn" href="#/anime/${id}">к тайтлу</a>`
         : `Просмотрено ${Object.keys(marks).length} из ${a.episodes || a.episodesAired || '?'} · <a class="linkbtn" href="#/anime/${id}/episodes">страница серий</a>`}</div></div></div>
-    ${clip ? '' : hint('play', 'Шаг 1 — выбери озвучку. Шаг 2 — источник (если у озвучки их несколько). Шаг 3 — серию. Выбор запоминается.')}`;
+    ${clip ? '' : hint('play', 'Шаг 1 - выбери озвучку. Шаг 2 - источник (если у озвучки их несколько). Шаг 3 - серию. Выбор запоминается.')}
+    ${dubsProblem(s.id)}`;
 
   if (!dubs.length && !nFiles && !nLinks) {
     const vids = (a.videos || []).filter(v => youtubeId(v.playerUrl) || youtubeId(v.url));
@@ -290,8 +322,8 @@ async function pagePlay(view, q, [id], alive) {
     const officialYt = extYt[0] || (vidId ? ytWatch(vidId) : '');
     const ytSearch = 'https://www.youtube.com/results?search_query=' + encodeURIComponent([a.name, clip && a.kind === 'music' ? 'official music video' : ''].filter(Boolean).join(' '));
     body += emptyHtml(clip ? '🎵' : '📺', clip ? `Это ${{ music: 'клип', pv: 'трейлер', cm: 'рекламный ролик' }[a.kind]}, а не сериал` : 'Источников пока нет',
-      (clip ? 'Озвучек у таких роликов не бывает — их выкладывают официально, чаще всего на YouTube.'
-        : 'Привяжи папку с файлами, добавь ссылку или зайди позже — озвучки подтягиваются онлайн.')
+      (clip ? 'Озвучек у таких роликов не бывает - их выкладывают официально, чаще всего на YouTube.'
+        : 'Привяжи папку с файлами, добавь ссылку или зайди позже - озвучки подтягиваются онлайн.')
       + `<div class="actions" style="justify-content:center;margin-top:16px">
           ${clip && officialYt ? `<a class="btn primary" href="${esc(officialYt)}" target="_blank" rel="noopener">▶ Смотреть на YouTube ↗</a>` : ''}
           ${vids.length ? `<a class="btn ${clip && officialYt ? '' : 'primary'}" href="#/anime/${id}/videos">▶ Официальные ролики (${vids.length})</a>` : ''}
@@ -316,7 +348,7 @@ async function pagePlay(view, q, [id], alive) {
     return h;
   };
 
-  if (keySel) { // выбрана конкретная озвучка — запоминаем её (последний выбор главнее локальных)
+  if (keySel) { // выбрана конкретная озвучка - запоминаем её (последний выбор главнее локальных)
     S.onlineDubs[s.id] = keySel.key;
     delete S.watchSrc[s.id];
     save();
@@ -368,18 +400,19 @@ async function pagePlay(view, q, [id], alive) {
       <div style="margin:0 0 12px"><button class="btn sm ${subbed ? '' : 'primary'}" id="dub-sub">${subbed ? `🔔 Не следить за «${esc(keySel.label)}»` : `🔔 Следить за «${esc(keySel.label)}»`}</button>${subbed ? '<span class="muted" style="margin-left:10px">Сообщим о новых сериях этой озвучки</span>' : '<span class="muted" style="margin-left:10px">Уведомим на рабочем столе, когда выйдет новая</span>'}</div>`;
     body += '<div class="eps-list">' + seriesHtml(keySel) + '</div>';
   } else if (groupObj) {
-    // шаг 2 — источник выбранной озвучки
+    // шаг 2 - источник выбранной озвучки
     body += `<div class="sec-head"><h2>2 · Источник</h2><span class="sub">${groupObj.entries.length}</span></div>
       <div class="eps-list">
         ${groupObj.entries.map(d => `<div class="ep" data-pick="${esc(d.key)}"><div class="n">${srcIcon(d.key.split(':')[0])}</div><div class="b"><div class="t">${esc(d.src)}</div><div class="m">${d.count} ${plural(d.count, 'серия', 'серии', 'серий')}${d.type === 'subtitles' ? ' · субтитры' : ''}</div></div><span class="muted">▶</span></div>`).join('')}
       </div>`;
   } else {
-    // шаг 1 — список озвучек
+    // шаг 1 - список озвучек
     if (dubGroups.length) body += `<div class="sec-head"><h2>1 · Озвучка</h2><span class="sub">${dubs.length}</span></div>
-      <div class="tabs" style="margin-bottom:14px;flex-wrap:wrap">${dubGroups.map(g => {
+      <div class="tabs dubs-tabs" style="margin-bottom:14px">${dubGroups.map(g => {
         const cnt = Math.max(...g.entries.map(x => x.count));
+        const pop = Math.max(...g.entries.map(x => x.pop || 0));
         const subs = g.entries.every(x => x.type === 'subtitles') ? ' · субтитры' : '';
-        return `<a class="tab" data-grp="${esc(g.label)}" href="${grpHref(g.label)}">${esc(g.label)} (${cnt})${subs}${g.entries.length > 1 ? ` · ${g.entries.length} ист.` : ''}</a>`;
+        return `<a class="tab" data-grp="${esc(g.label)}" href="${grpHref(g.label)}">${esc(g.label)} (${cnt})${dubPop({ pop })}${subs}${g.entries.length > 1 ? ` · ${g.entries.length} ист.` : ''}</a>`;
       }).join('')}</div>`;
     if (nFiles || nLinks) body += `<div class="sec-head" ${dubGroups.length ? 'style="margin-top:14px"' : ''}><h2>${dubGroups.length ? 'Без озвучки' : 'Серия'}</h2><span class="sub">${(nFiles ? 1 : 0) + (nLinks ? 1 : 0)}</span></div>
       <div class="eps-list">
@@ -402,7 +435,7 @@ async function pagePlay(view, q, [id], alive) {
       go(base + '?mode=' + k);
       return;
     }
-    // выбрали источник конкретной озвучки — запоминаем её
+    // выбрали источник конкретной озвучки - запоминаем её
     S.onlineDubs[s.id] = k;
     delete S.watchSrc[s.id];
     save();
@@ -430,7 +463,7 @@ async function pagePlay(view, q, [id], alive) {
         ep: keySel.count || 0, at: Date.now(),
       };
       delete S.subsDel['subsDub:' + subK];
-      toast(`Следим за «${keySel.label}» — о новых сериях сообщим`);
+      toast(`Следим за «${keySel.label}» - о новых сериях сообщим`);
     }
     save();
     route();
@@ -481,7 +514,7 @@ function embedUrl(url) {
   if ((m = url.match(/ok\.ru\/video\/(\d+)/i))) return `https://ok.ru/videoembed/${m[1]}?autoplay=1`;
   return url;
 }
-// Во встроенный плеер пускаем только внешние https-адреса — не локальную сеть и не сам Анимир
+// Во встроенный плеер пускаем только внешние https-адреса - не локальную сеть и не сам Анимир
 function safeEmbed(url) {
   try {
     const u = new URL(url);
@@ -493,13 +526,13 @@ function safeEmbed(url) {
 function streamDialog({ anime = null, ep = null, url = '' } = {}) {
   let linked = anime;
   const b = modal(`<h3>Открыть ссылку на видео</h3>
-    <p class="muted">Прямая ссылка на видео (<b>.mp4</b>, <b>.webm</b>, <b>.m3u8</b>) — например, со своего медиасервера — откроется в плеере Анимир.
-      Ссылка на страницу ролика RUTUBE, VK Видео, ОК… — во встроенном плеере сайта; ролики YouTube открываются на самом YouTube.</p>
+    <p class="muted">Прямая ссылка на видео (<b>.mp4</b>, <b>.webm</b>, <b>.m3u8</b>) - например, со своего медиасервера - откроется в плеере Анимир.
+      Ссылка на страницу ролика RUTUBE, VK Видео, ОК… - во встроенном плеере сайта; ролики YouTube открываются на самом YouTube.</p>
     <input class="input" id="su" style="width:100%" placeholder="https://…" value="${esc(url)}">
     <select class="select" id="sm" style="width:100%;margin-top:10px">
       <option value="auto">Определить автоматически</option>
-      <option value="direct">Видеофайл или HLS-поток — плеер Анимир</option>
-      <option value="embed">Страница или плеер сайта — встроить</option>
+      <option value="direct">Видеофайл или HLS-поток - плеер Анимир</option>
+      <option value="embed">Страница или плеер сайта - встроить</option>
     </select>
     <div class="muted" id="sk" style="font-size:12px;margin-top:6px"></div>
     <div style="display:grid;grid-template-columns:1fr 120px;gap:10px;margin-top:10px">
@@ -513,7 +546,7 @@ function streamDialog({ anime = null, ep = null, url = '' } = {}) {
     if (!/^https?:\/\//i.test(u)) { $('#sk', b).textContent = ''; return; }
     const mode = streamMode({ url: u, mode: $('#sm', b).value });
     $('#sk', b).textContent = mode === 'direct' ? 'Будет играть в плеере Анимир: запомнит место, отметит серию, горячие клавиши.'
-      : `Будет встроен плеер сайта «${siteName(u)}». Место остановки запомнить не получится — серию можно отметить кнопкой.`;
+      : `Будет встроен плеер сайта «${siteName(u)}». Место остановки запомнить не получится - серию можно отметить кнопкой.`;
   };
   $('#su', b).addEventListener('input', hintKind);
   $('#sm', b).onchange = hintKind;

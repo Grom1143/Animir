@@ -1,4 +1,4 @@
-"""Анимир — файлы: прокси и кэш картинок, видео и субтитры из медиатеки, сам интерфейс (web/)."""
+"""Анимир - файлы: прокси и кэш картинок, видео и субтитры из медиатеки, сам интерфейс (web/)."""
 import hashlib
 import mimetypes
 import re
@@ -17,7 +17,7 @@ from state import lite_mode
 _img_lock = threading.Lock()
 _img_writes = 0
 
-TEMP_FILE_GRACE = 600  # сек.: столько не трогаем недописанный файл кэша — загрузка не длится дольше
+TEMP_FILE_GRACE = 600  # сек.: столько не трогаем недописанный файл кэша - загрузка не длится дольше
 
 
 def _img_cache_cap() -> int:
@@ -37,8 +37,8 @@ def _trim_img_cache(force: bool = False) -> None:
             if not f.is_file():
                 continue
             st = f.stat()
-            # свежие .part и .tmp прямо сейчас дописывает другой поток (image(), media.enhanced): удалишь — его
-            # запрос упадёт. Старые — брошены при аварийном выходе, их чистим как обычные файлы.
+            # свежие .part и .tmp прямо сейчас дописывает другой поток (image(), media.enhanced): удалишь - его
+            # запрос упадёт. Старые - брошены при аварийном выходе, их чистим как обычные файлы.
             if f.suffix in (".part", ".tmp") and now - st.st_mtime < TEMP_FILE_GRACE:
                 continue
             files.append((st.st_mtime, st.st_size, f))
@@ -85,7 +85,7 @@ class FileRoutes:
                 tmp.replace(f)
             except PermissionError:
                 # Ту же картинку (постер в двух размерах) качал ещё один поток: он уже положил файл и читает его,
-                # а открытый файл Windows заменить не даёт. Его копия ничем не хуже — берём её.
+                # а открытый файл Windows заменить не даёт. Его копия ничем не хуже - берём её.
                 tmp.unlink(missing_ok=True)
                 if not f.exists():
                     raise
@@ -155,14 +155,14 @@ class FileRoutes:
                 break
             except UnicodeDecodeError:
                 continue
-        if text is None:  # редкая кодировка — лучше субтитры с «?», чем ошибка
+        if text is None:  # редкая кодировка - лучше субтитры с «?», чем ошибка
             text = raw.decode("utf-8", "replace")
         if p.suffix.lower() == ".srt":
             text = srt_to_vtt(text)
         self.send_bytes(text.encode("utf-8"), "text/vtt; charset=utf-8")
 
     def static(self, route: str):
-        """Всё, что не API, — файлы интерфейса; неизвестный адрес — index.html (адреса экранов живут после #)."""
+        """Всё, что не API, - файлы интерфейса; неизвестный адрес - index.html (адреса экранов живут после #)."""
         rel = urllib.parse.unquote(route).lstrip("/") or "index.html"
         f = (WEB_DIR / rel).resolve()
         if not f.is_relative_to(WEB_DIR) or not f.is_file():

@@ -1,9 +1,9 @@
 'use strict';
-// Анимир — закладки, история, коллекции (свои и Shikimori).
+// Анимир - закладки, история, коллекции (свои и Shikimori).
 
 // ================= Закладки =================
 const BM_TABS = [['collections', 'Коллекции'], ['history', 'История'], ['favorites', 'Избранное'], ...LISTS];
-const BM_SORT = { added_desc: 'По добавлению: сначала новые', added_asc: 'По добавлению: сначала старые', year_desc: 'По году: сначала новые', year_asc: 'По году: сначала старые', name_asc: 'По алфавиту: А–Я', name_desc: 'По алфавиту: Я–А', rating_desc: 'По рейтингу: по убыванию', rating_asc: 'По рейтингу: по возрастанию', my_desc: 'По моей оценке' };
+const BM_SORT = { added_desc: 'По добавлению: сначала новые', added_asc: 'По добавлению: сначала старые', year_desc: 'По году: сначала новые', year_asc: 'По году: сначала старые', name_asc: 'По алфавиту: А-Я', name_desc: 'По алфавиту: Я-А', rating_desc: 'По рейтингу: по убыванию', rating_asc: 'По рейтингу: по возрастанию', my_desc: 'По моей оценке' };
 function sortEntries(arr, how) {
   const t = e => e.statusAt || e.added || 0;
   const by = {
@@ -41,7 +41,7 @@ function pageBookmarks(view, q) {
       <select class="select" id="bs">${Object.entries(BM_SORT).map(([k, n]) => `<option value="${k}" ${k === sort ? 'selected' : ''}>${n}</option>`).join('')}</select>
       <select class="select" id="bf">${[['all', 'Все'], ['anons', 'Только анонсы'], ['noanons', 'Исключить анонсы']].map(([k, n]) => `<option value="${k}" ${k === flt ? 'selected' : ''}>${n}</option>`).join('')}</select>
       <button class="icon-btn" id="br" title="Открыть случайный из списка">🔀</button></div>
-    ${hint('bookmarks', 'Правый клик по карточке — быстрые действия: статус, избранное, коллекция.')}
+    ${hint('bookmarks', 'Правый клик по карточке - быстрые действия: статус, избранное, коллекция.')}
     ${items.length ? `<div class="${gridClass()}">${items.map(e => {
       const total = e.anime.episodes || e.anime.episodesAired;
       // из «Смотрю» сразу на список серий
@@ -49,7 +49,7 @@ function pageBookmarks(view, q) {
       return isList() ? lrow(e.anime, { href, extra: `просмотрено ${e.ep || 0}/${total || '?'}${e.score ? ' · моя оценка ' + scoreText(e.score) : ''}` })
         : card(e.anime, { href, noMark: tab !== 'favorites', badge: `${e.ep || 0}/${total || '?'}`, bar: total ? Math.min(100, (e.ep || 0) / total * 100) : null, meta: e.score ? 'Моя оценка: ' + scoreText(e.score) : metaLine(e.anime) });
     }).join('')}</div>`
-      : emptyHtml(tab === 'favorites' ? '♡' : '▤', 'Здесь пока ничего нет', tab === 'favorites' ? 'Нажми «♡ В избранное» на странице тайтла.' : `Добавляй тайтлы в «${LIST_NAME[tab]}» — кнопкой статуса на странице аниме или правым кликом по карточке.`)}`;
+      : emptyHtml(tab === 'favorites' ? '♡' : '▤', 'Здесь пока ничего нет', tab === 'favorites' ? 'Нажми «♡ В избранное» на странице тайтла.' : `Добавляй тайтлы в «${LIST_NAME[tab]}» - кнопкой статуса на странице аниме или правым кликом по карточке.`)}`;
   $('#bs').onchange = e => go(link({ sort: e.target.value }));
   $('#bf').onchange = e => go(link({ flt: e.target.value }));
   $('#bq').oninput = debounce(e => {
@@ -70,12 +70,12 @@ function continueItems() {
 }
 const histHref = h => {
   if (h.stream) return '#/watch?s=' + h.stream;
-  // онлайн-серия (ключ прогресса «o:<тайтл>:<озвучка>:<серия>») — прямо на эту серию с той же озвучкой
+  // онлайн-серия (ключ прогресса «o:<тайтл>:<озвучка>:<серия>») - прямо на эту серию с той же озвучкой
   const m = /^o:(\d+):(.+):(\d+)$/.exec(h.file || '');
   if (m) return '#/watch?' + new URLSearchParams({ o: m[1], d: m[2], e: m[3] }).toString();
   return '#/watch?f=' + encodeURIComponent(h.file);
 };
-// Главная: крупная карточка последней недосмотренной серии — продолжить одной кнопкой с той же секунды
+// Главная: крупная карточка последней недосмотренной серии - продолжить одной кнопкой с той же секунды
 function resumeCard(h) {
   const p = S.progress[h.file] || {};
   const a = h.anime || { id: 0, russian: h.name, poster: '' };
@@ -105,7 +105,7 @@ function renderHistory(box) {
       const a = h.anime || { id: 0, poster: '' };
       const html = wideCard(a.id ? a : { ...a, russian: h.name }, `${h.ep != null ? '✓ серия ' + h.ep + ' · ' : ''}${p.done ? 'просмотрено' : p.d ? `${fmtTime(p.t)} из ${fmtTime(p.d)}` : ''} · 🕘 ${ago(h.at)}<br><span class="muted">${esc([h.dub, h.name].filter(Boolean).join(' · '))}</span>`, histHref(h));
       return a.id ? html.replace('class="wide-card"', `class="wide-card" data-hist="${esc(h.file)}"`) : html;
-    }).join('')}</div>` : emptyHtml('↺', 'История пуста', 'Начни что-нибудь смотреть — серия обязательно здесь сохранится.');
+    }).join('')}</div>` : emptyHtml('↺', 'История пуста', 'Начни что-нибудь смотреть - серия обязательно здесь сохранится.');
   $('#clr', box)?.addEventListener('click', async () => { if (await confirmBox('Очистить историю просмотров?', 'Очистить')) { S.history = []; save(); route(); } });
 }
 
@@ -169,7 +169,7 @@ async function pageCollections(view, q, _, alive) {
       return { items: r.items, done: r.done };
     }, shikiCollCard, live, 'grid colls');
   };
-  // пока индекс собирается, поиск идёт только по названиям — показываем, сколько описаний уже прочитано
+  // пока индекс собирается, поиск идёт только по названиям - показываем, сколько описаний уже прочитано
   const indexLine = st => {
     const el = $('#sci');
     if (!el || !st) return;
@@ -190,11 +190,11 @@ async function pageCollections(view, q, _, alive) {
 async function myCollections(box, alive) {
   const au = await authStatus();
   const nick = au?.user?.nickname;
-  // сначала свои коллекции Анимир, ниже — с Shikimori
+  // сначала свои коллекции Анимир, ниже - с Shikimori
   box.innerHTML = `<div class="sec-head"><h2>В Анимир</h2><span class="sub">хранятся только в этой программе</span></div><div id="sc-local"></div>
     <div class="sec-head" style="margin-top:28px"><h2>На Shikimori</h2>${nick ? `<span class="sub">${esc(nick)}</span>` : ''}
       <button class="btn sm" id="sc-new" style="margin-left:auto">＋ Создать на Shikimori ↗</button></div>
-    <div id="sc-mine">${nick ? '<div class="loading">Загрузка…</div>' : `<div class="hint"><span>🔑</span><div>Войди в Shikimori — здесь появятся твои коллекции оттуда. <a class="linkbtn" href="#/settings?s=account">Войти</a></div></div>`}</div>`;
+    <div id="sc-mine">${nick ? '<div class="loading">Загрузка…</div>' : `<div class="hint"><span>🔑</span><div>Войди в Shikimori - здесь появятся твои коллекции оттуда. <a class="linkbtn" href="#/settings?s=account">Войти</a></div></div>`}</div>`;
   $('#sc-new').onclick = () => openInBrowser(SHIKI_URL + 'collections/new');
   $('#sc-local').innerHTML = collectionsGrid();
   bindCollections($('#sc-local'));
@@ -205,7 +205,7 @@ async function myCollections(box, alive) {
     if (r.error) throw new Error(r.error);
     const all = [...r.published, ...r.coauthored.map(c => ({ ...c, coauthor: true }))];
     $('#sc-mine').innerHTML = all.length ? `<div class="grid colls">${all.map(shikiCollCard).join('')}</div>`
-      : emptyHtml('▣', 'На Shikimori коллекций пока нет', 'Создай её на сайте — она появится здесь. Черновики («Открытые») видны только на самом сайте.');
+      : emptyHtml('▣', 'На Shikimori коллекций пока нет', 'Создай её на сайте - она появится здесь. Черновики («Открытые») видны только на самом сайте.');
   } catch (err) { $('#sc-mine').innerHTML = `<div class="muted">Не удалось загрузить: ${esc(err.message)}</div>`; }
 }
 // Чужая (или своя) коллекция с Shikimori: описание, группы, тайтлы с подписями автора

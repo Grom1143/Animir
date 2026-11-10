@@ -1,5 +1,5 @@
 'use strict';
-// Анимир — расписание, релизы, уведомления.
+// Анимир - расписание, релизы, уведомления.
 
 // ================= Расписание =================
 async function pageSchedule(view, q, _, alive) {
@@ -60,7 +60,7 @@ function rlSnap(x) {
   a.releasedText = partDate(x.releasedOn);
   return a;
 }
-let ongoingCache = null;  // { at, list } — все онгоинги, чтобы вкладки переключались мгновенно
+let ongoingCache = null;  // { at, list } - все онгоинги, чтобы вкладки переключались мгновенно
 async function allOngoing() {
   if (ongoingCache && Date.now() - ongoingCache.at < 10 * 60 * 1000) return ongoingCache.list;
   const list = [];
@@ -135,7 +135,7 @@ async function releasesList(box, mode, kind, alive) {
 // ================= Уведомления =================
 const finishedSeen = new Set();  // о каких тайтлах уже сказали «вышла последняя серия» в этом запуске
 async function checkNewEpisodes(silent = false) {
-  try { await checkReleases(silent); } catch { /* нет сети — попробуем позже */ }
+  try { await checkReleases(silent); } catch { /* нет сети - попробуем позже */ }
   if (!S.settings.notify) return;
   const lists = new Set(S.settings.notifyLists);
   const ids = new Set();
@@ -152,15 +152,15 @@ async function checkNewEpisodes(silent = false) {
         const old = S.list[a.id]?.anime || S.subs[a.id];
         if (!old) continue;
         const from = old.episodesAired || 0, to = fresh.episodesAired;
-        const push = (text, type, ep) => { S.notifications.unshift({ id: uid(), type, anime: fresh, ep, at: Date.now(), read: false, text }); if (S.settings.notifyDesktop !== false) desktop(fresh.russian || fresh.name || 'Анимир', text, `#/anime/${fresh.id}`); added++; };
+        const push = (text, type, ep) => { S.notifications.unshift({ id: uid(), type, anime: fresh, ep, at: Date.now(), read: false, text }); if (S.settings.notifyDesktop !== false) desktop(fresh.russian || fresh.name || 'Анимир', text, `#/anime/${fresh.id}`, fresh.poster); added++; };
         const final = subMode(a.id) === 'final';
         if (old.status && old.status !== 'released' && fresh.status === 'released') {
           logFinished(fresh);
-          if (!finishedSeen.has(+a.id)) push(`Вышла последняя серия — можно смотреть целиком${fresh.episodes ? ` (${plural(fresh.episodes, 'серия', 'серии', 'серий')})` : ''}`, 'release', to);
+          if (!finishedSeen.has(+a.id)) push(`Вышла последняя серия - можно смотреть целиком${fresh.episodes ? ` (${plural(fresh.episodes, 'серия', 'серии', 'серий')})` : ''}`, 'release', to);
           finishedSeen.add(+a.id);
         } else if (old.status === 'anons' && fresh.status === 'ongoing') push('Начался показ', 'release', to);
         else if (to > from && old.status && !final) {
-          if (S.settings.notifyOne || to - from === 1) push(to - from === 1 ? `Вышла ${to}-я серия` : `Вышли серии ${from + 1}–${to}`, 'episode', to);
+          if (S.settings.notifyOne || to - from === 1) push(to - from === 1 ? `Вышла ${to}-я серия` : `Вышли серии ${from + 1}-${to}`, 'episode', to);
           else for (let n = from + 1; n <= to; n++) push(`Вышла ${n}-я серия`, 'episode', n);
         }
         if (S.list[a.id]) S.list[a.id].anime = { ...old, ...stripEmpty(fresh) };
@@ -173,25 +173,25 @@ async function checkNewEpisodes(silent = false) {
     for (const sub of Object.values(S.subsDub || {})) {
       try {
         const dubs = await onlineDubs(sub.anime);
-        // подписка могла остаться на старой записи студии (AniDUB Online → AniDUB) — переводим её
+        // подписка могла остаться на старой записи студии (AniDUB Online → AniDUB) - переводим её
         let cur = dubs.find(x => x.key === sub.dub);
         if (!cur && sub.dubLabel) cur = dubs.find(x => dubKey(x.label) === dubKey(sub.dubLabel));
-        if (!cur) continue; // озвучки пока нет — подождём
+        if (!cur) continue; // озвучки пока нет - подождём
         if (cur.key !== sub.dub) { sub.dub = cur.key; sub.dubLabel = cur.label; }
         if (cur.count > (sub.ep || 0)) {
           const from = (sub.ep || 0) + 1, to = cur.count;
           const note = (n, text) => {
             const href = `#/watch?o=${sub.id}&d=${encodeURIComponent(sub.dub)}&e=${n}`;
             S.notifications.unshift({ id: uid(), type: 'episode', anime: sub.anime, ep: n, at: Date.now(), read: false, text, href });
-            if (S.settings.notifyDesktop !== false) desktop(sub.anime.russian || sub.anime.name || 'Анимир', text, href);
+            if (S.settings.notifyDesktop !== false) desktop(sub.anime.russian || sub.anime.name || 'Анимир', text, href, sub.anime.poster);
             dubAdded++;
           };
           if (!sub.ep) note(to, `Появилась озвучка «${sub.dubLabel}»: ${plural(to, 'серия', 'серии', 'серий')}`);
-          else if (S.settings.notifyOne || to === from) note(to, to === from ? `Вышла ${to}-я серия — ${sub.dubLabel}` : `Вышли серии ${from}–${to} — ${sub.dubLabel}`);
-          else for (let n = from; n <= to; n++) note(n, `Вышла ${n}-я серия — ${sub.dubLabel}`);
+          else if (S.settings.notifyOne || to === from) note(to, to === from ? `Вышла ${to}-я серия - ${sub.dubLabel}` : `Вышли серии ${from}-${to} - ${sub.dubLabel}`);
+          else for (let n = from; n <= to; n++) note(n, `Вышла ${n}-я серия - ${sub.dubLabel}`);
           sub.ep = cur.count;
         }
-      } catch { /* источник недоступен — попробуем позже */ }
+      } catch { /* источник недоступен - попробуем позже */ }
     }
     if (dubAdded) {
       S.notifications = S.notifications.slice(0, 300);
@@ -200,10 +200,10 @@ async function checkNewEpisodes(silent = false) {
     save();
     updateBadge();
     if (added && !silent) toast(`Новые серии: ${added}. Загляни в уведомления 🔔`);
-  } catch { /* нет сети — попробуем позже */ }
+  } catch { /* нет сети - попробуем позже */ }
 }
 // Новые релизы (не только из закладок): следим за популярными онгоингами.
-// Новый онгоинг, начавшийся недавно, — «премьера»; онгоинг, который сменил статус на «вышел», — «вышел полностью».
+// Новый онгоинг, начавшийся недавно, - «премьера»; онгоинг, который сменил статус на «вышел», - «вышел полностью».
 // Первый запуск только запоминает текущие онгоинги, чтобы не завалить уведомлениями.
 async function checkReleases(silent) {
   const st = S.settings;
@@ -230,21 +230,21 @@ async function checkReleases(silent) {
     }
     if (!st.notifyFinished) out.finished = [];
   }
-  // помним и ушедшие из топа онгоинги, пока они не вышли — иначе пропустим их финал
+  // помним и ушедшие из топа онгоинги, пока они не вышли - иначе пропустим их финал
   const stillOngoing = w.ids.filter(id => !nowIds.has(id) && !out.finished.some(a => a.id === id));
   w.ids = [...nowIds, ...stillOngoing].slice(0, 400);
   w.seeded = true;
   w.at = Date.now();
   const note = (a, text) => S.notifications.unshift({ id: uid(), type: 'release', anime: a, at: Date.now(), read: false, text });
-  out.premiere.forEach(a => note(a, `Премьера: начался показ${a.episodes ? ` (${plural(a.episodes, 'серия', 'серии', 'серий')})` : ''}. Понравится — нажми 🔔 на странице тайтла`));
+  out.premiere.forEach(a => note(a, `Премьера: начался показ${a.episodes ? ` (${plural(a.episodes, 'серия', 'серии', 'серий')})` : ''}. Понравится - нажми 🔔 на странице тайтла`));
   out.finished = out.finished.filter(a => !finishedSeen.has(a.id));
-  out.finished.forEach(a => { finishedSeen.add(a.id); logFinished(a); note(a, `Вышел полностью${a.episodes ? ` — все ${plural(a.episodes, 'серия', 'серии', 'серий')}` : ''}. Можно смотреть целиком`); });
+  out.finished.forEach(a => { finishedSeen.add(a.id); logFinished(a); note(a, `Вышел полностью${a.episodes ? ` - все ${plural(a.episodes, 'серия', 'серии', 'серий')}` : ''}. Можно смотреть целиком`); });
   const n = out.premiere.length + out.finished.length;
   if (n) {
     S.notifications = S.notifications.slice(0, 300);
     if (st.notifyDesktop !== false) {
-      // один тайтл — клик ведёт на него, несколько — в список уведомлений
-      const one = (list, head) => list.length === 1 ? desktop(head, title(list[0]), `#/anime/${list[0].id}`) : list.length && desktop(head, list.slice(0, 3).map(title).join(', ') + (list.length > 3 ? ` и ещё ${list.length - 3}` : ''));
+      // один тайтл - клик ведёт на него, несколько - в список уведомлений
+      const one = (list, head) => list.length === 1 ? desktop(head, title(list[0]), `#/anime/${list[0].id}`, list[0].poster) : list.length && desktop(head, list.slice(0, 3).map(title).join(', ') + (list.length > 3 ? ` и ещё ${list.length - 3}` : ''));
       one(out.premiere, 'Премьера аниме');
       one(out.finished, 'Аниме вышло полностью');
     }

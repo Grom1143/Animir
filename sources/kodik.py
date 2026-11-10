@@ -13,8 +13,11 @@ from .shiki import _part_chain
 
 
 # ================= Kodik =================
-_KDK_TOKENS_URL = ("https://raw.githubusercontent.com/YaNesyTortiK/"
-                   "AnimeParsers/refs/heads/main/kdk_tokns/tokens.json")
+_KDK_TOKENS_URLS = (
+    "https://raw.githubusercontent.com/YaNesyTortiK/AnimeParsers/refs/heads/main/kdk_tokns/tokens.json",
+    # зеркало на случай, когда github.com не открывается (бывает с VPN и без)
+    "https://cdn.jsdelivr.net/gh/YaNesyTortiK/AnimeParsers@main/kdk_tokns/tokens.json",
+)
 _KDK_LEGACY_URL = "https://kodik-add.com/add-players.min.js?v=2"
 
 _token_lock = threading.Lock()
@@ -47,7 +50,14 @@ def kodik_token() -> str:
         if _token and time.time() - _token_ok_at < 6 * 3600:
             return _token
         try:
-            raw = json.loads(_get(_KDK_TOKENS_URL, tries=1, timeout=15))
+            raw = {}
+            for url in _KDK_TOKENS_URLS:  # github, потом зеркало: один адрес может не открываться
+                try:
+                    raw = json.loads(_get(url, tries=1, timeout=15))
+                    if raw.get("stable") or raw.get("unstable"):
+                        break
+                except Exception:
+                    continue
         except Exception:
             raw = {}
         ids = [t.get("tokn", "") for t in raw.get("stable", [])] + \
@@ -67,7 +77,7 @@ def kodik_token() -> str:
 
 
 def _kdk_entries(sid: str) -> list[dict]:
-    """Все записи Kodik по Shikimori-ID: каждая запись — своя озвучка."""
+    """Все записи Kodik по Shikimori-ID: каждая запись - своя озвучка."""
     def fetch():
         data = _kdk_api("search", {"token": kodik_token(), "shikimori_id": sid,
                                    "with_episodes": "true", "limit": 100})
@@ -104,7 +114,7 @@ def _kdk_eps_map(entry: dict) -> dict[str, str]:
 
 
 def _kodik_dubs(sid: str) -> list[dict]:
-    """Озвучки Kodik; если части тайтла «Part N» лежат одной общей записью —
+    """Озвучки Kodik; если части тайтла «Part N» лежат одной общей записью -
     находим базовую часть и отдаём серии с правильным смещением."""
     chain = None
     try:
@@ -175,7 +185,7 @@ def _caesar_b64decode(string: str) -> str:
 
 def _kdk_extract(embed_url: str) -> dict | None:
     """«Алгоритм Anixart»: открыть код плеера, взять параметры, подставить,
-    отправить запрос — получить прямую ссылку."""
+    отправить запрос - получить прямую ссылку."""
     dbg = os.environ.get("ANIMIR_DEBUG")
     if dbg:
         print("kdk:extract", embed_url, file=sys.stderr)
@@ -240,7 +250,7 @@ def _kdk_extract(embed_url: str) -> dict | None:
                     real = _caesar_b64decode(raw)  # сдвиг-шифр + base64
                 if not real:
                     continue
-                # иногда в src базовый путь CDN — дописываем имя файла этого качества
+                # иногда в src базовый путь CDN - дописываем имя файла этого качества
                 if ".m3u8" not in real and not real.endswith(".mp4"):
                     base = real if real.endswith("/") else real.rsplit("/", 1)[0].rstrip("/") + "/"
                     real = base + f"{q}.mp4"

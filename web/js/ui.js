@@ -1,5 +1,5 @@
 'use strict';
-// Анимир — общие блоки интерфейса: карточки, окна, контекстное меню.
+// Анимир - общие блоки интерфейса: карточки, окна, контекстное меню.
 
 // ================= общие блоки =================
 function errBlock(err, retry) {
@@ -25,7 +25,7 @@ document.addEventListener('click', e => {
   h.remove();
 });
 
-// Картинка не загрузилась (хост недоступен, ссылка устарела) — аккуратная заглушка вместо «битой» иконки.
+// Картинка не загрузилась (хост недоступен, ссылка устарела) - аккуратная заглушка вместо «битой» иконки.
 // error не всплывает, поэтому слушаем на фазе перехвата.
 // Сеть до Shikimori бывает нестабильной, поэтому картинку через /img сначала пробуем загрузить ещё раз.
 document.addEventListener('error', e => {
@@ -108,9 +108,9 @@ function pager(box, fetchPage, render, alive, cls = gridClass()) {
   const more = document.createElement('div');
   box.append(grid, more);
   const sv = $('#view');
-  // keepWant > 0 — экран возвращается на прежнее место после «Назад» (router.js): грузим дальше, пока не хватит
+  // keepWant > 0 - экран возвращается на прежнее место после «Назад» (router.js): грузим дальше, пока не хватит
   const near = () => more.getBoundingClientRect().top < innerHeight + 700 + (sv.keepWant || 0);
-  // пока грузится первая порция — показываем силуэты карточек, а не пустоту
+  // пока грузится первая порция - показываем силуэты карточек, а не пустоту
   const skeleton = () => {
     if (LITE) return '';
     return cls === 'lgrid'
@@ -153,12 +153,12 @@ const catalogPage = (args, filterFn) => async page => {
 };
 
 // ================= окна =================
-// onCancel — что сделать, если окно закрыли мимо кнопок (Esc, клик по фону, переход на другой экран):
+// onCancel - что сделать, если окно закрыли мимо кнопок (Esc, клик по фону, переход на другой экран):
 // иначе ожидающий ответа промис (confirmBox, picker…) так и висел бы навсегда.
 let modalCancel = null, modalFocus = null;
 function modal(html, cls = '', onCancel = null) {
   const m = $('#modal'), box = $('#modal-box');
-  if (!m.hidden) dropModal();  // одно окно сменяет другое — прошлое считается отменённым
+  if (!m.hidden) dropModal();  // одно окно сменяет другое - прошлое считается отменённым
   else modalFocus = document.activeElement;
   box.className = 'modal-box ' + cls;
   // ✕ есть у каждого окна: у некоторых (выбор тайтла для папки, загрузка студий) других кнопок закрытия нет
@@ -168,7 +168,7 @@ function modal(html, cls = '', onCancel = null) {
   box.setAttribute('aria-modal', 'true');
   m.hidden = false;
   modalCancel = onCancel;
-  // фокус — в первое поле ввода, иначе на главную кнопку: Enter сразу подтверждает
+  // фокус - в первое поле ввода, иначе на главную кнопку: Enter сразу подтверждает
   requestAnimationFrame(() => {
     if (box.contains(document.activeElement)) return;
     // preventScroll: иначе фокус на кнопке внизу прокручивал длинное окно и прятал заголовок
@@ -183,7 +183,7 @@ function dropModal() {
   $('#modal-box').innerHTML = '';
   cancel?.();
 }
-// closeModal() — закрыть окно «как отмену»; кнопки, которые уже отдали ответ, сначала сбрасывают modalCancel
+// closeModal() - закрыть окно «как отмену»; кнопки, которые уже отдали ответ, сначала сбрасывают modalCancel
 function closeModal() {
   if ($('#modal').hidden) return;
   dropModal();
@@ -201,7 +201,7 @@ $('#modal').addEventListener('keydown', e => {
   if (e.shiftKey && i <= 0) { e.preventDefault(); f.at(-1).focus(); }
   else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
 });
-// text — уже готовый HTML (вызывающий сам экранирует пользовательские строки через esc)
+// text - уже готовый HTML (вызывающий сам экранирует пользовательские строки через esc)
 function confirmBox(text, yes = 'Да', no = 'Отмена') {
   return new Promise(res => {
     const b = modal(`<h3>${text}</h3><div class="row-btns"><button class="btn" data-n>${no}</button><button class="btn primary" data-y>${yes}</button></div>`, 'confirm', () => res(false));
@@ -209,8 +209,8 @@ function confirmBox(text, yes = 'Да', no = 'Отмена') {
     b.querySelector('[data-n]').onclick = () => { answerModal(); res(false); };
   });
 }
-// Универсальный выбор: options = [{v, label, group?}], multi — флажки, иначе радио.
-// Ответ — массив выбранных значений ([] — «Сбросить»), null — окно закрыли без выбора.
+// Универсальный выбор: options = [{v, label, group?}], multi - флажки, иначе радио.
+// Ответ - массив выбранных значений ([] - «Сбросить»), null - окно закрыли без выбора.
 function picker(head, options, selected = [], { multi = true, search = false, note = '' } = {}) {
   return new Promise(res => {
     const sel = new Set(selected.map(String));
@@ -229,7 +229,7 @@ function picker(head, options, selected = [], { multi = true, search = false, no
         if (!multi) sel.clear();
         i.checked ? sel.add(i.value) : sel.delete(i.value);
       });
-      // одиночный выбор: двойной клик по варианту — сразу «Выбрать»
+      // одиночный выбор: двойной клик по варианту - сразу «Выбрать»
       if (!multi) $$('label', $('#pk-l', box)).forEach(l => l.ondblclick = () => { answerModal(); res([...sel]); });
     };
     draw();
@@ -244,7 +244,7 @@ function statusPicker(a) {
     `<label><input type="radio" name="st" value="${k}" ${e?.status === k ? 'checked' : ''}><span style="color:${LIST_COLOR[k]}">●</span> ${n}</label>`).join('')}</div>
     <div class="row-btns">${e?.status ? '<button class="btn" data-del>Удалить из списка</button>' : ''}<button class="btn" data-c>Закрыть</button></div>`);
   return new Promise(res => {
-    modalCancel = () => res(null);  // закрыли мимо кнопок — статус не меняли
+    modalCancel = () => res(null);  // закрыли мимо кнопок - статус не меняли
     $$('input', box).forEach(i => i.onchange = () => { setStatus(a, i.value); answerModal(); res(i.value); });
     box.querySelector('[data-del]')?.addEventListener('click', () => { setStatus(a, ''); answerModal(); res(''); });
     box.querySelector('[data-c]').onclick = () => { answerModal(); res(null); };
@@ -261,7 +261,7 @@ function openVideo(v) {
   window.open(id ? ytWatch(id) : v.url, '_blank');
 }
 // Просмотрщик картинок: листание, «N из M», сохранить и зум (колёсико, двойной клик, перетаскивание).
-// При увеличении подгружаем картинку крупнее — сервер увеличит её сам, если оригинал мал.
+// При увеличении подгружаем картинку крупнее - сервер увеличит её сам, если оригинал мал.
 function viewer(urls, start = 0) {
   let i = start, z = 1, px = 0, py = 0, base = null, loadedW = 0, hiT = 0;
   const v = document.createElement('div');
@@ -314,11 +314,11 @@ function viewer(urls, start = 0) {
         <a class="btn sm" href="${img(urls[i], 0)}" download="animir-${i + 1}.jpg">⤓ Сохранить</a></div>
       <div class="vstage"><img alt="" draggable="false"></div>
       ${urls.length > 1 ? '<button class="vb l">‹</button><button class="vb r">›</button>' : ''}<button class="btn sm vx">✕</button>
-      <div class="vh">Колёсико или двойной клик — приблизить · перетаскивание — двигать</div>`;
+      <div class="vh">Колёсико или двойной клик - приблизить · перетаскивание - двигать</div>`;
     const im = $('.vstage img', v), stage = $('.vstage', v);
     im.onload = () => {
       if (base) return;
-      // вписываем в окно — даже маленькую картинку растягиваем до размера окна
+      // вписываем в окно - даже маленькую картинку растягиваем до размера окна
       const k = Math.min(stage.clientWidth / im.naturalWidth, stage.clientHeight / im.naturalHeight);
       base = { w: Math.round(im.naturalWidth * k), h: Math.round(im.naturalHeight * k) };
       base.x = (stage.clientWidth - base.w) / 2;

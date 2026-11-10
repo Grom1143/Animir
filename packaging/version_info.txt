@@ -13,7 +13,7 @@ VSVersionInfo(
     StringFileInfo([
       StringTable('040904B0', [
         StringStruct('CompanyName', 'Анимир'),
-        StringStruct('FileDescription', 'Анимир — аниме-клиент для Windows'),
+        StringStruct('FileDescription', 'Анимир - аниме-клиент для Windows'),
         StringStruct('FileVersion', '1.0.0'),
         StringStruct('InternalName', 'Анимир'),
         StringStruct('OriginalFilename', 'Animir.exe'),

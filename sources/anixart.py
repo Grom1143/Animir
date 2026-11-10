@@ -70,7 +70,7 @@ def _anix_dubs(sid: str) -> list[dict]:
         return cached(f"ax:s:{rid}:{tid}", 600, lambda: (_anix_json(f"/episode/{rid}/{tid}").get("sources") or []))
 
     # У популярных тайтлов 30+ озвучек, и на каждую нужен свой запрос: по очереди это 14 секунд.
-    # Спрашиваем по 6 сразу (не больше — чтобы не перегружать Anixart). Ошибка одной озвучки не мешает остальным.
+    # Спрашиваем по 6 сразу (не больше - чтобы не перегружать Anixart). Ошибка одной озвучки не мешает остальным.
     with ThreadPoolExecutor(max_workers=6) as ex:
         fetched = dict(zip([ty["id"] for ty in types], ex.map(lambda ty: _safe(sources_of, ty["id"]), types)))
     dubs: list[dict] = []

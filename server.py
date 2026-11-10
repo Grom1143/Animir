@@ -1,11 +1,11 @@
-"""Анимир — локальный сервер.
+"""Анимир - локальный сервер.
 
 Отдаёт интерфейс из папки web/, ходит в API Shikimori (каталог аниме),
 кэширует картинки, хранит твои списки и отдаёт видео из твоих папок.
 Запускается из Animir.pyw, сам по себе тоже работает: python server.py
 
-Здесь — только общее: ответы, защита от чужих сайтов и выбор обработчика по таблице маршрутов (server_routes).
-Сами обработчики — по темам: server_app (окна, состояние, медиатека), server_shiki (Shikimori),
+Здесь - только общее: ответы, защита от чужих сайтов и выбор обработчика по таблице маршрутов (server_routes).
+Сами обработчики - по темам: server_app (окна, состояние, медиатека), server_shiki (Shikimori),
 server_online (онлайн-источники), server_files (картинки, видео, субтитры, интерфейс).
 """
 
@@ -26,7 +26,7 @@ from server_online import OnlineRoutes, online
 from server_routes import API_GROUPS, GET, POST
 from server_shiki import ShikiRoutes
 
-# Снаружи: make_server и set_pending_nav — для Animir.pyw; online, windows, IMG_CACHE — для тестов.
+# Снаружи: make_server и set_pending_nav - для Animir.pyw; online, windows, IMG_CACHE - для тестов.
 __all__ = ["Handler", "make_server", "set_pending_nav", "online", "windows", "IMG_CACHE"]
 
 
@@ -68,7 +68,7 @@ class Handler(AppRoutes, ShikiRoutes, OnlineRoutes, FileRoutes, BaseHTTPRequestH
         return (self.headers.get("Host") or "").lower() in (f"127.0.0.1:{port}", f"localhost:{port}")
 
     def origin_ok(self) -> bool:
-        # Менять данные можно только из окна Анимир (или без Origin — например, curl из «Закрыть Анимир.bat»),
+        # Менять данные можно только из окна Анимир (или без Origin - например, curl из «Закрыть Анимир.bat»),
         # иначе любой открытый в браузере сайт мог бы отправить сюда запрос.
         origin = self.headers.get("Origin")
         return not origin or urllib.parse.urlsplit(origin).hostname in ("127.0.0.1", "localhost")
@@ -88,7 +88,7 @@ class Handler(AppRoutes, ShikiRoutes, OnlineRoutes, FileRoutes, BaseHTTPRequestH
             return self.static(route)
         except (ConnectionError, BrokenPipeError):
             pass
-        except Exception as e:  # noqa: BLE001 — сервер не должен падать из-за одного запроса
+        except Exception as e:  # noqa: BLE001 - сервер не должен падать из-за одного запроса
             try:
                 self.send_json({"error": str(e)}, 500)
             except OSError:
@@ -120,7 +120,7 @@ class AppServer(ThreadingHTTPServer):
     allow_reuse_address = False
 
     def handle_error(self, request, client_address):
-        # Клиент оборвал соединение (закрыли окно посреди загрузки картинки, браузер отменил запрос) — это не
+        # Клиент оборвал соединение (закрыли окно посреди загрузки картинки, браузер отменил запрос) - это не
         # ошибка сервера: раньше каждое такое событие печатало в лог трассировку на 20 строк.
         if isinstance(sys.exc_info()[1], (ConnectionError, BrokenPipeError)):
             return
@@ -137,7 +137,7 @@ def make_server(port: int) -> ThreadingHTTPServer:
     mimetypes.add_type("image/svg+xml", ".svg")
     mimetypes.add_type("image/webp", ".webp")
     # Счётчики озвучек больше не считаем при старте: это нужно только странице
-    # «Озвучки» и запускается при её открытии (на слабом ПК — не запускается).
+    # «Озвучки» и запускается при её открытии (на слабом ПК - не запускается).
     threading.Thread(target=_trim_img_cache, kwargs={"force": True}, daemon=True).start()
     srv = AppServer(("127.0.0.1", port), Handler)
     srv.daemon_threads = True

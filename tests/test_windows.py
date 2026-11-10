@@ -26,7 +26,7 @@ class EngineFlagsTest(unittest.TestCase):
         self.assertIn("--renderer-process-limit=1", flags)
 
     def test_engine_flags_have_no_window_specifics(self):
-        # адрес, профиль и размер у WebView2 задаются иначе — в общих флагах их быть не должно
+        # адрес, профиль и размер у WebView2 задаются иначе - в общих флагах их быть не должно
         with mock.patch.object(windows, "lite_mode", return_value=False):
             flags = windows.engine_flags()
         self.assertFalse([f for f in flags if f.startswith(("--app=", "--user-data-dir=", "--window-size="))])

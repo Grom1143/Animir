@@ -1,10 +1,13 @@
-"""Анимир — маршруты онлайн-источников (AniLiberty, Kodik, Anixart): озвучки, серии, поиск по озвучкам."""
+"""Анимир - маршруты онлайн-источников (AniLiberty, Kodik, Anixart): озвучки, серии, поиск по озвучкам."""
+import os
 import urllib.error
+from pathlib import Path
 
+import downloader
 from config import SAFE_VAL
-from server_routes import get
+from server_routes import get, post
 
-try:  # онлайн-источники — необязательная часть: в сборке без них Анимир работает как каталог и медиатека
+try:  # онлайн-источники - необязательная часть: в сборке без них Анимир работает как каталог и медиатека
     import sources as online
 except ImportError:
     online = None
@@ -12,7 +15,7 @@ except ImportError:
 
 class OnlineRoutes:
     def no_online(self, code: int = 404) -> bool:
-        """В сборке без источников: ответить «нет» и вернуть True — обработчику дальше делать нечего."""
+        """В сборке без источников: ответить «нет» и вернуть True - обработчику дальше делать нечего."""
         if online is not None:
             return False
         self.send_json({"dubs": [], "counts": {}, "sample": 0, "error": "Онлайн-источников в этой версии нет"}, code)
@@ -45,9 +48,65 @@ class OnlineRoutes:
         except Exception as e:  # noqa: BLE001
             self.send_json({"error": str(e)}, 500)
 
+    @get("/api/health")
+    def health(self, q):
+        # проверка источников: кто отвечает и за сколько (для «ничего не запускается» и VPN)
+        if self.no_online():
+            return
+        try:
+            self.send_json(online.health_check())
+        except Exception as e:  # noqa: BLE001
+            self.send_json({"items": [], "ok": False, "error": str(e)[:200]})
+
+    # ---------- скачивание серий ----------
+    @post("/api/download")
+    def download_start(self):
+        # {"sid": 30276, "dub": "al:10290", "label": "AniLiberty", "title": "Ванпанчмен",
+        #  "episodes": [1,2,3]} - очередь на скачивание одной озвучки
+        if self.no_online():
+            return
+        b = self.json_body()
+        sid = str(b.get("sid") or "")
+        dub, label = str(b.get("dub") or ""), str(b.get("label") or "")
+        title = str(b.get("title") or "Анимир")[:120]
+        eps = b.get("episodes")
+        if not sid.isdigit() or not dub or not isinstance(eps, list) or not eps:
+            return self.send_json({"error": "нужны sid, dub и список episodes"}, 400)
+        try:
+            job = downloader.start(sid, dub, label, title, eps[:500])
+        except Exception as e:  # noqa: BLE001
+            return self.send_json({"error": str(e)[:200]}, 500)
+        self.send_json({"job": job, "folder": str(downloader.DOWNLOADS)})
+
+    @get("/api/downloads")
+    def downloads(self, q):
+        self.send_json({"jobs": downloader.list_jobs(), "folder": str(downloader.DOWNLOADS)})
+
+    @post("/api/downloads/cancel")
+    def downloads_cancel(self):
+        ok = downloader.cancel(str(self.json_body().get("id") or ""))
+        self.send_json({"ok": ok})
+
+    @post("/api/downloads/clear")
+    def downloads_clear(self):
+        downloader.clear_finished()
+        self.send_json({"ok": True})
+
+    @post("/api/downloads/open")
+    def downloads_open(self):
+        # открыть папку загрузок (или папку конкретного задания) в Проводнике
+        job_id = str(self.json_body().get("id") or "")
+        folder = next((j.get("folder") for j in downloader.list_jobs() if j["id"] == job_id), "")
+        path = folder or str(downloader.DOWNLOADS)
+        if not os.path.isdir(path):
+            path = str(downloader.DOWNLOADS)
+            Path(path).mkdir(parents=True, exist_ok=True)
+        os.startfile(path)  # noqa: S606 - открываем только свою папку
+        self.send_json({"ok": True})
+
     @get("/api/dubs")
     def dubs(self, q):
-        # словарь всех озвучек Kodik + сколько популярных тайтлов озвучено (counts[_sample] — размер выборки скана)
+        # словарь всех озвучек Kodik + сколько популярных тайтлов озвучено (counts[_sample] - размер выборки скана)
         if self.no_online():
             return
         counts = online.dubs_counts()
@@ -56,7 +115,7 @@ class OnlineRoutes:
     @get("/api/dubs/find")
     def dubs_find(self, q):
         # каталог тайтлов озвучки: ?tid=<id>&q=<название>&page=<n> + остальные условия фильтра
-        # (kind, status, genre, score, duration, rating, season, order) — как на Shikimori-REST
+        # (kind, status, genre, score, duration, rating, season, order) - как на Shikimori-REST
         if self.no_online():
             return
         extra = {}

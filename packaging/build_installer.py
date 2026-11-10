@@ -1,7 +1,7 @@
 """Сборка установщика Анимир (Inno Setup 6).
 
 Порядок:
-  1) packaging\\build.bat — собрать ..\\Сборка Animir\\Animir.exe
+  1) packaging\\build.bat - собрать ..\\Сборка Animir\\Animir.exe
   2) python packaging\\build_installer.py
 
 Скрипт сам найдёт exe в ..\\Сборка Animir и скопирует его в папку исходников.
@@ -44,7 +44,7 @@ def main() -> int:
         print("Не найден Animir.exe. Сначала выполни packaging\\build.bat.")
         return 1
     if not (HERE / "README.txt").is_file():
-        print("Не найден README.txt — он устанавливается вместе с приложением.")
+        print("Не найден README.txt - он устанавливается вместе с приложением.")
         return 1
 
     iscc = find_iscc()

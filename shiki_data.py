@@ -1,4 +1,4 @@
-"""Анимир — данные с Shikimori для сервера: запросы, кэш ответов (в памяти и на диске), отзывы, коллекции."""
+"""Анимир - данные с Shikimori для сервера: запросы, кэш ответов (в памяти и на диске), отзывы, коллекции."""
 import hashlib
 import json
 import re
@@ -18,7 +18,9 @@ from state import lite_mode
 _api_cache: dict[str, tuple[float, bytes]] = {}
 API_TTL = 600
 DISK_TTL = 24 * 3600
-DISK_CACHED = re.compile(r"^rest:/api/animes/\d+/(similar|franchise)$")
+# что кэшируем на диск: похожие/франшиза живут долго, каталог и карточки - тоже,
+# чтобы при пропаже сети (или VPN) интерфейс открывался из прошлого ответа
+DISK_CACHED = re.compile(r"^rest:/api/animes/\d+/(similar|franchise)$|^gql:")
 
 
 def upstream(url: str, body: bytes | None = None, timeout: int = 20) -> bytes:
@@ -26,7 +28,7 @@ def upstream(url: str, body: bytes | None = None, timeout: int = 20) -> bytes:
     if body is not None:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=body, headers=headers)
-    # GET и GraphQL-запросы только читают — их можно слать по сохранённому соединению и повторять при обрыве.
+    # GET и GraphQL-запросы только читают - их можно слать по сохранённому соединению и повторять при обрыве.
     # Мутацию (Анимир их пока не шлёт) повторять нельзя: она могла дойти, и действие выполнилось бы дважды.
     idempotent = body is None or b"mutation" not in body
     return shiki_net.open_url(req, timeout, idempotent=idempotent)[1]
@@ -45,7 +47,7 @@ def _remember(key: str, data: bytes) -> None:
         now = time.time()
         for k in [k for k, (t, _) in _api_cache.items() if now - t >= API_TTL]:
             _api_cache.pop(k, None)
-        # всё ещё много — выкидываем самые старые (словарь помнит порядок добавления)
+        # всё ещё много - выкидываем самые старые (словарь помнит порядок добавления)
         for k in list(_api_cache)[:max(0, len(_api_cache) - API_CACHE_MAX)]:
             _api_cache.pop(k, None)
 
@@ -63,15 +65,49 @@ def cached_api(key: str, fetch) -> bytes:
                 return data
         except OSError:
             pass
-    data = fetch()
-    _api_cache.pop(key, None)  # свежая запись — в конец, чтобы не выкинуть её первой
+    try:
+        data = fetch()
+    except (urllib.error.URLError, TimeoutError, ConnectionError):
+        # нет сети - показываем прошлый ответ, если он есть: каталог и описания остаются на месте
+        if disk:
+            try:
+                data = disk.read_bytes()
+            except OSError:
+                raise
+            _remember(key, data)
+            return data
+        raise
+    _api_cache.pop(key, None)  # свежая запись - в конец, чтобы не выкинуть её первой
     _remember(key, data)
     if disk:
         try:
             disk.write_bytes(data)
+            _trim_api_disk()
         except OSError:
             pass
     return data
+
+
+_api_writes = 0
+
+
+def _trim_api_disk(limit: int = 400) -> None:
+    """Кэш ответов на диске не должен расти бесконечно: держим последние 400 файлов."""
+    global _api_writes
+    _api_writes += 1
+    if _api_writes % 20:
+        return
+    try:
+        files = [(f.stat().st_mtime, f) for f in API_DISK.glob("*.json")]
+    except OSError:
+        return
+    if len(files) <= limit:
+        return
+    for _, f in sorted(files)[: len(files) - limit]:
+        try:
+            f.unlink()
+        except OSError:
+            pass
 
 
 def clear_api_cache() -> None:
@@ -96,7 +132,7 @@ def reviews_page(anime_id: int, opinion: str = "", page: int = 1) -> dict:
         try:
             page_html = shiki_net.open_url(req)[1].decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
-            if e.code != 404:  # у тайтла нет отзывов — Shikimori может отдать 404
+            if e.code != 404:  # у тайтла нет отзывов - Shikimori может отдать 404
                 raise
             page_html = ""
         return json.dumps(reviews.parse(page_html), ensure_ascii=False).encode()
@@ -104,7 +140,7 @@ def reviews_page(anime_id: int, opinion: str = "", page: int = 1) -> dict:
 
 
 def shiki_text(path: str, background: bool = False) -> str:
-    """Страница (или JSON) с shikimori.io как текст — с общей паузой между запросами."""
+    """Страница (или JSON) с shikimori.io как текст - с общей паузой между запросами."""
     req = urllib.request.Request(SHIKI + path, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})  # с application/json сайт отдаёт страницы JSON-ом
     return shiki_net.open_url(req, 30, background)[1].decode("utf-8", "replace")
 
@@ -134,12 +170,12 @@ def colls_search(q: dict) -> dict:
     anime = q.get("anime", ["1"])[0] == "1"
     page = max(1, int(q.get("page", ["1"])[0] or 1)) if (q.get("page", ["1"])[0] or "1").isdigit() else 1
     idx = colls_index()
-    if idx.data.get("listed_at"):  # список собран целиком — ищем по индексу
+    if idx.data.get("listed_at"):  # список собран целиком - ищем по индексу
         return {**idx.search(text, anime, sort, page), "index": idx.status()}
-    # индекс ещё не собран — живой Shikimori: поиск по названию или новые коллекции
+    # индекс ещё не собран - живой Shikimori: поиск по названию или новые коллекции
     if text:
         path = ("/collections.json" if page == 1 else f"/collections/p-{page}.json") + "?search=" + urllib.parse.quote(text)
-        # ничего не найдено — Shikimori отвечает {"content": null}, а не пустой строкой
+        # ничего не найдено - Shikimori отвечает {"content": null}, а не пустой строкой
         items = shiki_colls.parse_previews(json.loads(shiki_text(path)).get("content") or "")
         done = len(items) < 4
     else:

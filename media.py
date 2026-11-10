@@ -1,4 +1,4 @@
-"""Анимир — медиатека: свои папки с видео, субтитры, выбор папки, увеличение мелких картинок."""
+"""Анимир - медиатека: свои папки с видео, субтитры, выбор папки, увеличение мелких картинок."""
 import os
 import re
 import subprocess
@@ -9,10 +9,10 @@ from config import FROZEN, SUB_EXT, VIDEO_EXT
 from state import load_state
 
 def enhanced(src: Path, want: int, upscale: bool = True) -> Path | None:
-    """Картинка нужной ширины: крупную уменьшаем (меньше памяти в окне), мелкую увеличиваем — Lanczos + лёгкая резкость.
+    """Картинка нужной ширины: крупную уменьшаем (меньше памяти в окне), мелкую увеличиваем - Lanczos + лёгкая резкость.
 
     Готовый результат лежит в кэше рядом с оригиналом (имя + «-w<ширина>»).
-    Если картинка и так подходящего размера или Pillow не установлен — None, отдаём оригинал.
+    Если картинка и так подходящего размера или Pillow не установлен - None, отдаём оригинал.
     """
     out = src.with_name(f"{src.name}-w{want}")
     if out.exists():
@@ -23,7 +23,7 @@ def enhanced(src: Path, want: int, upscale: bool = True) -> Path | None:
         return None
     try:
         with Image.open(src) as im:
-            if im.width > want * 1.2:  # крупная — уменьшаем
+            if im.width > want * 1.2:  # крупная - уменьшаем
                 im = im.convert("RGB")
                 im.thumbnail((want, round(im.height * want / im.width)), Image.LANCZOS)
                 tmp = out.with_name(out.name + ".tmp")
@@ -130,7 +130,7 @@ if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
 
 
 def pick_folder() -> str:
-    if FROZEN:  # в exe нет отдельного python — системный диалог через PowerShell
+    if FROZEN:  # в exe нет отдельного python - системный диалог через PowerShell
         return _pick_folder_ps()
     code = (
         "import tkinter as t, tkinter.filedialog as f\n"
