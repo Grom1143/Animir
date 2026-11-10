@@ -398,6 +398,10 @@ function createPlayer(cur, list) {
           // применяем запомненное качество к уровню потока
           const i = hls.levels.findIndex(l => l.height === +st.q);
           if (i >= 0) hls.currentLevel = i;
+          else {
+            const top = Math.max(...hls.levels.map(l => l.height || 0));
+            if (top) osd(`Источник отдаёт до ${top}p`);
+          }
         }
         $('#b-quality', root).hidden = false;
         $('#b-quality', root).textContent = LITE ? '⚙ до 720p ▾'
@@ -410,6 +414,7 @@ function createPlayer(cur, list) {
     const saved = quals.find(x => +x.q === +st.q && (!LITE || +x.q <= 720))
       || (LITE ? quals.find(x => +x.q <= 720) : null);
     if (saved) { cur.q = +saved.q; cur.url = saved.url; }
+    if (st.q && !LITE && !saved && quals.length) osd(`Источник отдаёт до ${Math.max(...quals.map(x => +x.q || 0))}p`);
     v.src = cur.url;
     if (quals.length > 1) {
       const q = $('#b-quality', root);
@@ -474,7 +479,7 @@ function createPlayer(cur, list) {
     const tsHint = cur.path && /\.ts$/i.test(cur.path)
       ? '<p class="muted">Это скачанная HLS-серия в формате .ts: встроенный плеер его не читает. Открой системным плеером (VLC, MPC) - кнопка ниже.</p>' : '';
     c.innerHTML = `<div class="msg"><h3 style="margin-top:0">Не получается воспроизвести</h3>
-      <p class="muted">${cur.path ? 'Скорее всего, видео или звук закодированы в формате, который встроенный плеер не понимает (например, MKV со звуком AC3/DTS или HEVC без кодека).' : 'Ссылка не открылась: сервер недоступен, ссылка устарела или сервер не разрешает воспроизведение из других программ (CORS).'}</p>
+      <p class="muted">${cur.path ? 'Скорее всего, видео или звук закодированы в формате, который встроенный плеер не понимает (например, MKV со звуком AC3/DTS, HEVC без кодека или 4K в HEVC без расширения «HEVC Video Extensions»).' : 'Ссылка не открылась: сервер недоступен, ссылка устарела или сервер не разрешает воспроизведение из других программ (CORS).'}</p>
       ${tsHint}
       ${details ? `<p class="muted" style="font-size:12px">${esc(details)}</p>` : ''}
       <div style="display:flex;gap:10px;justify-content:center">${cur.path ? '<button class="btn primary" id="ext">Открыть в системном плеере</button>' : ''}${next ? '<button class="btn" id="enext">Следующая серия</button>' : ''}<button class="btn" id="eb">Назад</button></div></div>`;
