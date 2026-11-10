@@ -447,8 +447,11 @@ function createPlayer(cur, list) {
       q.textContent = `⚙ ${cur.q ? cur.q + 'p' : 'Авто'} ▾`;
     }
   }
-  // подъём качества: раз в 12 секунд смотрим, успевает ли качать, и берём дорожку выше
-  if (autoQ && !LITE && quals.length > 1) {
+  // подъём качества: раз в 12 секунд смотрим, успевает ли качать, и берём дорожку выше.
+  // Функция нужна и для пункта «Авто» в меню, чтобы включить автоматику обратно.
+  function startAutoLadder() {
+    stopAuto();
+    if (!autoQ || LITE || quals.length < 2) return;
     autoT = setInterval(() => {
       if (!autoQ) { stopAuto(); return; }
       if (v.readyState < 3 || v.paused) return;
@@ -461,6 +464,7 @@ function createPlayer(cur, list) {
       osd(`Качество подстраивается: ${up.q}p`);
     }, 12000);
   }
+  startAutoLadder();
   v.addEventListener('waiting', () => {
     // авто-качество: буферизация - берём дорожку пониже, чтобы не стоять
     if (!autoQ || LITE || !quals.length) return;
@@ -650,6 +654,7 @@ function createPlayer(cur, list) {
         x => {
           if (+x < 0) {
             autoQ = true;  // вернуть авто-качество
+            startAutoLadder();
           } else {
             autoQ = false;  // ручной выбор: автоматика выключается до конца серии
             stopAuto();
@@ -664,8 +669,22 @@ function createPlayer(cur, list) {
       return;
     }
     if (quals.length > 1) openMenu(e.currentTarget,
-      quals.map(x => [x.q, `${x.q}p`, +x.q === +(cur.q || quals[0].q)]),
-      x => { autoQ = false; stopAuto(); switchQuality(+x); });
+      [[0, 'Авто (по скорости)', autoQ],
+        ...quals.map(x => [x.q, `${x.q}p`, !autoQ && +x.q === +(cur.q || quals[0].q)])],
+      x => {
+        if (+x === 0) {  // вернуться к авто: качество снова выбирается по скорости
+          autoQ = true;
+          st.q = 0;
+          save();
+          startAutoLadder();
+          osd('Качество по скорости');
+          $('#b-quality', root).textContent = '⚙ Авто ▾';
+          return;
+        }
+        autoQ = false;  // ручной выбор: автоматика ждёт до конца серии
+        stopAuto();
+        switchQuality(+x);
+      });
   };
   const FITS = ['contain', 'cover', 'fill'], FIT_N = { contain: 'Вписать', cover: 'Заполнить', fill: 'Растянуть' };
   // 📌 Поверх всех окон (актуально для отдельного окна плеера)
