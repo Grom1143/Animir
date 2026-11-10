@@ -124,7 +124,7 @@ const VIDEO_KINDS = { pv: 'Трейлеры', op: 'Опенинги', ed: 'Эн�
 
 const CARD = 'id russian name kind score status episodes episodesAired airedOn{year date} poster{mainUrl main2xUrl originalUrl}';
 let PAGE = 30;
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4';
 const SNAPS = new Map(); // id → короткая запись о тайтле (для контекстного меню)
 
 // ================= API =================
@@ -227,8 +227,8 @@ async function loadState() {
     S = structuredClone(DEFAULTS);
     adoptState(j);
     if (!j.opinions) migrateOpinions();
-    // Переход на Анимир: фиолетовый - цвет по умолчанию у AnyX и Animax, а не выбор человека, - один раз
-    // меняем на новый. Любой другой выбранный цвет не трогаем.
+    // Первый запуск: фиолетовый - это цвет по умолчанию в старых версиях, а не выбор человека,
+    // поэтому один раз меняем его на новый. Любой другой выбранный цвет не трогаем.
     if (j.settings && !j.settings.look) {
       if (S.settings.accent === '#8b6cff') S.settings.accent = ACCENTS[0];
       S.settings.look = 'animir';

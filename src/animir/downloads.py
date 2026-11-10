@@ -108,7 +108,9 @@ class Cancel(Exception):
 def _progress(job: dict, value: float) -> None:
     with _lock:
         job["part"] = round(max(0.0, min(1.0, value)), 3)
-        job["percent"] = round((job["done"] + job["part"]) / max(1, job["total"]) * 100, 1)
+        # пока идёт последняя серия, 100 % показывать рано: округляем до 99,9
+        pct = (job["done"] + job["part"]) / max(1, job["total"]) * 100
+        job["percent"] = round(min(99.9, pct), 1)
 
 
 def _job(id_: str) -> dict | None:
