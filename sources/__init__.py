@@ -119,8 +119,28 @@ def online_dubs(sid: str) -> dict:
     return {"dubs": dubs, "errors": []}
 
 
+def _abs_url(u: str) -> str:
+    """Ссылки Kodik приходят без схемы (//cdn/...) - в плеере такое ведёт себя по-разному
+    (http, редиректы, блокировки в VPN). Всегда отдаём полный https."""
+    u = str(u or "")
+    return "https:" + u if u.startswith("//") else u
+
+
+def _fix_urls(st: dict) -> dict:
+    if st.get("url"):
+        st["url"] = _abs_url(st["url"])
+    for q in st.get("qualities") or []:
+        if isinstance(q, dict) and q.get("url"):
+            q["url"] = _abs_url(q["url"])
+    return st
+
+
 def online_stream(sid: str, dub_key: str, ep: str) -> dict:
-    """Разрешить выбранную озвучку и серию в ссылку для плеера."""
+    """Разрешить выбранную озвучку и серию в ссылку для плеера (адреса - полные https)."""
+    return _fix_urls(_stream_raw(sid, dub_key, ep))
+
+
+def _stream_raw(sid: str, dub_key: str, ep: str) -> dict:
     dubs = cached("dubs:" + sid, 600, lambda: online_dubs(sid))["dubs"]
     dub = next((d for d in dubs if d["key"] == dub_key), None)
     if not dub:

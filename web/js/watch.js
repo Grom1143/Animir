@@ -22,14 +22,12 @@ function onlineDubs(a) {
   return onlineDubsCache.get(+a.id).p;
 }
 const dubsReady = id => !!onlineDubsCache.get(+id);
-// Если источник не ответил, честно говорим об этом: чаще всего это включённый VPN или блокировка
+// Если источник не ответил, честно говорим об этом, без догадок о причинах
 const dubsProblem = id => {
   const errs = (onlineErrors.get(+id) || []).filter(Boolean);
   if (!errs.length) return '';
-  const first = errs[0];
-  return `<div class="muted" style="margin:0 0 12px">Часть источников не ответила (${esc(first.slice(0, 120))}). `
-    + 'Если включён VPN, выключи его для Анимира или добавь приложение в исключения - аниме-сайты часто '
-    + 'не пускают адреса VPN.</div>';
+  return `<div class="muted" style="margin:0 0 12px">Один из источников сейчас не ответил (${esc(errs[0].slice(0, 120))}). `
+    + 'Можно выбрать другую озвучку: их списки приходят от разных источников.</div>';
 };
 
 // ================= популярность озвучек =================

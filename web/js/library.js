@@ -347,7 +347,7 @@ function createPlayer(cur, list) {
       hls = newHls();
       hls.loadSource(cur.url);
       hls.attachMedia(v);
-      hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) showError(data.details); });
+      hls.on(Hls.Events.ERROR, (_, data) => { if (!data.fatal) return; retryStream().then(ok => { if (!ok) showError(data.details); }); });
     } else v.src = cur.url;
     v.addEventListener('loadedmetadata', restore, { once: true });
     st.q = +q;  // выбор качества запоминается - применяется и к следующим сериям
@@ -355,6 +355,32 @@ function createPlayer(cur, list) {
     $('#b-quality', root).textContent = `⚙ ${q}p ▾`;
     osd(`Качество ${q}p`);
   };
+  // Источник мог выдать устаревшую ссылку (токен живёт час) или CDN не ответил с первого раза.
+  // Один раз просим у сервера свежую ссылку и пробуем снова, и только потом показываем ошибку.
+  let streamRetried = false;
+  async function retryStream() {
+    const m = /^o:(\d+):(.+):(\d+)$/.exec(String(cur.key));
+    if (!m || streamRetried) return false;
+    streamRetried = true;
+    const r = await fetch(`/api/online/stream?p=${m[1]}&d=${encodeURIComponent(m[2])}&e=${m[3]}`)
+      .then(x => x.json()).catch(() => null);
+    if (!r || r.error || !r.url) return false;
+    cur.url = r.url;
+    cur.hls = /\.m3u8(\?|$)/i.test(r.url);
+    cur.q = r.quality || cur.q;
+    if (hls) { hls.destroy(); hls = null; }
+    if (cur.hls && window.Hls?.isSupported()) {
+      hls = newHls();
+      hls.loadSource(cur.url);
+      hls.attachMedia(v);
+      hls.on(Hls.Events.ERROR, (_, d) => { if (!d.fatal) return; retryStream().then(ok => { if (!ok) showError(d.details); }); });
+    } else {
+      v.src = cur.url;
+      v.play().catch(() => {});
+    }
+    osd('Ссылка обновлена, продолжаем');
+    return true;
+  }
   // Edge/Chromium рапортует canPlayType('mpegurl')='maybe', но HLS не играет -
   // поэтому при поддержке MSE всегда prefer hls.js, на Safari остаётся нативный путь
   let hls = null;
@@ -378,7 +404,7 @@ function createPlayer(cur, list) {
           : `⚙ ${(hls.levels.length > 1 && st.q && hls.levels.some(l => l.height === +st.q)) ? st.q + 'p' : cur.q ? cur.q + 'p' : 'Авто'} ▾`;
       }
     });
-    hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) showError(data.details); });
+    hls.on(Hls.Events.ERROR, (_, data) => { if (!data.fatal) return; retryStream().then(ok => { if (!ok) showError(data.details); }); });
   } else {
     // если пользователь ранее выбирал качество - стартуем с него (в лёгком режиме - не выше 720p)
     const saved = quals.find(x => +x.q === +st.q && (!LITE || +x.q <= 720))
@@ -496,7 +522,9 @@ function createPlayer(cur, list) {
     $('#nn', root).onclick = () => { clearInterval(nextT); playSrc(next); };
     $('#nc', root).onclick = () => { clearInterval(nextT); c.innerHTML = ''; };
   });
-  v.addEventListener('error', () => showError(v.error?.message || ''));
+  v.addEventListener('error', () => {
+    retryStream().then(ok => { if (!ok) showError(v.error?.message || ''); });
+  });
 
   // Перемотка по полосе
   const seek = $('#seek', root);
