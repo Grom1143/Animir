@@ -327,10 +327,16 @@ function createPlayer(cur, list) {
   // Качество: HLS-уровни либо отдельные дорожки, которые отдал сервер.
   // Переключение дорожки пересоздаёт источник, но сохраняет позицию и воспроизведение.
   const quals = (cur.quals || []).slice().sort((a, b) => (b.q || 0) - (a.q || 0));
+  // Авто-качество: стартуем не выше 720p, а дальше поднимаем само, если успевает качать.
+  // Ручной выбор в меню отключает автоматику до конца серии (и запоминается, как раньше).
+  let autoQ = st.autoQuality !== false && !st.q;
+  let autoT = 0;
+  const stopAuto = () => { clearInterval(autoT); autoT = 0; };
+  const autoStart = () => quals.find(x => +x.q <= 720) || quals[quals.length - 1] || null;
   // В лёгком режиме держим меньший буфер и не тянем 1080p по умолчанию
   const hlsOpts = LITE ? { maxBufferLength: 20, maxMaxBufferLength: 40, maxBufferSize: 30 * 1000 * 1000 } : {};
   const newHls = () => new Hls(hlsOpts);
-  const switchQuality = q => {
+  const switchQuality = (q, remember = true) => {
     const it = quals.find(x => +x.q === +q);
     if (!it || it.url === cur.url) return;
     const t = v.currentTime, wasPlaying = !v.paused;
@@ -350,8 +356,7 @@ function createPlayer(cur, list) {
       hls.on(Hls.Events.ERROR, (_, data) => { if (!data.fatal) return; retryStream().then(ok => { if (!ok) showError(data.details); }); });
     } else v.src = cur.url;
     v.addEventListener('loadedmetadata', restore, { once: true });
-    st.q = +q;  // выбор качества запоминается - применяется и к следующим сериям
-    save();
+    if (remember) { st.q = +q; save(); }  // ручной выбор запоминается, авто - нет
     $('#b-quality', root).textContent = `⚙ ${q}p ▾`;
     osd(`Качество ${q}p`);
   };
@@ -381,6 +386,11 @@ function createPlayer(cur, list) {
     osd('Ссылка обновлена, продолжаем');
     return true;
   }
+  // Отдельные дорожки качества (AniLiberty): и для HLS стартуем пониже, если включено авто
+  if (autoQ && !LITE && quals.length > 1 && !st.q) {
+    const low = autoStart();
+    if (low) { cur.q = +low.q; cur.url = low.url; }
+  }
   // Edge/Chromium рапортует canPlayType('mpegurl')='maybe', но HLS не играет -
   // поэтому при поддержке MSE всегда prefer hls.js, на Safari остаётся нативный путь
   let hls = null;
@@ -394,6 +404,16 @@ function createPlayer(cur, list) {
           // авто-качество не выше 720p - меньше нагрузка на процессор и память
           const cap = hls.levels.map((l, i) => ({ h: l.height || 0, i })).filter(x => x.h && x.h <= 720).pop();
           if (cap) hls.autoLevelCapping = cap.i;
+        } else if (hls.levels.length > 1 && autoQ) {
+          // старт пониже, потом отпускаем в авто: hls.js сам поднимет качество, когда качает
+          const low = hls.levels.map((l, i) => ({ h: l.height || 0, i })).filter(x => x.h && x.h <= 720).pop();
+          hls.currentLevel = low ? low.i : 0;
+          setTimeout(() => {
+            if (autoQ && hls) {
+              hls.currentLevel = -1;
+              osd('Качество подстраивается под скорость');
+            }
+          }, 10000);
         } else if (hls.levels.length > 1 && st.q) {
           // применяем запомненное качество к уровню потока
           const i = hls.levels.findIndex(l => l.height === +st.q);
@@ -414,6 +434,11 @@ function createPlayer(cur, list) {
     const saved = quals.find(x => +x.q === +st.q && (!LITE || +x.q <= 720))
       || (LITE ? quals.find(x => +x.q <= 720) : null);
     if (saved) { cur.q = +saved.q; cur.url = saved.url; }
+    else if (autoQ && !LITE && quals.length) {
+      // авто: начинаем с 720p или ниже, дальше поднимаем по буферу
+      const low = autoStart();
+      if (low) { cur.q = +low.q; cur.url = low.url; }
+    }
     if (st.q && !LITE && !saved && quals.length) osd(`Источник отдаёт до ${Math.max(...quals.map(x => +x.q || 0))}p`);
     v.src = cur.url;
     if (quals.length > 1) {
@@ -422,6 +447,31 @@ function createPlayer(cur, list) {
       q.textContent = `⚙ ${cur.q ? cur.q + 'p' : 'Авто'} ▾`;
     }
   }
+  // подъём качества: раз в 12 секунд смотрим, успевает ли качать, и берём дорожку выше
+  if (autoQ && !LITE && quals.length > 1) {
+    autoT = setInterval(() => {
+      if (!autoQ) { stopAuto(); return; }
+      if (v.readyState < 3 || v.paused) return;
+      const ahead = v.buffered.length ? v.buffered.end(v.buffered.length - 1) - v.currentTime : 0;
+      if (ahead < 8) return;
+      const i = quals.findIndex(x => +x.q === +cur.q);
+      const up = quals[i - 1];
+      if (!up) { stopAuto(); return; }
+      switchQuality(up.q, false);
+      osd(`Качество подстраивается: ${up.q}p`);
+    }, 12000);
+  }
+  v.addEventListener('waiting', () => {
+    // авто-качество: буферизация - берём дорожку пониже, чтобы не стоять
+    if (!autoQ || LITE || !quals.length) return;
+    if (v.currentTime < 3) return;
+    const i = quals.findIndex(x => +x.q === +cur.q);
+    const down = quals[i + 1];
+    if (down) {
+      switchQuality(down.q, false);
+      osd(`Качество снижено до ${down.q}p для плавности`);
+    }
+  });
   // ночью громкость не выше 60 %: сохраняется обычная, при выключенном режиме вернётся
   v.volume = st.night ? Math.min(st.volume ?? 1, 0.6) : (st.volume ?? 1);
   v.playbackRate = st.speed || 1;
@@ -598,9 +648,16 @@ function createPlayer(cur, list) {
     if (hls && hls.levels && hls.levels.length > 1) {
       openMenu(e.currentTarget, [[-1, 'Авто', hls.currentLevel === -1 || hls.autoLevelEnabled], ...hls.levels.map((l, i) => [i, (l.height ? l.height + 'p' : Math.round(l.bitrate / 1000) + ' кбит/с'), !hls.autoLevelEnabled && hls.currentLevel === i]).reverse()],
         x => {
+          if (+x < 0) {
+            autoQ = true;  // вернуть авто-качество
+          } else {
+            autoQ = false;  // ручной выбор: автоматика выключается до конца серии
+            stopAuto();
+          }
           hls.currentLevel = +x;
           const qtxt = +x < 0 ? 'Авто' : (hls.levels[+x].height || '') + 'p';
           if (+x >= 0 && hls.levels[+x].height) { st.q = hls.levels[+x].height; save(); }
+          else { st.q = 0; save(); }
           $('#b-quality', root).textContent = '⚙ ' + qtxt + ' ▾';
           osd('Качество ' + qtxt.toLowerCase());
         });
@@ -608,7 +665,7 @@ function createPlayer(cur, list) {
     }
     if (quals.length > 1) openMenu(e.currentTarget,
       quals.map(x => [x.q, `${x.q}p`, +x.q === +(cur.q || quals[0].q)]),
-      x => switchQuality(+x));
+      x => { autoQ = false; stopAuto(); switchQuality(+x); });
   };
   const FITS = ['contain', 'cover', 'fill'], FIT_N = { contain: 'Вписать', cover: 'Заполнить', fill: 'Растянуть' };
   // 📌 Поверх всех окон (актуально для отдельного окна плеера)
@@ -678,6 +735,7 @@ function createPlayer(cur, list) {
       store(true);
       clearInterval(nextT);
       clearTimeout(idleT);
+      stopAuto();
       document.removeEventListener('keydown', keys, true);
       removeEventListener('mouseup', up);
       removeEventListener('mouseup', onUp);
