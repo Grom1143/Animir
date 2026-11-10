@@ -72,8 +72,9 @@ class OnlineRoutes:
         eps = b.get("episodes")
         if not sid.isdigit() or not dub or not isinstance(eps, list) or not eps:
             return self.send_json({"error": "нужны sid, dub и список episodes"}, 400)
+        single = bool(b.get("single"))
         try:
-            job = downloader.start(sid, dub, label, title, eps[:500])
+            job = downloader.start(sid, dub, label, title, eps[:500], single=single)
         except Exception as e:  # noqa: BLE001
             return self.send_json({"error": str(e)[:200]}, 500)
         self.send_json({"job": job, "folder": str(downloader.DOWNLOADS)})

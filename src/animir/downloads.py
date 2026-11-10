@@ -1,8 +1,11 @@
 """Анимир - скачивание серий: очередь, прогресс, mp4 и HLS без ffmpeg.
 
 Работает поверх онлайн-источников: для каждой серии берём ту же ссылку, что уходит в плеер.
-Прямой mp4 качаем как файл, HLS (AniLiberty) - сегментами .ts в один файл (такие файлы
-играет VLC/MPC, в приложении они открываются системным плеером).
+Прямой mp4 качаем как файл, HLS - сегментами .ts.
+
+Одним файлом: серии HLS дописываются в общий .ts (MPEG-TS это позволяет, плееры понимают
+склейку). Если серия пришла прямым mp4, склеить её без перекодирования нельзя - сохраняем
+отдельным файлом и пишем об этом в задании.
 """
 
 import os
@@ -46,10 +49,10 @@ def _fetch(url: str, timeout: int = 30, tries: int = 2) -> bytes:
     raise last or RuntimeError("не удалось скачать")
 
 
-def _save_stream(url: str, out: Path, job: dict, base_done: int) -> None:
+def _stream_into(fh, url: str, job: dict, base_done: int) -> None:
     """Прямой файл (mp4): читаем кусками и показываем прогресс по байтам."""
     req = urllib.request.Request(_abs(url), headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as r, out.open("wb") as f:
+    with urllib.request.urlopen(req, timeout=60) as r:
         total = int(r.headers.get("Content-Length") or 0)
         got = 0
         while True:
@@ -58,10 +61,15 @@ def _save_stream(url: str, out: Path, job: dict, base_done: int) -> None:
             chunk = r.read(1 << 20)
             if not chunk:
                 break
-            f.write(chunk)
+            fh.write(chunk)
             got += len(chunk)
             if total:
                 _progress(job, base_done + got / total)
+
+
+def _save_stream(url: str, out: Path, job: dict, base_done: int) -> None:
+    with out.open("wb") as f:
+        _stream_into(f, url, job, base_done)
 
 
 def _hls_segments(url: str) -> list[str]:
@@ -76,17 +84,21 @@ def _hls_segments(url: str) -> list[str]:
     return [urllib.parse.urljoin(url, x) for x in lines if not x.startswith("#")]
 
 
-def _save_hls(url: str, out: Path, job: dict, base_done: int) -> None:
-    """HLS сегментами: склеиваем .ts в один файл. 150 сегментов на серию - как один поток."""
+def _hls_into(fh, url: str, job: dict, base_done: int) -> None:
+    """Сегменты одного плейлиста дописываем в открытый файл."""
     segs = _hls_segments(url)
     if not segs:
         raise RuntimeError("плейлист пуст")
+    for i, seg in enumerate(segs, 1):
+        if job.get("cancel"):
+            raise Cancel()
+        fh.write(_fetch(seg, timeout=30, tries=3))
+        _progress(job, base_done + i / len(segs))
+
+
+def _save_hls(url: str, out: Path, job: dict, base_done: int) -> None:
     with out.open("wb") as f:
-        for i, seg in enumerate(segs, 1):
-            if job.get("cancel"):
-                raise Cancel()
-            f.write(_fetch(seg, timeout=30, tries=3))
-            _progress(job, base_done + i / len(segs))
+        _hls_into(f, url, job, base_done)
 
 
 class Cancel(Exception):
@@ -104,14 +116,16 @@ def _job(id_: str) -> dict | None:
         return next((j for j in _jobs if j["id"] == id_), None)
 
 
-def start(sid: str, dub: str, label: str, title: str, episodes: list[int]) -> dict:
-    """Поставить в очередь скачивание серий одной озвучки. Возвращает задание."""
+def start(sid: str, dub: str, label: str, title: str, episodes: list[int], single: bool = False) -> dict:
+    """Поставить в очередь скачивание серий одной озвучки.
+
+    single=True - всё в один файл `.ts` (для HLS). mp4-серии всё равно лягут отдельными файлами."""
     eps = sorted({int(n) for n in episodes if int(n) > 0})
     job = {
         "id": f"dl{int(time.time() * 1000)}",
-        "sid": str(sid), "dub": dub, "label": label, "title": title,
+        "sid": str(sid), "dub": dub, "label": label, "title": title, "single": bool(single),
         "episodes": eps, "total": len(eps), "done": 0, "part": 0.0, "percent": 0.0,
-        "state": "running", "error": "", "file": "", "at": time.time(), "cancel": False,
+        "state": "running", "error": "", "note": "", "file": "", "at": time.time(), "cancel": False,
     }
     with _lock:
         _jobs.insert(0, job)
@@ -120,55 +134,29 @@ def start(sid: str, dub: str, label: str, title: str, episodes: list[int]) -> di
     return job
 
 
-def _run(job: dict) -> None:
+def _resolve(job: dict, n: int):
+    """Ссылка на серию или (None, причина)."""
     import animir.sources as sources
     from animir.sources import SourceError
+    try:
+        st = sources.online_stream(job["sid"], job["dub"], str(n))
+    except SourceError as e:
+        return None, str(e)
+    url = str(st.get("url") or "")
+    if not url or st.get("mode") == "embed":
+        return None, "источник отдаёт только встроенный плеер"
+    return url, ""
+
+
+def _run(job: dict) -> None:
     folder = DOWNLOADS / _clean(job["title"] or "Анимир")
+    single = job.get("single")
     try:
         folder.mkdir(parents=True, exist_ok=True)
-        for n in job["episodes"]:
-            if job.get("cancel"):
-                raise Cancel()
-            job["ep"] = n
-            try:
-                st = sources.online_stream(job["sid"], job["dub"], str(n))
-            except SourceError as e:
-                job["skipped"] = job.get("skipped", 0) + 1
-                job["error"] = f"серия {n}: {e}"
-                job["done"] += 1
-                continue
-            url = str(st.get("url") or "")
-            if not url or st.get("mode") == "embed":
-                job["skipped"] = job.get("skipped", 0) + 1
-                job["error"] = f"серия {n}: источник отдаёт только встроенный плеер"
-                job["done"] += 1
-                continue
-            hls = ".m3u8" in url.lower()
-            ext = ".ts" if hls else ".mp4"
-            name = f"{_clean(job['title'])} - {n:02d} [{_clean(job['label'])}]{ext}"
-            out = folder / name
-            job["file"] = str(out)
-            if out.exists() and out.stat().st_size > 1024 * 1024:
-                job["done"] += 1  # уже скачано раньше
-                _progress(job, 0)
-                continue
-            tmp = out.with_suffix(out.suffix + ".part")
-            try:
-                if hls:
-                    _save_hls(url, tmp, job, job["done"])
-                else:
-                    _save_stream(url, tmp, job, job["done"])
-                tmp.replace(out)
-            except Cancel:
-                tmp.unlink(missing_ok=True)
-                raise
-            except Exception as e:  # noqa: BLE001 - одна серия не должна ронять всю очередь
-                tmp.unlink(missing_ok=True)
-                job["skipped"] = job.get("skipped", 0) + 1
-                job["error"] = f"серия {n}: {e}"
-            job["done"] += 1
-            _progress(job, 0)
-        job["state"] = "done" if not job.get("skipped") else "partial"
+        if single:
+            _run_single(job, folder)
+        else:
+            _run_episodes(job, folder)
     except Cancel:
         job["state"] = "cancelled"
     except Exception as e:  # noqa: BLE001
@@ -178,6 +166,100 @@ def _run(job: dict) -> None:
         job["part"] = 0.0
         job["percent"] = 100.0 if job["state"] == "done" else job["percent"]
         job["folder"] = str(folder)
+
+
+def _run_episodes(job: dict, folder: Path) -> None:
+    for n in job["episodes"]:
+        if job.get("cancel"):
+            raise Cancel()
+        job["ep"] = n
+        url, why = _resolve(job, n)
+        if not url:
+            job["skipped"] = job.get("skipped", 0) + 1
+            job["error"] = f"серия {n}: {why}"
+            job["done"] += 1
+            continue
+        hls = ".m3u8" in url.lower()
+        ext = ".ts" if hls else ".mp4"
+        out = folder / f"{_clean(job['title'])} - {n:02d} [{_clean(job['label'])}]{ext}"
+        job["file"] = str(out)
+        if out.exists() and out.stat().st_size > 1024 * 1024:
+            job["done"] += 1  # уже скачано раньше
+            _progress(job, 0)
+            continue
+        tmp = out.with_suffix(out.suffix + ".part")
+        try:
+            if hls:
+                _save_hls(url, tmp, job, job["done"])
+            else:
+                _save_stream(url, tmp, job, job["done"])
+            tmp.replace(out)
+        except Cancel:
+            tmp.unlink(missing_ok=True)
+            raise
+        except Exception as e:  # noqa: BLE001 - одна серия не должна ронять всю очередь
+            tmp.unlink(missing_ok=True)
+            job["skipped"] = job.get("skipped", 0) + 1
+            job["error"] = f"серия {n}: {e}"
+        job["done"] += 1
+        _progress(job, 0)
+    job["state"] = "done" if not job.get("skipped") else "partial"
+
+
+def _run_single(job: dict, folder: Path) -> None:
+    """Весь тайтл одним файлом: серии HLS дописываются в общий .ts."""
+    title = f"{_clean(job['title'])} [{_clean(job['label'])}]"
+    out = folder / f"{title}.ts"
+    job["file"] = str(out)
+    if out.exists() and out.stat().st_size > 1024 * 1024:
+        job["done"] = job["total"]
+        job["state"] = "done"
+        return
+    tmp = out.with_suffix(".ts.part")
+    separate = 0
+    mp4_eps = []
+    try:
+        with tmp.open("wb") as f:
+            for n in job["episodes"]:
+                if job.get("cancel"):
+                    raise Cancel()
+                job["ep"] = n
+                url, why = _resolve(job, n)
+                if not url:
+                    job["skipped"] = job.get("skipped", 0) + 1
+                    job["error"] = f"серия {n}: {why}"
+                    job["done"] += 1
+                    continue
+                if ".m3u8" in url.lower():
+                    try:
+                        _hls_into(f, url, job, job["done"])
+                    except Cancel:
+                        raise
+                    except Exception as e:  # noqa: BLE001
+                        job["skipped"] = job.get("skipped", 0) + 1
+                        job["error"] = f"серия {n}: {e}"
+                else:
+                    # mp4 в общий поток не склеить без перекодирования - кладём рядом
+                    mp4_eps.append(n)
+                    ep_out = folder / f"{_clean(job['title'])} - {n:02d} [{_clean(job['label'])}].mp4"
+                    try:
+                        _save_stream(url, ep_out.with_suffix(".mp4.part"), job, job["done"])
+                        ep_out.with_suffix(".mp4.part").replace(ep_out)
+                        separate += 1
+                    except Cancel:
+                        raise
+                    except Exception as e:  # noqa: BLE001
+                        job["skipped"] = job.get("skipped", 0) + 1
+                        job["error"] = f"серия {n}: {e}"
+                job["done"] += 1
+                _progress(job, 0)
+        tmp.replace(out)
+    except Cancel:
+        tmp.unlink(missing_ok=True)
+        raise
+    if separate:
+        job["note"] = (f"{separate} серий сохранены отдельными mp4: их нельзя склеить без перекодирования")
+    job["state"] = "done" if not job.get("skipped") else "partial"
 
 
 def cancel(job_id: str) -> bool:

@@ -1,39 +1,49 @@
 'use strict';
 // Анимир - скачивание серий: кнопки, выбор серий и окно с прогрессом.
-// Сервер качает в «Загрузки\\Анимир»: mp4 напрямую, HLS (AniLiberty) сегментами в .ts.
-// Очередь и прогресс живут на сервере, поэтому окно можно закрыть - загрузка продолжится.
+// Сервер качает в «Загрузки\\Анимир»: HLS собирается в .ts, прямой mp4 - как есть.
+// Весь тайтл можно сохранить одним файлом: серии дописываются в общий .ts.
+// Очередь и прогресс живут на сервере, поэтому окно можно закрыть.
 
 let dlTimer = 0;
 
-function dlStart(sid, dub, label, title, episodes) {
-  return postJson('/api/download', { sid, dub, label, title, episodes })
+function dlStart(sid, dub, label, title, episodes, single = false) {
+  const what = single && episodes.length > 1
+    ? 'одним файлом: ' + plural(episodes.length, 'серия', 'серии', 'серий')
+    : plural(episodes.length, 'серия', 'серии', 'серий');
+  return postJson('/api/download', { sid, dub, label, title, episodes, single })
     .then(r => {
-      toast('Скачивание началось: ' + plural(episodes.length, 'серия', 'серии', 'серий'));
+      toast('Скачивание началось: ' + what);
       downloadsDialog();
       return r;
     })
     .catch(e => { toast('Не удалось начать: ' + e.message, 'err'); return null; });
 }
 
-// Выбор, что качать: все серии озвучки, только непросмотренные или диапазон.
+// Выбор, что качать: все серии озвучки, только непросмотренные или диапазон,
+// и как сохранить: одним файлом или отдельными сериями.
 function dlPickEpisodes(s, dub, marks) {
   const total = Math.max(1, +dub.count || 1);
   const unmarked = [];
   for (let n = 1; n <= total; n++) if (!marks[n]) unmarked.push(n);
   return new Promise(res => {
     const b = modal(`<h3>Скачать «${esc(dub.label)}»</h3>
-      <p class="muted" style="margin:0 0 12px">Сериало${total !== 1 ? 'в' : ''} в озвучке: ${total}. Файлы сохранятся в «Загрузки\\Анимир».</p>
+      <p class="muted" style="margin:0 0 12px">Серий в озвучке: ${total}. Файлы сохранятся в «Загрузки\\Анимир».</p>
       <div class="checks">
         <label><input type="radio" name="dlw" value="all" checked> Все серии (${total})</label>
         <label><input type="radio" name="dlw" value="new" ${unmarked.length ? '' : 'disabled'}> Только непросмотренные (${unmarked.length})</label>
         <label><input type="radio" name="dlw" value="range"> Диапазон: <input class="input" id="dl-a" type="number" min="1" max="${total}" value="1" style="width:70px"> - <input class="input" id="dl-b" type="number" min="1" max="${total}" value="${total}" style="width:70px"></label>
       </div>
-      <p class="muted" style="font-size:12px;margin:10px 0 0">Прямые mp4 качаются целиком; HLS (AniLiberty) собирается в .ts - такие файлы играет VLC/MPC, в приложении они открываются системным плеером.</p>
+      <p class="muted" style="margin:14px 0 6px">Как сохранить</p>
+      <div class="checks">
+        <label><input type="radio" name="dls" value="one" checked> Одним файлом: весь тайтл в одном видео</label>
+        <label><input type="radio" name="dls" value="many"> Отдельными сериями</label>
+      </div>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">Один файл - это .ts: серии склеиваются подряд, играет VLC/MPC (в приложении открывается системным плеером). Если источник отдаёт mp4, такие серии сохранятся отдельно.</p>
       <div class="row-btns"><button class="btn" data-c>Отмена</button><button class="btn primary" data-s>Скачать</button></div>`, 'dlpick', () => res(null));
-    const pick = () => b.querySelector('input[name=dlw]:checked').value;
     b.querySelector('[data-c]').onclick = () => { answerModal(); res(null); };
     b.querySelector('[data-s]').onclick = () => {
-      const mode = pick();
+      const mode = b.querySelector('input[name=dlw]:checked').value;
+      const single = b.querySelector('input[name=dls]:checked').value === 'one';
       let eps = [];
       if (mode === 'all') eps = Array.from({ length: total }, (_, i) => i + 1);
       else if (mode === 'new') eps = unmarked;
@@ -43,7 +53,7 @@ function dlPickEpisodes(s, dub, marks) {
         for (let n = Math.min(a, z); n <= Math.max(a, z); n++) eps.push(n);
       }
       answerModal();
-      res(eps.length ? eps : null);
+      res(eps.length ? { episodes: eps, single } : null);
     };
   });
 }
@@ -67,13 +77,15 @@ function downloadsDialog() {
     box.innerHTML = jobs.map(j => {
       const p = Math.min(100, Math.round(j.percent || 0));
       const last = j.file ? esc(String(j.file).split(/[\\/]/).pop()) : '';
+      const how = j.single ? ' · одним файлом' : '';
       return `<div class="dl-job">
-        <div class="dl-top"><b>${esc(j.title)}</b><span class="muted">${esc(j.label)}</span>
+        <div class="dl-top"><b>${esc(j.title)}</b><span class="muted">${esc(j.label)}${how}</span>
           <span class="dl-state ${j.state}">${stateName[j.state] || j.state}</span></div>
         <div class="dl-bar ${j.state}"><i style="width:${j.state === 'running' ? p : 100}%"></i></div>
         <div class="dl-sub"><span>${j.done} из ${j.total}${j.state === 'running' ? ' · серия ' + (j.ep || '') + ' · ' + p + '%' : ''}</span>
           <span class="muted">${last}</span>
           ${j.state === 'running' ? `<button class="link" data-stop="${esc(j.id)}">Отменить</button>` : ''}</div>
+        ${j.note ? `<div class="muted" style="font-size:12px">${esc(j.note)}</div>` : ''}
         ${j.error ? `<div class="muted" style="font-size:12px">${esc(j.error)}</div>` : ''}
       </div>`;
     }).join('');
