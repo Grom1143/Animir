@@ -338,7 +338,7 @@ def sky_theme(p, base: str) -> list:
 def main() -> int:
     port = free_port()
     base = f"http://127.0.0.1:{port}/"
-    # не tempfile.mkdtemp: его права «только владелец» не пускают песочницу DeepSeek (см. test_server.py)
+    # не tempfile.mkdtemp: его права «только владелец» не пускают песочницу  (см. test_server.py)
     data = str(Path(tempfile.gettempdir()) / f"animir-ui-{uuid.uuid4().hex[:8]}")
     shots = Path(data) / "shots"
     shots.mkdir(parents=True)

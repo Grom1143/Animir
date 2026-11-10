@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 from unittest import mock
 
-# Не tempfile.mkdtemp: он даёт папку с правами «только владелец», и в песочнице DeepSeek (ограниченный токен)
+# Не tempfile.mkdtemp: он даёт папку с правами «только владелец», и в ограниченной песочнице
 # внутри неё ничего не создать. config.py сам создаст эту папку при импорте.
 os.environ["APPDATA"] = os.path.join(tempfile.gettempdir(), f"animir-test-{uuid.uuid4().hex[:8]}")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -256,7 +256,7 @@ class ImageCacheTrimTest(unittest.TestCase):
         self.assertFalse(old.exists())
 
     def test_trim_removes_leftovers_of_a_crash(self):
-        # Недописанные файлы, брошенные при аварийном выходе, не должны копиться вечно (замечание DeepSeek)
+        # Недописанные файлы, брошенные при аварийном выходе, не должны копиться вечно (замечание на ревью)
         part = self.make("trim-orphan.456.part", 3600)
         tmp = self.make("trim-orphan-w420.tmp", 3600)
         self.trim_to_nothing()
