@@ -2,7 +2,7 @@
 ; Сборка: python packaging\build_installer.py  (нужен Inno Setup 6)
 
 #define MyAppName "Анимир"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "OVER_LORD"
 #define MyAppURL "https://github.com/0verLorD228"
 #define MyAppExeName "Animir.exe"
@@ -36,7 +36,7 @@ MinVersion=10.0
 CloseApplications=yes
 RestartApplications=no
 CloseApplicationsFilter=Animir.exe
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.0.1.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} installer
 VersionInfoProductName={#MyAppName}

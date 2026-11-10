@@ -166,7 +166,7 @@ class ConnectionReuseTest(unittest.TestCase):
         self.assertEqual(self.get_with_token("/redirect-to/" + self.base + "/echo-auth"), b"Bearer secret")
 
     def test_token_not_sent_to_other_port(self):
-        # Тот же хост, но другой порт - уже другой сервер (из ревью DeepSeek): токен туда не уходит
+        # Тот же хост, но другой порт - уже другой сервер (из ревью ): токен туда не уходит
         other = QuietServer(("127.0.0.1", 0), Upstream)
         threading.Thread(target=other.serve_forever, daemon=True).start()
         try:
