@@ -11,7 +11,7 @@
   <img alt="Без рекламы" src="https://img.shields.io/badge/%D0%B1%D0%B5%D0%B7%20%D1%80%D0%B5%D0%BA%D0%BB%D0%B0%D0%BC%D1%8B-%D0%B4%D0%B0-2ea44f?style=for-the-badge">
 </p>
 
-![Демонстрация](docs/screenshots/demo.gif)
+![Анимир](docs/screenshots/discover.jpg)
 
 ## Почему в него залипают
 
@@ -46,17 +46,13 @@
 
 ## Скриншоты
 
-| Обзор | Рекомендации по вайбу | Страница тайтла |
+| Рекомендации по вайбу | Страница тайтла | Серии и озвучки |
 |---|---|---|
-| ![Обзор](docs/screenshots/discover.jpg) | ![Вайбы](docs/screenshots/recommendations.jpg) | ![Тайтл](docs/screenshots/title.jpg) |
+| ![Вайбы](docs/screenshots/recommendations.jpg) | ![Тайтл](docs/screenshots/title.jpg) | ![Серии](docs/screenshots/episodes.jpg) |
 
-| Серии и озвучки | Плеер | Скачивания |
+| Плеер | Скачивания | «Мой год в аниме» |
 |---|---|---|
-| ![Серии](docs/screenshots/episodes.jpg) | ![Плеер](docs/screenshots/player.jpg) | ![Загрузки](docs/screenshots/downloads.jpg) |
-
-| «Мой год в аниме» | |
-|---|---|
-| ![Год](docs/screenshots/year.jpg) | Считается из твоих отметок: серии, часы, жанры, рекорды. |
+| ![Плеер](docs/screenshots/player.jpg) | ![Загрузки](docs/screenshots/downloads.jpg) | ![Год](docs/screenshots/year.jpg) |
 
 ---
 
