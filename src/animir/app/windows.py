@@ -7,9 +7,9 @@ import urllib.parse
 from ctypes import wintypes
 from pathlib import Path
 
-import shiki_net
-from config import APP_DIR, DATA_DIR, IMG_HOSTS, SHIKI, USER_AGENT, WINDOW_PROFILE
-from state import lite_mode
+import animir.shikimori.net as shiki_net
+from animir.config import APP_DIR, DATA_DIR, IMG_HOSTS, SHIKI, USER_AGENT, WINDOW_PROFILE
+from animir.state import lite_mode
 
 EDGE_PATHS = [
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",

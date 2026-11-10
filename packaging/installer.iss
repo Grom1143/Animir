@@ -5,7 +5,7 @@
 ; файл без подписи), дальше прогресс и «Готово». Никаких страниц с путями и галочками.
 
 #define MyAppName "Анимир"
-#define MyAppVersion "1.0.2"
+#define MyAppVersion "1.0.3"
 #define MyAppPublisher "Grom1143"
 #define MyAppURL "https://github.com/Grom1143/Animir"
 #define MyAppExeName "Animir.exe"
@@ -34,7 +34,7 @@ ShowLanguageDialog=no
 PrivilegesRequired=lowest
 OutputDir=dist
 OutputBaseFilename=Animir-{#MyAppVersion}-win64-setup
-SetupIconFile=animir.ico
+SetupIconFile=src/animir/animir.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max
 SolidCompression=yes
@@ -45,7 +45,7 @@ MinVersion=10.0
 CloseApplications=yes
 RestartApplications=no
 CloseApplicationsFilter=Animir.exe
-VersionInfoVersion=1.0.2.0
+VersionInfoVersion=1.0.3.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} installer
 VersionInfoProductName={#MyAppName}

@@ -13,7 +13,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from config import USER_AGENT
+from animir.config import USER_AGENT
 
 DOWNLOADS = Path(os.environ.get("USERPROFILE") or Path.home()) / "Downloads" / "Анимир"
 
@@ -121,8 +121,8 @@ def start(sid: str, dub: str, label: str, title: str, episodes: list[int]) -> di
 
 
 def _run(job: dict) -> None:
-    import sources
-    from sources import SourceError
+    import animir.sources as sources
+    from animir.sources import SourceError
     folder = DOWNLOADS / _clean(job["title"] or "Анимир")
     try:
         folder.mkdir(parents=True, exist_ok=True)

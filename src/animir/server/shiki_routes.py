@@ -4,10 +4,10 @@ import hashlib
 import json
 import urllib.error
 
-import shiki_auth
-from config import REST_ALLOWED, SHIKI
-from server_routes import get, post
-from shiki_data import (cached_api, coll_detail, colls_index, colls_search, drop_cached, reviews_page, upstream,
+import animir.shikimori.auth as shiki_auth
+from animir.config import REST_ALLOWED, SHIKI
+from animir.server.routes import get, post
+from animir.shikimori.data import (cached_api, coll_detail, colls_index, colls_search, drop_cached, reviews_page, upstream,
                         user_colls)
 
 JSON = "application/json; charset=utf-8"

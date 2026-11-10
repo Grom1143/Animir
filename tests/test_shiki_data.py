@@ -8,9 +8,9 @@ from pathlib import Path
 from unittest import mock
 
 os.environ["APPDATA"] = os.path.join(tempfile.gettempdir(), f"animir-test-{uuid.uuid4().hex[:8]}")
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-import shiki_data  # noqa: E402
+import animir.shikimori.data as shiki_data  # noqa: E402
 
 
 class CollsSearchTest(unittest.TestCase):

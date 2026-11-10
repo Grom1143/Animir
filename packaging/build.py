@@ -23,7 +23,7 @@ def main() -> int:
     except (AttributeError, OSError):
         pass
 
-    if not (ROOT / "web" / "index.html").is_file():
+    if not (ROOT / "src" / "animir" / "web" / "index.html").is_file():
         print("Не найден web/index.html - запусти сборку из папки Анимир.")
         return 1
     try:

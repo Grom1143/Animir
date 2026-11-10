@@ -5,8 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from config import FROZEN, SUB_EXT, VIDEO_EXT
-from state import load_state
+from animir.config import FROZEN, SUB_EXT, VIDEO_EXT
+from animir.state import load_state
 
 def enhanced(src: Path, want: int, upscale: bool = True) -> Path | None:
     """Картинка нужной ширины: крупную уменьшаем (меньше памяти в окне), мелкую увеличиваем - Lanczos + лёгкая резкость.

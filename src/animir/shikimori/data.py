@@ -9,11 +9,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-import reviews
-import shiki_colls
-import shiki_net
-from config import API_DISK, DATA_DIR, SHIKI, USER_AGENT
-from state import lite_mode
+import animir.shikimori.reviews as reviews
+import animir.shikimori.colls as shiki_colls
+import animir.shikimori.net as shiki_net
+from animir.config import API_DISK, DATA_DIR, SHIKI, USER_AGENT
+from animir.state import lite_mode
 
 _api_cache: dict[str, tuple[float, bytes]] = {}
 API_TTL = 600

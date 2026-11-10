@@ -12,10 +12,10 @@ from pathlib import Path
 # config.py создаёт папку данных в %APPDATA% при импорте - подменяем её на временную.
 # Не tempfile.mkdtemp: его права «только владелец» не пускают песочницу  (см. test_server.py).
 os.environ["APPDATA"] = os.path.join(tempfile.gettempdir(), f"animir-test-{uuid.uuid4().hex[:8]}")
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-import state  # noqa: E402
-from state import merge3  # noqa: E402
+import animir.state as state  # noqa: E402
+from animir.state import merge3  # noqa: E402
 
 
 class Merge3Test(unittest.TestCase):

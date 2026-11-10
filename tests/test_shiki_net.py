@@ -13,9 +13,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-import shiki_net  # noqa: E402
+import animir.shikimori.net as shiki_net  # noqa: E402
 
 
 class HostPauseTest(unittest.TestCase):

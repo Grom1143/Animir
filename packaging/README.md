@@ -43,11 +43,11 @@ packaging\build_installer.bat
 
 ## Что попадает в exe
 
-- `Animir.pyw` - точка входа;
-- `web/` - интерфейс (HTML/CSS/JS, hls.js);
-- `animir.ico` - значок окна и трея;
-- `notify_toast.ps1` - уведомления Windows;
-- `sources.py` - онлайн-озвучки (Anixart, AniLiberty, Kodik);
+- `Animir.pyw` - точка входа (запускает пакет из `src/animir`);
+- `src/animir/web/` - интерфейс (HTML/CSS/JS, hls.js);
+- `src/animir/animir.ico` - значок окна и трея;
+- `src/animir/notify_toast.ps1`, `src/animir/ensure_shortcut.ps1` - уведомления и ярлык в «Пуск»;
+- сам пакет `animir` - сервер, источники, Shikimori, скачивание;
 - `Pillow` - увеличение/уменьшение обложек (если установлен при сборке);
 - выбор папки в медиатеку - системный диалог через PowerShell (tkinter в exe не входит).
 
@@ -70,5 +70,4 @@ signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /a Animir.
 ## Другие варианты
 
 - `build_portable.bat` - портативная сборка папкой (onedir), реже ловит ложные срабатывания антивирусов: `..\Animir-portable\Анимир\Animir.exe`.
-- `build_launcher.bat` - маленький лаунчер `Animir.exe` на C# (`launcher/`), запускает `Animir.pyw` из исходников.
 - `README.txt` - инструкция, которую установщик кладёт рядом с программой.

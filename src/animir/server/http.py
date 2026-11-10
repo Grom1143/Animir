@@ -17,14 +17,14 @@ import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import shiki_net
-import windows
-from config import IMG_CACHE, SHIKI
-from server_app import AppRoutes, set_pending_nav
-from server_files import FileRoutes, _trim_img_cache
-from server_online import OnlineRoutes, online
-from server_routes import API_GROUPS, GET, POST
-from server_shiki import ShikiRoutes
+import animir.shikimori.net as shiki_net
+import animir.app.windows as windows
+from animir.config import IMG_CACHE, SHIKI
+from animir.server.app_routes import AppRoutes, set_pending_nav
+from animir.server.files import FileRoutes, _trim_img_cache
+from animir.server.online import OnlineRoutes, online
+from animir.server.routes import API_GROUPS, GET, POST
+from animir.server.shiki_routes import ShikiRoutes
 
 # Снаружи: make_server и set_pending_nav - для Animir.pyw; online, windows, IMG_CACHE - для тестов.
 __all__ = ["Handler", "make_server", "set_pending_nav", "online", "windows", "IMG_CACHE"]

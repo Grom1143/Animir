@@ -12,8 +12,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-import shiki_net
-from config import DATA_DIR, SHIKI
+import animir.shikimori.net as shiki_net
+from animir.config import DATA_DIR, SHIKI
 
 AUTH_FILE = DATA_DIR / "auth.json"
 SCOPE = "user_rates comments topics"  # список аниме (синхронизация), комментарии и отзывы

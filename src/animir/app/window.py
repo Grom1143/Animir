@@ -11,8 +11,8 @@ import os
 import threading
 from pathlib import Path
 
-import windows
-from config import DATA_DIR
+import animir.app.windows as windows
+from animir.config import DATA_DIR
 
 try:
     import webview

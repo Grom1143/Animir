@@ -8,10 +8,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-import sources  # noqa: E402
-from sources import counts  # noqa: E402
+import animir.sources as sources  # noqa: E402
+from animir.sources import counts  # noqa: E402
 
 
 class PopOfTest(unittest.TestCase):
