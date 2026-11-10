@@ -5,7 +5,7 @@
 ; файл без подписи), дальше прогресс и «Готово». Никаких страниц с путями и галочками.
 
 #define MyAppName "Анимир"
-#define MyAppVersion "1.0.6"
+#define MyAppVersion "1.0.7"
 #define MyAppPublisher "Grom1143"
 #define MyAppURL "https://github.com/Grom1143/Animir"
 #define MyAppExeName "Animir.exe"
@@ -45,7 +45,7 @@ MinVersion=10.0
 CloseApplications=yes
 RestartApplications=no
 CloseApplicationsFilter=Animir.exe
-VersionInfoVersion=1.0.6.0
+VersionInfoVersion=1.0.7.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} installer
 VersionInfoProductName={#MyAppName}
