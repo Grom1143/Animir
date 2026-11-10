@@ -185,8 +185,8 @@ async function pageEpisodes(view, q, [id], alive) {
   $('#dl-dub')?.addEventListener('click', async () => {
     const dub = dubs.find(d => d.key === dubSel) || dubs[0];
     if (!dub) { toast('Сначала выбери онлайн-озвучку'); return; }
-    const eps = await dlPickEpisodes(s, dub, marks);
-    if (eps) dlStart(s.id, dub.key, dub.label, title(a), eps);
+    const picked = await dlPickEpisodes(s, dub, marks);
+    if (picked) dlStart(s.id, dub.key, dub.label, title(a), picked.episodes, picked.single);
   });
   $$('.ep', view).forEach(el => {
     el.onclick = e => {
@@ -207,8 +207,8 @@ async function pageEpisodes(view, q, [id], alive) {
       ['⬇', 'Скачать озвучку', async () => {
         const dub = dubs.find(x => x.key === dubSel) || dubs[0];
         if (!dub) { toast('Сначала выбери онлайн-озвучку'); return; }
-        const eps = await dlPickEpisodes(s, dub, marks);
-        if (eps) dlStart(s.id, dub.key, dub.label, title(a), eps);
+        const picked = await dlPickEpisodes(s, dub, marks);
+        if (picked) dlStart(s.id, dub.key, dub.label, title(a), picked.episodes, picked.single);
       }],
       ['✓', 'Все серии просмотрены', () => { for (let n = 1; n <= (a.episodes || a.episodesAired); n++) if (!marksOf(s.id)[n]) setMark(s, n, true); route(); }],
       ['✕', 'Удалить все отметки', async () => { if (await confirmBox('Удалить все отметки о просмотре?', 'Удалить')) { delete S.marks[s.id]; syncEp(s); route(); } }],
