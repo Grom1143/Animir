@@ -219,6 +219,7 @@ def _run_single(job: dict, folder: Path) -> None:
         return
     tmp = out.with_suffix(".ts.part")
     separate = 0
+    hls_written = False
     mp4_eps = []
     try:
         with tmp.open("wb") as f:
@@ -235,6 +236,7 @@ def _run_single(job: dict, folder: Path) -> None:
                 if ".m3u8" in url.lower():
                     try:
                         _hls_into(f, url, job, job["done"])
+                        hls_written = True
                     except Cancel:
                         raise
                     except Exception as e:  # noqa: BLE001
@@ -255,6 +257,13 @@ def _run_single(job: dict, folder: Path) -> None:
                         job["error"] = f"серия {n}: {e}"
                 job["done"] += 1
                 _progress(job, 0)
+        if not hls_written and separate:
+            # источник отдал только mp4: общего файла нет, лежат отдельные - так и скажем
+            tmp.unlink(missing_ok=True)
+            job["file"] = str(folder)
+            job["note"] = f"{separate} серий сохранены отдельными mp4: склеить без перекодирования нельзя"
+            job["state"] = "done" if not job.get("skipped") else "partial"
+            return
         tmp.replace(out)
     except Cancel:
         tmp.unlink(missing_ok=True)
