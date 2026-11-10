@@ -1,6 +1,6 @@
 'use strict';
-/* Анимир — динамическое оформление.
-   Ничего не решает за интерфейс: только подсвечивает то, на что смотрит человек —
+/* Анимир - динамическое оформление.
+   Ничего не решает за интерфейс: только подсвечивает то, на что смотрит человек -
    курсор на карточках, активный пункт меню, прогресс прокрутки и цвет постера
    на странице тайтла. В лёгком режиме и при «уменьшении движения» выключается. */
 
@@ -28,7 +28,7 @@
       document.body.classList.toggle('scrolled', moved);
     });
   }
-  // scroll не всплывает — слушаем на фазе перехвата, поэтому работает и после замены #view
+  // scroll не всплывает - слушаем на фазе перехвата, поэтому работает и после замены #view
   document.addEventListener('scroll', e => { if (e.target?.id === 'view') onScroll(); }, { capture: true, passive: true });
   addEventListener('resize', onScroll, { passive: true });
 
@@ -52,7 +52,7 @@
     const top = or.top - nr.top + nav.scrollTop;
     ink.style.height = or.height + 'px';
     ink.style.transform = `translateY(${top}px)`;
-    // classList.add/remove меняют атрибут даже когда класс уже есть — проверяем заранее,
+    // classList.add/remove меняют атрибут даже когда класс уже есть - проверяем заранее,
     // иначе MutationObserver зацикливается сам на себе
     if (!ink.classList.contains('on')) ink.classList.add('on');
   }
@@ -107,7 +107,7 @@
         const g = c.getContext('2d', { willReadFrequently: true });
         g.drawImage(image, 0, 0, c.width, c.height);
         const d = g.getImageData(0, 0, c.width, c.height).data;
-        // раскладываем пиксели по 12 оттенкам и берём самый «весомый» —
+        // раскладываем пиксели по 12 оттенкам и берём самый «весомый» -
         // так свечение получается цветным, а не средним серым
         const bins = Array.from({ length: 12 }, () => ({ w: 0, r: 0, g: 0, b: 0 }));
         for (let i = 0; i < d.length; i += 4) {

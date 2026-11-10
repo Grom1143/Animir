@@ -1,5 +1,5 @@
 'use strict';
-// Анимир — профиль и настройки.
+// Анимир - профиль и настройки.
 
 // ================= Профиль =================
 function pageProfile(view, q) {
@@ -114,7 +114,7 @@ function profileComments(box) {
   box.innerHTML = `
     <div class="pc-tiles">${tile(all.length, 'комментариев')}${tile(replies, 'ответов получено')}${tile(by('pos'), '👍 тайтлов нравится')}${tile(by('neu'), '😐 нейтрально')}${tile(by('neg'), '👎 не нравится')}</div>
     <div style="display:flex;gap:10px;align-items:center;margin:14px 0">
-      <span class="muted" style="flex:1;font-size:13px">Лайков у комментариев на Shikimori нет — отклик на комментарий виден по ответам. Рядом с тайтлом — твоё мнение о нём, клик меняет.</span>
+      <span class="muted" style="flex:1;font-size:13px">Лайков у комментариев на Shikimori нет - отклик на комментарий виден по ответам. Рядом с тайтлом - твоё мнение о нём, клик меняет.</span>
       <button class="btn" id="pc-check">⟳ Проверить ответы</button></div>
     <div class="pc-list">${all.map(c => `<div class="pc-item" data-id="${c.id}">
       <a href="#/anime/${c.anime.id}/comments"><img src="${img(c.anime.poster)}" alt=""></a>
@@ -180,7 +180,7 @@ function profileStats(box, all) {
   const eps = all.reduce((n, e) => n + (e.ep || 0), 0);
   const minutes = all.reduce((n, e) => n + (e.ep || 0) * (e.anime.duration || (e.anime.kind === 'movie' ? 100 : 24)), 0);
   const scored = all.filter(e => e.score);
-  const avg = scored.length ? (scored.reduce((n, e) => n + e.score, 0) / scored.length * (scale10() ? 2 : 1)).toFixed(1) : '—';
+  const avg = scored.length ? (scored.reduce((n, e) => n + e.score, 0) / scored.length * (scale10() ? 2 : 1)).toFixed(1) : '-';
   const genreCount = {};
   all.filter(e => ['completed', 'watching', 'on_hold'].includes(e.status)).forEach(e => (e.anime.genres || []).forEach(g => genreCount[g] = (genreCount[g] || 0) + 1));
   const topG = Object.entries(genreCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
@@ -204,11 +204,12 @@ function profileStats(box, all) {
     <div class="stats" style="margin-top:14px">
       <div class="stat"><b>${eps}</b><span>Просмотрено серий</span></div>
       <div class="stat"><b>${fmtDuration(minutes)}</b><span>Время просмотра</span></div>
-      <div class="stat"><b>${avg}${avg !== '—' ? (scale10() ? '/10' : ' ★') : ''}</b><span>Средняя оценка</span></div>
+      <div class="stat"><b>${avg}${avg !== '-' ? (scale10() ? '/10' : ' ★') : ''}</b><span>Средняя оценка</span></div>
       <a class="stat" href="#/bookmarks?tab=favorites"><b>${all.filter(e => e.fav).length}</b><span>В избранном</span></a>
       <a class="stat" href="#/collections"><b>${S.collections.length}</b><span>Коллекций</span></a>
     </div>
     <a class="year-link" href="#/year"><b>🎆 Мой ${new Date().getFullYear()} в аниме</b><span>серии, часы, жанры, студии и рекорды года →</span></a>
+    ${achievementsBlock()}
     ${unrated ? `<div class="hint" style="margin-top:18px"><span>★</span><div>Есть просмотренные, но не оценённые тайтлы: ${unrated}. <a class="linkbtn" href="#/rate">Оценить</a></div></div>` : ''}
     <div class="sec-head"><h2>Динамика просмотра серий</h2><span class="sub">за 2 недели</span></div>
     <div class="people"><div class="days-bars">${days.map((d, i) => `<div class="d" title="${d.toLocaleDateString('ru-RU')}: ${perDay[i]}">${perDay[i] ? `<b>${perDay[i]}</b>` : ''}<i style="height:${perDay[i] / maxD * 100}%"></i>${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}</div>`).join('')}</div></div>
@@ -232,7 +233,7 @@ function profileRates(box, all, sort) {
 function pageRate(view) {
   const queue = Object.values(S.list).filter(e => ['completed', 'watching', 'dropped', 'on_hold'].includes(e.status) && !e.score).sort((a, b) => (b.updated || 0) - (a.updated || 0));
   view.innerHTML = `<h1 class="page-title">Оцени просмотренное</h1>
-    <p class="muted" style="margin-top:-8px">Честные оценки делают рекомендации точнее. Нажми на звёзды — карточка исчезнет.</p>
+    <p class="muted" style="margin-top:-8px">Честные оценки делают рекомендации точнее. Нажми на звёзды - карточка исчезнет.</p>
     <div class="list cols" id="rq">${queue.map(e => `<div class="wide-card" data-id="${e.anime.id}"><img src="${img(e.anime.poster)}" alt=""><div class="wc-b"><div class="t">${esc(title(e.anime))}</div>
       <div class="m">${LIST_NAME[e.status]} · ${esc(metaLine(e.anime))}</div><div class="stars5">${starsHtml(0)}</div></div></div>`).join('') || emptyHtml('★', 'Всё оценено', 'Спасибо! Загляни в <a class="linkbtn" href="#/recs">рекомендации</a>.')}</div>`;
   $$('#rq .wide-card').forEach(el => $$('.stars5 button', el).forEach(b => b.onclick = ev => {
@@ -266,20 +267,20 @@ async function renderAccount(box) {
           <button class="btn" id="a-sync-now">⟳ Сейчас</button></div></div>`
       : `<div class="hint"><span>⚠</span><div>Вход выполнен без права <b>user_rates</b>, поэтому списки не синхронизируются.
           Открой своё приложение на <a class="linkbtn" href="https://shikimori.io/oauth/applications" target="_blank" rel="noopener">shikimori.io → Приложения</a>,
-          поставь галочку <b>user_rates</b>, сохрани — и здесь нажми «Выйти», потом войди снова.</div></div>`}`);
+          поставь галочку <b>user_rates</b>, сохрани - и здесь нажми «Выйти», потом войди снова.</div></div>`}`);
     $('#a-out').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST' }); AUTH = null; route(); };
     $('#a-sync')?.addEventListener('change', e => { S.settings.shikiSync = e.target.checked; save(); if (e.target.checked) syncShikimori(true); });
     $('#a-sync-now')?.addEventListener('click', async e => { e.target.disabled = true; await syncShikimori(true); renderAccount(box); });
     return;
   }
   box.innerHTML = `
-    <div class="acc-intro"><b>Зачем это нужно.</b> Комментарии в Анимир публикуются на сайте Shikimori — так их видят и могут ответить другие люди. А закладки и оценки
+    <div class="acc-intro"><b>Зачем это нужно.</b> Комментарии в Анимир публикуются на сайте Shikimori - так их видят и могут ответить другие люди. А закладки и оценки
       будут совпадать с твоим списком на Shikimori. Для этого Shikimori выдаёт Анимир два ключа (как логин и пароль, но только для Анимир и только для списка и комментариев).
       Настраивается <b>один раз</b>, займёт пару минут. Ссылки ниже откроются в твоём обычном браузере.</div>
 
     <div class="acc-step"><div class="acc-n">1</div><div>
       <h4>Войди на Shikimori</h4>
-      <p>Если аккаунта нет — там же можно зарегистрироваться.</p>
+      <p>Если аккаунта нет - там же можно зарегистрироваться.</p>
       <a class="btn" href="https://shikimori.io/users/sign_in" target="_blank" rel="noopener">Открыть вход на Shikimori ↗</a>
     </div></div>
 
@@ -293,7 +294,7 @@ async function renderAccount(box) {
         <li>В правах (scopes) поставь три галочки: <b>user_rates</b> (закладки и оценки совпадают с Shikimori), <b>comments</b> (комментарии) и <b>topics</b> (отзывы).</li>
         <li>Нажми <b>«Сохранить»</b>. Shikimori покажет два ключа: <b>Client ID</b> и <b>Client Secret</b>.</li>
       </ol>
-      <p class="muted">Нет кнопки «создать»? Shikimori даёт создавать приложения только аккаунтам старше суток — попробуй завтра.</p>
+      <p class="muted">Нет кнопки «создать»? Shikimori даёт создавать приложения только аккаунтам старше суток - попробуй завтра.</p>
     </div></div>
 
     <div class="acc-step"><div class="acc-n">3</div><div>
@@ -307,7 +308,7 @@ async function renderAccount(box) {
 
     <div class="acc-step"><div class="acc-n">4</div><div>
       <h4>Войди через Shikimori</h4>
-      <p>Откроется браузер — нажми там <b>«Разрешить»</b>. После этого Анимир сам увидит вход.</p>
+      <p>Откроется браузер - нажми там <b>«Разрешить»</b>. После этого Анимир сам увидит вход.</p>
       <button class="btn primary" id="a-in" ${au.configured ? '' : 'disabled'}>Войти через Shikimori</button>
       ${au.configured ? '' : '<span class="muted" style="font-size:13px;margin-left:8px">сначала сохрани ключи (шаг 3)</span>'}
       <details class="acc-more"><summary>Не получилось?</summary>
@@ -355,35 +356,37 @@ function pageSettings(view, q) {
   let body = '';
   if (sec === 'main') body = `
     ${row('Тема', 'Оформление приложения', sel('theme', [['dark', 'Тёмная'], ['light', 'Светлая'], ['system', 'Как в Windows']], st.theme))}
-    ${row('Шкала оценок', 'Как ставить свои оценки: 5 звёзд или 10 баллов (половинки звёзд). Уже поставленные оценки сохранятся', sel('scale', [['5', '1–5 (звёзды)'], ['10', '1–10 (половинки звёзд)']], st.scale || '5'))}
+    ${row('Шкала оценок', 'Как ставить свои оценки: 5 звёзд или 10 баллов (половинки звёзд). Уже поставленные оценки сохранятся', sel('scale', [['5', '1-5 (звёзды)'], ['10', '1-10 (половинки звёзд)']], st.scale || '5'))}
     ${row('Цвет акцента', 'Кнопки, выделения, полоса прогресса', `<div class="swatches">${ACCENTS.map(c => `<button style="background:${c}" data-c="${c}" class="${st.accent === c ? 'on' : ''}"></button>`).join('')}</div>`)}
     ${row('Профиль', 'Никнейм, фото, обложка и статус', '<a class="btn" href="#/profile">Открыть</a>')}`;
   else if (sec === 'notify') body = `
     ${row('Получать уведомления о сериях', 'Анимир проверяет новые серии при запуске и каждые полчаса', sw('notify', st.notify))}
-    ${row('На рабочий стол', 'Тост Windows от сервера Анимир — приходит даже когда окно свернуто', sw('notifyDesktop', st.notifyDesktop !== false))}
+    ${row('На рабочий стол', 'Тост Windows от сервера Анимир - приходит даже когда окно свернуто', sw('notifyDesktop', st.notifyDesktop !== false))}
     ${row('Из каких списков', 'Тайтлы из этих закладок попадут в проверку', `<button class="btn" id="nl">${names(LIST_NAME, st.notifyLists.join(',')) || 'Ни из каких'}</button>`)}
-    ${row('Одно уведомление на тайтл', 'Если вышло несколько серий сразу — одно сообщение «Вышли серии 5–7»', sw('notifyOne', st.notifyOne))}
-    <div class="set-group">Новые релизы — все аниме, не только из закладок</div>
-    ${row('Премьеры онгоингов', 'Начался показ нового сериала из популярных. Понравился — нажми на нём 🔔', sw('notifyPremieres', st.notifyPremieres !== false))}
-    ${row('Вышли полностью', 'Онгоинг закончился — вышла последняя серия, можно смотреть целиком', sw('notifyFinished', st.notifyFinished !== false))}
+    ${row('Одно уведомление на тайтл', 'Если вышло несколько серий сразу - одно сообщение «Вышли серии 5-7»', sw('notifyOne', st.notifyOne))}
+    <div class="set-group">Новые релизы - все аниме, не только из закладок</div>
+    ${row('Премьеры онгоингов', 'Начался показ нового сериала из популярных. Понравился - нажми на нём 🔔', sw('notifyPremieres', st.notifyPremieres !== false))}
+    ${row('Вышли полностью', 'Онгоинг закончился - вышла последняя серия, можно смотреть целиком', sw('notifyFinished', st.notifyFinished !== false))}
     <div class="set-group">Уведомления по отдельным тайтлам (🔔)</div>
-    <div class="muted nb-legend">Значки на постерах и на странице тайтла: 🔔 — каждая серия (или тайтл в закладках, по ним уведомления приходят сами) · 🏁 — только последняя серия · 🎙 — слежу за озвучкой · бледный 🔔 / 🔕 — уведомлений нет.</div>
+    <div class="muted nb-legend">Значки на постерах и на странице тайтла: 🔔 - каждая серия (или тайтл в закладках, по ним уведомления приходят сами) · 🏁 - только последняя серия · 🎙 - слежу за озвучкой · бледный 🔔 / 🔕 - уведомлений нет.</div>
     ${Object.values(S.subs).length ? `<div class="list">${Object.values(S.subs).map(x => `<div class="folder"><img src="${img(x.poster)}" style="width:32px;height:46px;object-fit:cover;border-radius:6px" alt=""><span class="p">${esc(title(x))}${x.status === 'released' ? '<span class="muted"> · вышел</span>' : ''}</span>
         <select class="select" data-submode="${x.id}">${Object.entries(SUB_MODES).map(([k, n]) => `<option value="${k}" ${subMode(x.id) === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <button class="btn sm" data-unsub="${x.id}" title="Убрать из списка (для тайтлов из закладок снова будут приходить уведомления по спискам)">✕</button></div>`).join('')}</div>`
       : '<div class="muted" style="padding:6px">Нажми 🔔 на постере тайтла, чтобы следить за ним, даже если его нет в закладках: каждая серия или только последняя.</div>'}
     <div class="set-group">Подписки на озвучки (на странице просмотра)</div>
-    ${Object.values(S.subsDub || {}).length ? `<div class="list">${Object.entries(S.subsDub).map(([k, x]) => `<div class="folder"><img src="${img(x.anime.poster)}" style="width:32px;height:46px;object-fit:cover;border-radius:6px" alt=""><span class="p">${esc(title(x.anime))} — ${esc(x.dubLabel)}<span class="muted"> · ${x.ep || 0} эп.</span></span><button class="btn sm" data-unsubdub="${esc(k)}">Отключить</button></div>`).join('')}</div>`
-      : '<div class="muted" style="padding:6px">Открой серию тайтла онлайн и нажми «🔔 Следить за…» — уведомим, когда у этой озвучки выйдет новая серия.</div>'}`;
+    ${Object.values(S.subsDub || {}).length ? `<div class="list">${Object.entries(S.subsDub).map(([k, x]) => `<div class="folder"><img src="${img(x.anime.poster)}" style="width:32px;height:46px;object-fit:cover;border-radius:6px" alt=""><span class="p">${esc(title(x.anime))} - ${esc(x.dubLabel)}<span class="muted"> · ${x.ep || 0} эп.</span></span><button class="btn sm" data-unsubdub="${esc(k)}">Отключить</button></div>`).join('')}</div>`
+      : '<div class="muted" style="padding:6px">Открой серию тайтла онлайн и нажми «🔔 Следить за…» - уведомим, когда у этой озвучки выйдет новая серия.</div>'}`;
   else if (sec === 'play') body = `
     ${row('Видеоплеер', 'Где открывать файлы из медиатеки', `<div class="radio-cards" style="width:440px">
       <label class="${st.externalPlayer ? '' : 'on'}"><input type="radio" name="pl" value="0" ${st.externalPlayer ? '' : 'checked'}><b>Встроенный</b><small>Запоминает место, отмечает серии, горячие клавиши</small></label>
-      <label class="${st.externalPlayer ? 'on' : ''}"><input type="radio" name="pl" value="1" ${st.externalPlayer ? 'checked' : ''}><b>Системный</b><small>VLC, MPC и т. п. — для форматов, которые встроенный не тянет</small></label></div>`)}
-    ${row('Окно плеера', 'Где идёт просмотр. Видео одновременно играет только одно — перед новым спросим', `<div class="radio-cards" style="width:440px">
-      <label class="${st.playerWindow === 'separate' ? '' : 'on'}"><input type="radio" name="pw" value="main" ${st.playerWindow === 'separate' ? '' : 'checked'}><b>В основном окне</b><small>Каталог и плеер в одном окне, «Назад» — к тайтлу</small></label>
-      <label class="${st.playerWindow === 'separate' ? 'on' : ''}"><input type="radio" name="pw" value="separate" ${st.playerWindow === 'separate' ? 'checked' : ''}><b>В отдельном окне</b><small>Смотришь и листаешь каталог; 📌 в плеере — поверх всех окон</small></label></div>`)}
+      <label class="${st.externalPlayer ? 'on' : ''}"><input type="radio" name="pl" value="1" ${st.externalPlayer ? 'checked' : ''}><b>Системный</b><small>VLC, MPC и т. п. - для форматов, которые встроенный не тянет</small></label></div>`)}
+    ${row('Окно плеера', 'Где идёт просмотр. Видео одновременно играет только одно - перед новым спросим', `<div class="radio-cards" style="width:440px">
+      <label class="${st.playerWindow === 'separate' ? '' : 'on'}"><input type="radio" name="pw" value="main" ${st.playerWindow === 'separate' ? '' : 'checked'}><b>В основном окне</b><small>Каталог и плеер в одном окне, «Назад» - к тайтлу</small></label>
+      <label class="${st.playerWindow === 'separate' ? 'on' : ''}"><input type="radio" name="pw" value="separate" ${st.playerWindow === 'separate' ? 'checked' : ''}><b>В отдельном окне</b><small>Смотришь и листаешь каталог; 📌 в плеере - поверх всех окон</small></label></div>`)}
     ${row('Перемотка опенинга', 'На сколько перематывает кнопка «⏩ Опенинг» и клавиша S (не меньше 5 секунд)', `<input class="input" id="sk-m" type="number" min="0" max="10" value="${Math.floor(st.skipLen / 60)}" style="width:64px"> мин <input class="input" id="sk-s" type="number" min="0" max="59" value="${st.skipLen % 60}" style="width:64px"> с`)}
     ${row('Автопереход к следующей серии', 'Через 5 секунд после конца серии', sw('autoNext', st.autoNext))}
+    ${row('Ночной кинозал', 'Приглушённые цвета, крупные субтитры, звук не громче 60 %. Включается и кнопкой 🌙 в плеере', sw('night', st.night))}
+    ${row('Ночной кинозал: спрашивать после серий', 'Вместо автозапуска следующей серии один короткий вопрос «ещё одну или спать?»', sel('nightPause', [[0, 'Не спрашивать'], [1, 'После 1 серии'], [2, 'После 2 серий'], [3, 'После 3 серий'], [5, 'После 5 серий']], String(st.nightPause || 0)))}
     ${row('Скорость по умолчанию', '', sel('speed', [0.75, 1, 1.25, 1.5, 2].map(r => [r, r === 1 ? 'Обычная' : r + '×']), st.speed))}
     ${row('Качество по умолчанию', 'Для онлайн-серий, у которых оно есть. Меняется и кнопкой ⚙ в плеере', sel('defq', [['', 'Авто (лучшее)'], ['1080', '1080p'], ['720', '720p'], ['480', '480p'], ['360', '360p'], ['240', '240p']], String(st.q || '')))}
     ${row('Масштаб видео', '', sel('fit', [['contain', 'Вписать'], ['cover', 'Заполнить (обрезать края)'], ['fill', 'Растянуть']], st.fit))}`;
@@ -397,11 +400,14 @@ function pageSettings(view, q) {
     ${row('Компактное меню', 'Меньше отступы в боковом меню', sw('compactNav', st.compactNav))}
     ${row('Небо по времени суток', 'Фон меняется вместе с часами: рассвет, день, закат и звёздная ночь', sw('sky', st.sky !== false))}
     ${row('Снег зимой', 'Снежинки в строке поиска с декабря по февраль', sw('snow', st.snow))}
-    ${row('Лёгкий режим', `Для слабых компьютеров: меньше памяти и нагрузки — без анимаций, с картинками попроще и видео до 720p; на ПК с малой памятью ещё и без видеокарты.${SYS?.ram_gb ? ` У этого компьютера ${SYS.ram_gb} ГБ памяти и ${plural(SYS.cores, 'ядро', 'ядра', 'ядер')}${SYS.low_end ? ' — лёгкий режим нужен' : ''}.` : ''} Окно применит его после перезапуска Анимир.`,
+    ${row('Экономия заряда', 'На батарее выключаются «стекло», снег и слои, из-за которых окно перерисовывается каждый кадр: ноутбук дольше живёт, прокрутка не дёргается. На зарядке всё как обычно.', sel('power', [['auto', 'Авто (на батарее)'], ['on', 'Всегда'], ['off', 'Выключена']], st.power || 'auto'))}
+    ${row('Лёгкий режим', `Для слабых компьютеров: меньше памяти и нагрузки - без анимаций, с картинками попроще и видео до 720p; на ПК с малой памятью ещё и без видеокарты.${SYS?.ram_gb ? ` У этого компьютера ${SYS.ram_gb} ГБ памяти и ${plural(SYS.cores, 'ядро', 'ядра', 'ядер')}${SYS.low_end ? ' - лёгкий режим нужен' : ''}.` : ''} Окно применит его после перезапуска Анимир.`,
       sel('lite', [['auto', 'Как у компьютера'], ['on', 'Включён'], ['off', 'Выключен']], st.lite || 'auto'))}
     ${row('Подсказки', 'Снова показать все скрытые подсказки', '<button class="btn" id="hints">Вернуть</button>')}`;
   else if (sec === 'data') body = `
     <div class="set-group">Закладки</div>
+    ${row('Прогресс в Shikimori', 'Отмечаешь серию в Анимире - номер серии тихо уходит в твой список на Shikimori. Работает, только если вошёл через Shikimori', sw('autoSync', st.autoSync !== false))}
+    ${row('Скачивания', 'Серии из онлайн-озвучек в «Загрузки\\Анимир». Кнопка ⬇ есть в плеере и у списка серий', '<button class="btn" id="dl-list">Показать</button>')}
     ${row('Импорт из Shikimori', 'Файл со списком аниме из Shikimori (Настройки профиля → Списки → Экспорт → JSON)', '<button class="btn" id="imp">Выбрать файл</button><input type="file" id="imp-f" accept=".json" hidden>')}
     ${row('Экспорт закладок', 'Таблица CSV (открывается в Excel) или текстовый документ', '<button class="btn" id="exp">Экспортировать</button>')}
     <div class="set-group">Резервная копия</div>
@@ -410,7 +416,8 @@ function pageSettings(view, q) {
     ${row('Постеры и кадры на диске', 'Ускоряет повторное открытие страниц', '<span class="muted" id="cache-sz">…</span><button class="btn" id="cache-clr">Очистить</button>')}`;
   else if (sec === 'account') body = '<div id="acc"><div class="loading">…</div></div>';
   else body = `
-    ${row('Анимир ' + APP_VERSION, 'Аниме-клиент для ПК: каталог, закладки, расписание, онлайн-озвучки, медиатека и плеер. Продолжение AnyX — закладки и настройки из него переносятся сами.', '')}
+    ${row('Анимир ' + APP_VERSION, 'Аниме-клиент для ПК: каталог, закладки, расписание, онлайн-озвучки, медиатека и плеер. Продолжение AnyX - закладки и настройки из него переносятся сами.', '')}
+    ${row('Источники', 'Проверить, кто отвечает: Shikimori, AniLiberty, Anixart, Kodik и токен Kodik. Если что-то молчит при включённом VPN - это видно здесь', '<button class="btn" id="health">Проверить</button>')}
     ${row('Данные о тайтлах', 'Shikimori (shikimori.io): каталог, оценки, статистика, комментарии', '<a class="btn" href="https://shikimori.io" target="_blank" rel="noopener">Открыть ↗</a>')}
     ${row('Видео', 'Твои файлы, ссылки на потоки (свой медиасервер) и официальные ролики YouTube', '')}
     ${row('Горячие клавиши', 'Поиск, навигация и управление плеером с клавиатуры. Окно со списком открывается и клавишей ?', '<button class="btn" id="keys">⌨ Показать</button>')}`;
@@ -420,10 +427,11 @@ function pageSettings(view, q) {
 
   const bind = (id, fn) => { const el = $('#' + id); if (el) el.onchange = e => { fn(e.target.type === 'checkbox' ? e.target.checked : e.target.value); save(); }; };
   bind('theme', v => { st.theme = v; applyTheme(); });
-  bind('scale', v => { st.scale = v; toast(v === '10' ? 'Оценки 1–10: кликай по левой половине звезды для нечётного балла' : 'Оценки 1–5 звёзд'); });
+  bind('scale', v => { st.scale = v; toast(v === '10' ? 'Оценки 1-10: кликай по левой половине звезды для нечётного балла' : 'Оценки 1-5 звёзд'); });
   if ($('#acc')) renderAccount($('#acc'));
   $$('.swatches button', view).forEach(b => b.onclick = () => { st.accent = b.dataset.c; applyTheme(); save(); route(); });
   bind('notify', v => { st.notify = v; });
+  bind('autoSync', v => { st.autoSync = v; if (v) flushShikiQueue().catch(() => {}); });
   bind('notifyDesktop', v => { st.notifyDesktop = v; });
   bind('notifyOne', v => { st.notifyOne = v; });
   bind('notifyPremieres', v => { st.notifyPremieres = v; });
@@ -448,6 +456,8 @@ function pageSettings(view, q) {
   $('#sk-m')?.addEventListener('change', sk);
   $('#sk-s')?.addEventListener('change', sk);
   bind('autoNext', v => { st.autoNext = v; });
+  bind('night', v => { st.night = v; applyNight(); nightCount = 0; toast(v ? 'Ночной кинозал включён' : 'Ночной кинозал выключен'); });
+  bind('nightPause', v => { st.nightPause = +v; });
   bind('speed', v => { st.speed = +v; });
   bind('defq', v => { st.q = v ? +v : 0; });
   bind('fit', v => { st.fit = v; });
@@ -459,8 +469,11 @@ function pageSettings(view, q) {
   bind('timeFormat', v => { st.timeFormat = v; });
   bind('compactNav', v => { st.compactNav = v; applyTheme(); });
   bind('snow', v => { st.snow = v; snowfall(); });
+  bind('power', v => { st.power = v; initPower(); toast(v === 'on' ? 'Экономия заряда включена' : v === 'off' ? 'Экономия заряда выключена' : 'На батарее Анимир будет экономнее'); });
   bind('sky', v => { st.sky = v; applySky(); });
   $('#hints')?.addEventListener('click', () => { st.hints = {}; save(); toast('Подсказки снова будут показываться'); });
+  $('#health')?.addEventListener('click', healthDialog);
+  $('#dl-list')?.addEventListener('click', downloadsDialog);
   // данные
   $('#imp')?.addEventListener('click', () => $('#imp-f').click());
   $('#imp-f')?.addEventListener('change', e => importShikimori(e.target.files[0]));
@@ -487,12 +500,36 @@ function pageSettings(view, q) {
   if ($('#cache-sz')) fetch('/api/cache').then(r => r.json()).then(c => { $('#cache-sz').textContent = `${c.files} файлов · ${(c.bytes / 2 ** 20).toFixed(1)} МБ`; });
   $('#cache-clr')?.addEventListener('click', async () => { await fetch('/api/cache/clear', { method: 'POST' }); toast('Кэш очищен'); route(); });
 }
+// Проверка источников: показывает, кто отвечает и за сколько. Первое, что стоит смотреть,
+// когда «ничего не грузится» или включён VPN.
+async function healthDialog() {
+  const b = modal(`<h3>Источники</h3>
+    <p class="muted" style="margin:0 0 12px">Проверяю Shikimori, AniLiberty, Anixart, Kodik и токен Kodik. Если что-то не отвечает при включённом VPN - дело в нём.</p>
+    <div id="hl" class="loading">Проверяю…</div>
+    <div class="row-btns"><button class="btn" data-again>Проверить снова</button><button class="btn primary" data-c>Закрыть</button></div>`, 'health');
+  b.querySelector('[data-c]').onclick = () => answerModal();
+  const box = b.querySelector('#hl');
+  const run = async () => {
+    box.className = 'loading';
+    box.textContent = 'Проверяю…';
+    const d = await fetch('/api/health').then(r => r.json()).catch(e => ({ items: [], error: String(e) }));
+    const list = d.items || [];
+    box.className = '';
+    box.innerHTML = list.length
+      ? list.map(x => `<div class="hl-row ${x.ok ? 'ok' : 'bad'}"><span class="dot"></span><b>${esc(x.name)}</b>
+          <span class="muted">${x.ms} мс</span><span class="note">${esc(x.note)}</span></div>`).join('')
+        + (d.ok ? '<p class="muted" style="margin:10px 0 0">Все источники отвечают.</p>'
+          : '<p class="muted" style="margin:10px 0 0">Что-то не отвечает. Если включён VPN, попробуй выключить его для Анимира или добавить домены источников в исключения.</p>')
+      : `<div class="muted">Проверка не ответила: ${esc(d.error || 'неизвестно')}</div>`;
+  };
+  b.querySelector('[data-again]').onclick = run;
+  await run();
+}
+
 function download(name, text, type = 'text/plain') {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['\ufeff' + text], { type: type + ';charset=utf-8' }));
-  a.download = name;
-  a.click();
-  toast('Файл сохранён в «Загрузки»: ' + name);
+  saveFile(name, type, '\ufeff' + text).then(path => {
+    toast(path ? 'Сохранено: ' + path : 'Файл сохранён в «Загрузки»: ' + name);
+  }).catch(() => toast('Не удалось сохранить файл', 'err'));
 }
 function exportDialog() {
   const b = modal(`<h3>Экспорт закладок</h3>
@@ -514,7 +551,7 @@ function exportDialog() {
       const head = ['Название', opt.orig && 'Оригинальное название', opt.st && 'Статус', opt.sc && 'Моя оценка', opt.ep && 'Серий просмотрено', 'Shikimori ID'].filter(Boolean);
       out = [head.map(q).join(';'), ...list.map(e => [title(e.anime), opt.orig && e.anime.name, opt.st && (LIST_NAME[e.status] || (e.fav ? 'Избранное' : '')), opt.sc && (e.score ? scoreText(e.score) : ''), opt.ep && e.ep, e.anime.id].filter(x => x !== false).map(q).join(';'))].join('\r\n');
     } else {
-      out = list.map((e, i) => `${i + 1}. ${title(e.anime)}${opt.orig && e.anime.name ? ` (${e.anime.name})` : ''}${opt.st && e.status ? ' — ' + LIST_NAME[e.status] : ''}${opt.sc && e.score ? ' — ' + scoreText(e.score) : ''}${opt.ep && e.ep ? ` — ${e.ep} эп.` : ''}`).join('\r\n');
+      out = list.map((e, i) => `${i + 1}. ${title(e.anime)}${opt.orig && e.anime.name ? ` (${e.anime.name})` : ''}${opt.st && e.status ? ' - ' + LIST_NAME[e.status] : ''}${opt.sc && e.score ? ' - ' + scoreText(e.score) : ''}${opt.ep && e.ep ? ` - ${e.ep} эп.` : ''}`).join('\r\n');
     }
     closeModal();
     download(`Анимир-закладки-${new Date().toISOString().slice(0, 10)}.${fmt}`, out, fmt === 'csv' ? 'text/csv' : 'text/plain');

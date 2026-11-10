@@ -1,5 +1,5 @@
 'use strict';
-/* Анимир 2 — интерфейс.
+/* Анимир 2 - интерфейс.
    Каталог, оценки, статистика и комментарии берём из Shikimori через локальный сервер (server.py).
    Свои закладки, отметки серий, коллекции и настройки хранятся в state.json (%APPDATA%\Animir).
    Видео: свои файлы, ссылки на потоки (свой медиасервер и т.п.) и официальные ролики YouTube. */
@@ -8,13 +8,13 @@
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-// w — какой ширины картинка нужна на экране; если исходник меньше, сервер аккуратно увеличит её
+// w - какой ширины картинка нужна на экране; если исходник меньше, сервер аккуратно увеличит её
 const img = (u, w = 420) => (u ? '/img?u=' + encodeURIComponent(u) + (w ? '&w=' + w : '') : 'icon-256.png');
-// Лёгкий режим для слабых ПК (мало памяти или 1–2 ядра): меньше картинок крупного размера, без анимаций.
-// Включается в настройках или сам по железу (сервер знает, сколько памяти и ядер) — см. initLite() в start.js.
+// Лёгкий режим для слабых ПК (мало памяти или 1-2 ядра): меньше картинок крупного размера, без анимаций.
+// Включается в настройках или сам по железу (сервер знает, сколько памяти и ядер) - см. initLite() в start.js.
 let LITE = false;
-// Постер нужного размера. Мелкий (строка списка) — сразу маленькая картинка; обычный — с запасом по качеству:
-// при масштабе экрана 150–200 % или зуме окна браузер сам возьмёт крупную версию (в лёгком режиме — без неё).
+// Постер нужного размера. Мелкий (строка списка) - сразу маленькая картинка; обычный - с запасом по качеству:
+// при масштабе экрана 150-200 % или зуме окна браузер сам возьмёт крупную версию (в лёгком режиме - без неё).
 const pimg = (a, cssW = 200) => cssW <= 120 ? `src="${img(a.poster, 240)}"`
   : LITE ? `src="${img(a.poster, 300)}"`
   : `src="${img(a.poster)}" srcset="${img(a.poster)} 420w, ${img(a.posterHi || a.poster, 900)} 900w" sizes="${cssW}px"`;
@@ -56,19 +56,19 @@ const KIND = { tv: 'ТВ', movie: 'Фильм', ova: 'OVA', ona: 'ONA', special:
 const KIND_FULL = { tv: 'ТВ-сериал', movie: 'Фильм', ova: 'OVA', ona: 'ONA', special: 'Спешл', tv_special: 'ТВ-спешл', music: 'Клип' };
 const STATUS = { anons: 'Анонс', ongoing: 'Выходит', released: 'Вышел' };
 const RATING = { none: '', g: '0+', pg: '6+', pg_13: '13+', r: '16+', r_plus: '18+', rx: '18+' };
-const RATING_INFO = { g: 'G — без ограничений', pg: 'PG — детям рекомендуется смотреть с родителями', pg_13: 'PG-13 — детям до 13 лет просмотр не желателен', r: 'R — лицам до 17 лет обязательно присутствие взрослого', r_plus: 'R+ — лицам до 17 лет просмотр запрещён (есть откровенные сцены)' };
+const RATING_INFO = { g: 'G - без ограничений', pg: 'PG - детям рекомендуется смотреть с родителями', pg_13: 'PG-13 - детям до 13 лет просмотр не желателен', r: 'R - лицам до 17 лет обязательно присутствие взрослого', r_plus: 'R+ - лицам до 17 лет просмотр запрещён (есть откровенные сцены)' };
 const ORIGIN = { original: 'Оригинал', manga: 'Манга', web_manga: 'Веб-манга', four_koma_manga: 'Ёнкома', light_novel: 'Ранобэ', novel: 'Роман', web_novel: 'Веб-новелла', visual_novel: 'Визуальная новелла', game: 'Игра', card_game: 'Карточная игра', book: 'Книга', picture_book: 'Книга с картинками', music: 'Музыка', radio: 'Радио', mixed_media: 'Несколько источников', other: 'Другое' };
 const SEASON = { winter: 'зима', spring: 'весна', summer: 'лето', fall: 'осень' };
 const LISTS = [['watching', 'Смотрю'], ['planned', 'В планах'], ['completed', 'Просмотрено'], ['on_hold', 'Отложено'], ['dropped', 'Брошено']];
 const LIST_NAME = Object.fromEntries(LISTS);
 const LIST_COLOR = { watching: 'var(--st-watching)', planned: 'var(--st-planned)', completed: 'var(--st-completed)', on_hold: 'var(--st-on_hold)', dropped: 'var(--st-dropped)' };
 const STAR_WORDS = ['', 'Ужасно', 'Плохо', 'Нормально', 'Хорошо', 'Отлично'];
-// Оценка хранится как 0.5…5 звёзд (шаг — половинка). Шкала «1–10» — те же звёзды, но с половинками: 4.5 ★ = 9/10.
+// Оценка хранится как 0.5…5 звёзд (шаг - половинка). Шкала «1-10» - те же звёзды, но с половинками: 4.5 ★ = 9/10.
 const WORDS10 = ['', 'Хуже некуда', 'Ужасно', 'Очень плохо', 'Плохо', 'Так себе', 'Нормально', 'Хорошо', 'Отлично', 'Великолепно', 'Шедевр'];
 const scale10 = () => S.settings.scale === '10';
 const scoreWord = v => scale10() ? WORDS10[Math.round(v * 2)] : STAR_WORDS[Math.round(v)];
 const scoreText = v => scale10() ? `${Math.round(v * 2)}/10` : Number.isInteger(v) ? '★'.repeat(v) : `${v} ★`;
-const likedText = () => scale10() ? '8–10' : '4–5 ★';
+const likedText = () => scale10() ? '8-10' : '4-5 ★';
 const ACCENTS = ['#5f7bff', '#8b6cff', '#ff5c8a', '#2fb6ff', '#3ccf8e', '#ffb547', '#ff6a3d'];
 // Второй цвет градиента подбирается под акцент, чтобы кнопки и подсветка всегда были в одной гамме.
 const ACCENT_PAIRS = {
@@ -80,7 +80,7 @@ const ACCENT_PAIRS = {
   '#ffb547': '#ff6a3d',  // янтарный → коралловый
   '#ff6a3d': '#ffb547',  // коралловый → янтарный
 };
-// Если в настройках когда-нибудь появится свой цвет — сдвигаем оттенок на круг Иттена.
+// Если в настройках когда-нибудь появится свой цвет - сдвигаем оттенок на круг Иттена.
 function accentPair(hex) {
   const m = /^#?([\da-f]{3}|[\da-f]{6})$/i.exec(String(hex || ''));
   if (!m) return '#ff5c8a';
@@ -108,7 +108,7 @@ const LEGAL_LINKS = {
   youtube_channel: 'YouTube-канал', official_site: 'Официальный сайт',
 };
 const INFO_LINKS = { wikipedia: 'Википедия', myanimelist: 'MyAnimeList', anime_news_network: 'Anime News Network', anime_db: 'AniDB', world_art: 'World Art' };
-// Где смотреть: только официальные площадки. free — как у них с бесплатным доступом; kinds — какие kind из
+// Где смотреть: только официальные площадки. free - как у них с бесплатным доступом; kinds - какие kind из
 // externalLinks Shikimori считаются прямой ссылкой на этот тайтл. Пиратских балансеров здесь нет и не будет.
 const WATCH_SERVICES = [
   { name: 'VK Видео', free: 'бесплатно', kinds: ['vk', 'vk_video'], note: 'официальные каналы и ролики', url: q => 'https://vk.com/video?q=' + encodeURIComponent(q) },
@@ -189,24 +189,24 @@ const metaLine = a => [KIND[a.kind], a.year || '', epsText(a)].filter(Boolean).j
 const DEFAULTS = {
   createdAt: Date.now(),
   list: {}, marks: {}, watchLog: [], history: [], progress: {}, collections: [], notifications: [],
-  subs: {}, subsDub: {}, subsDel: {}, notes: {}, streams: [], searchHistory: [], randomSeen: [], myComments: [], myReviews: [], shikiRates: {}, opinions: {}, releaseWatch: null, finishedLog: [],
+  subs: {}, subsDub: {}, subsDel: {}, notes: {}, streams: [], searchHistory: [], randomSeen: [], myComments: [], myReviews: [], shikiRates: {}, opinions: {}, releaseWatch: null, finishedLog: [], vibes: [], achievements: {}, shikiQueue: [],
   onlineDubs: {}, watchSrc: {},
   myTab: { name: 'Моя вкладка', filter: null },
   library: { folders: [], links: {} },
   settings: {
     theme: 'dark', accent: ACCENTS[0], playerWindow: 'main', autoNext: true, skipLen: 85, notify: true, notifyLists: ['watching', 'planned', 'on_hold'],
-    notifyOne: true, notifyPremieres: true, notifyFinished: true, view: 'cards', homeTab: 'latest', bookmarksTab: 'watching', timeFormat: 'dh', compactNav: false, snow: true, sky: true, lite: 'auto',
+    notifyOne: true, notifyPremieres: true, notifyFinished: true, view: 'cards', homeTab: 'latest', bookmarksTab: 'watching', timeFormat: 'dh', compactNav: false, snow: true, sky: true, lite: 'auto', power: 'auto', night: false, nightPause: 0, autoSync: true,
     nickname: 'Зритель', status: '', about: '', scale: '5', avatar: '', cover: '', volume: 1, speed: 1, fit: 'contain', externalPlayer: false, hints: {},
   },
 };
 let S = structuredClone(DEFAULTS);
 
 // Синхронизация состояния между окнами (главное + окна плеера). Каждое окно говорит серверу, от какой
-// версии оно отталкивалось (BASE), — сервер сливает его изменения с изменениями других окон (state.py).
+// версии оно отталкивалось (BASE), - сервер сливает его изменения с изменениями других окон (state.py).
 const WIN = uid();
 let BASE = null;
 let changeSeq = 0, savedSeq = 0;
-// Новые поля из DEFAULTS + сохранённые; settings/library/myTab — тот же объект, на него ссылаются страницы
+// Новые поля из DEFAULTS + сохранённые; settings/library/myTab - тот же объект, на него ссылаются страницы
 function adoptState(j) {
   const fresh = { ...structuredClone(DEFAULTS), ...j };
   for (const k of ['settings', 'library', 'myTab']) {
@@ -227,7 +227,7 @@ async function loadState() {
     S = structuredClone(DEFAULTS);
     adoptState(j);
     if (!j.opinions) migrateOpinions();
-    // Переход на Анимир: фиолетовый — цвет по умолчанию у AnyX и Animax, а не выбор человека, — один раз
+    // Переход на Анимир: фиолетовый - цвет по умолчанию у AnyX и Animax, а не выбор человека, - один раз
     // меняем на новый. Любой другой выбранный цвет не трогаем.
     if (j.settings && !j.settings.look) {
       if (S.settings.accent === '#8b6cff') S.settings.accent = ACCENTS[0];
@@ -246,7 +246,7 @@ async function pushState() {
   savedSeq = Math.max(savedSeq, seq);
   if (!j.state) BASE = j.rev;  // сервер записал ровно то, что мы прислали
   else if (changeSeq === seq) { BASE = j.rev; adoptState(j.state); updateBadge(); }  // взяли слитый результат
-  else BASE = j.mine;  // пока шёл ответ, тут поменяли ещё — сольём в следующий раз
+  else BASE = j.mine;  // пока шёл ответ, тут поменяли ещё - сольём в следующий раз
   return j;
 }
 // сохранения идут строго по очереди: иначе два запроса с одной базовой версией мешали бы друг другу
@@ -255,9 +255,9 @@ const saveNow = () => (saveChain = saveChain.then(pushState, pushState));
 const saveLater = debounce(() => saveNow().catch(() => {}), 400);
 function save() { changeSeq++; saveLater(); }
 addEventListener('pagehide', () => navigator.sendBeacon('/api/state', new Blob([stateBody()], { type: 'application/json' })));
-// Вернулись в окно — подтягиваем то, что за это время сохранили другие окна (например, плеер)
+// Вернулись в окно - подтягиваем то, что за это время сохранили другие окна (например, плеер)
 async function refreshState() {
-  if (!BASE || changeSeq !== savedSeq) return;  // свои изменения ещё не ушли — не трогаем
+  if (!BASE || changeSeq !== savedSeq) return;  // свои изменения ещё не ушли - не трогаем
   try {
     const j = await (await fetch('/api/state?win=' + WIN)).json();
     if (!j._rev || j._rev === BASE || changeSeq !== savedSeq) return;
@@ -291,7 +291,7 @@ function commit(id) {
 }
 
 // ---- синхронизация закладок, оценок и серий со списком на Shikimori (право user_rates) ----
-// Правило простое: побеждает то, что изменили позже — в Анимир или на сайте.
+// Правило простое: побеждает то, что изменили позже - в Анимир или на сайте.
 const FROM_SHIKI = { planned: 'planned', watching: 'watching', rewatching: 'watching', completed: 'completed', on_hold: 'on_hold', dropped: 'dropped' };
 const canSync = () => S.settings.shikiSync !== false && AUTH?.logged && (AUTH.scope || '').includes('user_rates');
 const pushQueue = new Set();
@@ -314,13 +314,13 @@ async function flushPush() {
     pushQueue.delete(id);
     const e = S.list[id], rid = S.shikiRates[id];
     try {
-      if (!e?.status) {  // убрали из списков — убираем и на сайте
+      if (!e?.status) {  // убрали из списков - убираем и на сайте
         if (rid) { await postJson('/api/shiki/rate/delete', { rate_id: rid }); delete S.shikiRates[id]; }
         continue;
       }
       const j = await postJson('/api/shiki/rate', { target_id: id, status: e.status, score: Math.round((e.score || 0) * 2), episodes: e.ep || 0, rate_id: rid });
       if (j.id) S.shikiRates[id] = j.id;
-    } catch { pushQueue.add(id); setTimeout(pushLater, 60000); break; }  // нет сети — повторим через минуту
+    } catch { pushQueue.add(id); setTimeout(pushLater, 60000); break; }  // нет сети - повторим через минуту
   }
   save();
 }
@@ -334,7 +334,7 @@ async function syncShikimori(manual = false) {
     if (rates.error) throw new Error(rates.error);
     const remote = new Map(rates.filter(r => r.target_type === 'Anime').map(r => [+r.target_id, r]));
     const last = S.settings.shikiSyncAt || 0;
-    // тайтлы, которых нет в Анимир, — сначала подтягиваем карточки
+    // тайтлы, которых нет в Анимир, - сначала подтягиваем карточки
     const missing = [...remote.keys()].filter(id => !S.list[id]);
     for (let i = 0; i < missing.length; i += 50) {
       const d = await gql(animes({ ids: missing.slice(i, i + 50).join(','), limit: 50, rating: '' }, CARD));
@@ -355,7 +355,7 @@ async function syncShikimori(manual = false) {
       e.updated = rt;
       pulled++;
     }
-    // есть в Анимир, нет на сайте: новое — отправляем, удалённое на сайте после прошлой синхронизации — убираем
+    // есть в Анимир, нет на сайте: новое - отправляем, удалённое на сайте после прошлой синхронизации - убираем
     for (const [id, e] of Object.entries(S.list)) {
       if (!e.status || remote.has(+id)) continue;
       if (S.shikiRates[id] && (e.updated || 0) <= last) {
@@ -408,8 +408,10 @@ function syncEp(a) {
   if (count && (!e.status || e.status === 'planned')) { e.status = 'watching'; e.statusAt = Date.now(); }
   if (total && count >= total && a.status === 'released' && e.status !== 'completed') {
     e.status = 'completed'; e.statusAt = Date.now();
-    toast('Все серии просмотрены — тайтл перенесён в «Просмотрено»');
+    toast('Все серии просмотрены - тайтл перенесён в «Просмотрено»');
   }
+  // автосинк: тихо отправляем прогресс на Shikimori (если вошли и не выключено в настройках)
+  if (count) shikiProgress(a.id, count);
   if (S.watchLog.length > 5000) S.watchLog = S.watchLog.slice(-5000);
   commit(a.id);
 }
@@ -427,8 +429,8 @@ function applyTheme() {
   applySky();
 }
 
-// «Мир» живёт по часам: утром — рассвет, днём — чистое небо, вечером — закат, ночью — звёзды.
-// Только оттенок фона (data-sky на <html>, цвета — в theme.css); читаемость текста не меняется.
+// «Мир» живёт по часам: утром - рассвет, днём - чистое небо, вечером - закат, ночью - звёзды.
+// Только оттенок фона (data-sky на <html>, цвета - в theme.css); читаемость текста не меняется.
 const skyOf = h => h >= 5 && h < 10 ? 'morning' : h >= 10 && h < 17 ? 'day' : h >= 17 && h < 21 ? 'evening' : 'night';
 let skyTimer = 0;
 function applySky() {
@@ -437,10 +439,43 @@ function applySky() {
   if (S.settings.sky === false) { delete root.dataset.sky; return; }
   const tick = () => { root.dataset.sky = skyOf(new Date().getHours()); };
   tick();
-  skyTimer = setInterval(tick, 5 * 60e3);  // окно открыто весь вечер — закат сменится ночью сам
+  skyTimer = setInterval(tick, 5 * 60e3);  // окно открыто весь вечер - закат сменится ночью сам
 }
 
-// kind: '' — обычное, 'ok' — успех, 'err' — ошибка. Клик по сообщению закрывает его.
+// Ночной кинозал: приглушённое оформление и крупные субтитры. Только класс на <html>,
+// сам вид - в theme.css. Ничего не блокирует: автопауза живёт отдельной настройкой в плеере.
+function applyNight() {
+  document.documentElement.classList.toggle('night', !!S.settings.night);
+}
+
+// ================= автосинк с Shikimori =================
+// Отметил серию - тихо пишем номер серии в список Shikimori. Очередь живёт в состоянии:
+// нет сети или не вошли - повторим позже, вручную ничего делать не нужно.
+let shikiFlushBusy = false;
+function shikiProgress(animeId, episodes) {
+  if (S.settings.autoSync === false) return;
+  if (!animeId || !episodes) return;
+  S.shikiQueue = (S.shikiQueue || []).filter(x => +x.id !== +animeId);
+  S.shikiQueue.push({ id: +animeId, ep: +episodes, at: Date.now() });
+  save();
+  flushShikiQueue();
+}
+async function flushShikiQueue() {
+  if (shikiFlushBusy || !(S.shikiQueue || []).length) return;
+  shikiFlushBusy = true;
+  for (const item of [...S.shikiQueue]) {
+    try {
+      await postJson('/api/shiki/progress', { id: item.id, ep: item.ep });
+      S.shikiQueue = S.shikiQueue.filter(x => x !== item);
+      save();
+    } catch {
+      break;  // нет сети или нет входа - попробуем при следующем запуске
+    }
+  }
+  shikiFlushBusy = false;
+}
+
+// kind: '' - обычное, 'ok' - успех, 'err' - ошибка. Клик по сообщению закрывает его.
 function toast(text, kind = /^(Не удалось|Не получ|Ошибка|Не отправ)/.test(text) ? 'err' : '') {
   const box = $('#toasts');
   const t = document.createElement('div');
@@ -453,10 +488,36 @@ function toast(text, kind = /^(Не удалось|Не получ|Ошибка|
   setTimeout(hide, kind === 'err' ? 6000 : 3500);
 }
 // уведомление на рабочем столе (тост Windows через сервер; оказывается даже если окно свернуто)
-// уведомление Windows; href — экран Анимир, который откроется по клику на него
-const desktop = (title, body, href = '#/notifications') => {
-  try { fetch('/api/notify', { method: 'POST', body: JSON.stringify({ title, body, href }) }).catch(() => {}); } catch { /* не критично */ }
+// уведомление Windows; href - экран Анимир, который откроется по клику на него; poster - постер тайтла
+const desktop = (title, body, href = '#/notifications', poster = '') => {
+  try { fetch('/api/notify', { method: 'POST', body: JSON.stringify({ title, body, href, img: poster || '' }) }).catch(() => {}); } catch { /* не критично */ }
 };
+
+// Сохранение файла, который страница собрала сама (картинка, CSV, резервная копия).
+// В окне WebView2 обычное скачивание по ссылке молча не срабатывает, поэтому просим приложение
+// записать файл в «Загрузки». В Edge (запасной вариант) остаётся обычное скачивание.
+async function saveFile(name, dataUrlOrType, text = null) {
+  let dataUrl = dataUrlOrType;
+  if (text != null) {
+    // текст в base64: так кириллица и BOM доезжают без искажений
+    const bytes = new TextEncoder().encode(text);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    dataUrl = `data:${dataUrlOrType};charset=utf-8;base64,${btoa(bin)}`;
+  }
+  const api = window.pywebview?.api;
+  if (api?.save_file) {
+    try {
+      const path = await api.save_file(name, dataUrl);
+      if (path) return path;
+    } catch { /* нет моста - скачиваем как в браузере */ }
+  }
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = name;
+  a.click();
+  return '';
+}
 function copy(text, msg = 'Скопировано') {
   navigator.clipboard.writeText(text).then(() => toast(msg), () => toast('Не удалось скопировать'));
 }

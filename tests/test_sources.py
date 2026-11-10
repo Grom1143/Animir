@@ -40,7 +40,7 @@ class SourcesPoolTest(unittest.TestCase):
 
     # ---------- повторное использование соединений ----------
     def test_get_reuses_one_connection(self):
-        # Каждый запрос sources раньше открывал новое соединение (для https — новое TLS-рукопожатие):
+        # Каждый запрос sources раньше открывал новое соединение (для https - новое TLS-рукопожатие):
         # два обращения к одному адресу должны пройти по одному.
         for _ in range(2):
             self.assertEqual(sources.net._http(self.base + "/ok"), b"ok")

@@ -1,4 +1,4 @@
-/* Анимир — разделы, добавленные во второй версии (главная/обзор/фильтр/релиз/закладки/профиль/настройки) */
+/* Анимир - разделы, добавленные во второй версии (главная/обзор/фильтр/релиз/закладки/профиль/настройки) */
 :root { --st-watching: #3ccf8e; --st-planned: #8b6cff; --st-completed: #2fb6ff; --st-on_hold: #ffb547; --st-dropped: #ff5c6a; }
 
 .splash { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: grid; place-content: center; justify-items: center; gap: 14px; font-size: 30px; font-weight: 800; transition: opacity .35s; }
@@ -15,7 +15,7 @@
 .compact-nav .nav a { padding: 6px 12px; }
 .compact-nav .nav-sep { padding-top: 10px; }
 
-/* статус в списке — цветная метка */
+/* статус в списке - цветная метка */
 .mark.st-watching { background: var(--st-watching) !important; }
 .mark.st-planned { background: var(--st-planned) !important; }
 .mark.st-completed { background: var(--st-completed) !important; }
@@ -346,7 +346,7 @@ button.tone-pill { cursor: pointer; }
 .acc-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0 14px; }
 .acc-form .input { min-width: 200px; }
 
-/* Оценки 1–10: половинки звёзд. Левая половина звезды — отдельная зона клика (<i>), закрашенная наполовину звезда — .half */
+/* Оценки 1-10: половинки звёзд. Левая половина звезды - отдельная зона клика (<i>), закрашенная наполовину звезда - .half */
 .stars5 button { position: relative; }
 .stars5 button i { position: absolute; left: 0; top: 0; width: 50%; height: 100%; }
 .stars5 button.half { opacity: 1; color: transparent; background: linear-gradient(90deg, #ffd36b 50%, color-mix(in srgb, var(--muted) 40%, transparent) 50%); -webkit-background-clip: text; background-clip: text; }
@@ -357,7 +357,7 @@ button.tone-pill { cursor: pointer; }
   background: rgba(0,0,0,.85); color: #ffd36b; font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
   opacity: 0; pointer-events: none; transition: opacity .15s; }
 .sc2:hover em { opacity: 1; }
-/* у карточки бейдж прижат к верху постера (а постер обрезает всё лишнее) — там вторая оценка встаёт строкой над основной внутри бейджа */
+/* у карточки бейдж прижат к верху постера (а постер обрезает всё лишнее) - там вторая оценка встаёт строкой над основной внутри бейджа */
 .card .score.sc2 { display: flex; flex-direction: column; align-items: flex-start; }
 .card .score.sc2 em { position: static; transform: none; background: none; padding: 0; display: none; opacity: 1; color: #fff; font-weight: 600; }
 .card .score.sc2:hover em { display: block; }
@@ -419,7 +419,7 @@ button.tone-pill { cursor: pointer; }
 .rl-item { display: flex; flex-direction: column; min-width: 0; }
 .rl-follow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
 .rl-count { margin-bottom: 12px; }
-/* анонс: вместо «Смотреть» — дата выхода и тумблер «Следить» */
+/* анонс: вместо «Смотреть» - дата выхода и тумблер «Следить» */
 .btn.soon { cursor: default; justify-content: center; color: var(--text); background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .rel-left .anons-follow { margin: 2px 2px 4px; font-size: 14px; color: var(--text); }
 /* ⟳ у вкладок */
@@ -446,12 +446,12 @@ button.tone-pill { cursor: pointer; }
 .modal-box.rvc .row-btns { align-items: center; }
 .modal-box.rvc .row-btns .sh-link { margin-right: auto; }
 
-/* уведомления по тайтлу: значок на постере — только где уведомления придут */
+/* уведомления по тайтлу: значок на постере - только где уведомления придут */
 .nb { position: absolute; bottom: 8px; right: 8px; width: 22px; height: 22px; display: grid; place-items: center; font-size: 12px;
   border-radius: 50%; background: rgba(0,0,0,.68); box-shadow: 0 1px 4px rgba(0,0,0,.4); pointer-events: auto; }
 .card .fav ~ .nb { right: 30px; }
 .lrow .pw .nb { top: 5px; left: 5px; bottom: auto; right: auto; width: 20px; height: 20px; font-size: 11px; }
-/* кнопка 🔔 на странице тайтла: уведомлений нет — бледная, чтобы не бросалась в глаза */
+/* кнопка 🔔 на странице тайтла: уведомлений нет - бледная, чтобы не бросалась в глаза */
 .icon-btn.nf-dim { opacity: .38; filter: grayscale(1); transition: opacity .15s, filter .15s; }
 .icon-btn.nf-dim:hover { opacity: .85; filter: none; }
 .icon-btn#sub.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); }
@@ -465,7 +465,7 @@ button.tone-pill { cursor: pointer; }
 .grid > .card, .grid > .rl-item, .lgrid > .lrow, .comments > .cm { content-visibility: auto; contain-intrinsic-size: auto 330px; }
 .lgrid > .lrow { contain-intrinsic-size: auto 150px; }
 .comments > .cm { contain-intrinsic-size: auto 120px; }
-/* лёгкий режим: без плавных переходов и теней — меньше перерисовок на слабом процессоре */
+/* лёгкий режим: без плавных переходов и теней - меньше перерисовок на слабом процессоре */
 .lite *, .lite *::before, .lite *::after { transition: none !important; animation-duration: 0s !important; }
 .lite .card:hover .poster img { transform: none; }
 .lite .modal, .lite .ctx { box-shadow: none; backdrop-filter: none; }
@@ -511,5 +511,5 @@ button.tone-pill { cursor: pointer; }
 .resume-play { flex: none; }
 @media (max-width: 600px) { .resume { flex-wrap: wrap; } .resume-play { width: 100%; text-align: center; } }
 
-/* полный экран: всё вокруг видео — чёрное, без светлых краёв */
+/* полный экран: всё вокруг видео - чёрное, без светлых краёв */
 :fullscreen, ::backdrop { background: #000; }

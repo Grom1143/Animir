@@ -1,5 +1,5 @@
 'use strict';
-// Анимир — Главная, Обзор, рекомендации, популярное, случайное.
+// Анимир - Главная, Обзор, рекомендации, популярное, случайное.
 
 // ================= Главная =================
 function currentSeason(d = new Date()) {
@@ -12,7 +12,7 @@ function currentSeason(d = new Date()) {
 const HOME_TABS = {
   mytab: ['Моя вкладка', null, 'Персонально настроенный раздел'],
   latest: ['Последнее', { status: 'ongoing,latest', order: 'aired_on' }, 'Недавно вышедшие и выходящие сейчас'],
-  // эти три — бывшие «Релизы»: с датами, тумблером «Следить» и фильтром аниме/донхуа (4-й элемент — режим releasesList)
+  // эти три - бывшие «Релизы»: с датами, тумблером «Следить» и фильтром аниме/донхуа (4-й элемент - режим releasesList)
   ongoing: ['Онгоинги', null, 'Сериалы, которые выходят сейчас', 'ongoing'],
   anons: ['Анонсы', null, 'Будущие релизы и новинки', 'anons'],
   released: ['Завершённые', null, 'Недавно вышедшие полностью', 'finished'],
@@ -20,6 +20,143 @@ const HOME_TABS = {
   ova: ['OVA', { kind: 'ova,special,tv_special', order: 'popularity' }, 'Специальные и дополнительные эпизоды'],
 };
 const tabName = k => k === 'mytab' ? S.myTab.name : HOME_TABS[k][0];
+
+// ================= Вайбы =================
+// Быстрый подбор «под настроение»: что смотреть, когда отдыхаешь, работаешь фоном, ешь или засыпаешь.
+// Жанры берём по русским названиям из Shikimori (чего нет - просто пропустится), остальное - фильтры Shikimori.
+const MOODS = [
+  { k: 'relax', n: '🏖 Отдыхаю', note: 'Лёгкая комедия и уют: без напряжения',
+    f: { genre: ['Комедия'], order: 'ranked', score: 7 } },
+  { k: 'work', n: '💻 Работаю фоном', note: 'Не отвлекает от дел: спокойная повседневность',
+    f: { genre: ['Повседневность'], kind: 'tv', status: 'released', order: 'popularity' } },
+  { k: 'food', n: '🍜 Кушаю', note: 'Короткие серии до 10 минут - как раз на обед',
+    f: { genre: ['Комедия'], duration: 'S', order: 'ranked' } },
+  { k: 'sleep', n: '🌙 Засыпаю', note: 'Тихое и неторопливое, без криков и резких сцен',
+    f: { genre: ['Повседневность'], order: 'ranked', score: 7 } },
+  { k: 'cry', n: '💧 Хочу плакать', note: 'Драма: приготовь платок',
+    f: { genre: ['Драма'], order: 'ranked', score: 8 } },
+  { k: 'action', n: '🔥 Хочу экшена', note: 'Драки, погони и пафос',
+    f: { genre: ['Экшен'], order: 'popularity', score: 7 } },
+  { k: 'think', n: '🧠 Хочу подумать', note: 'Психологическое с загадкой',
+    f: { genre: ['Психологическое'], order: 'ranked', score: 8 } },
+  { k: 'company', n: '👥 Смотрю с кем-то', note: 'К семейному просмотру: без пошлого и жестокого',
+    f: { genre: ['Комедия'], rating: 'g,pg,pg_13', order: 'popularity', score: 7 } },
+  { k: 'short', n: '⏱ Мало времени', note: 'Полный метр: вся история за один вечер',
+    f: { kind: 'movie', order: 'ranked', score: 8 } },
+  { k: 'weekend', n: '🗓 На выходные', note: 'Большой сериал: хватит на пару вечеров',
+    f: { genre: ['Фэнтези'], kind: 'tv', order: 'ranked', score: 8 } },
+];
+const moodOf = q => {
+  const k = q.get('vibe');
+  if (!k) return null;
+  if (k.startsWith('my:')) return customMood(k, S.vibes || []);
+  return MOODS.find(m => m.k === k) || null;
+};
+
+// Свои вайбы: человек сам выбирает жанры и условия. Живут в закладках/настройках (S.vibes).
+const VIBE_KIND = { '': 'Любой', tv: 'Сериал', movie: 'Фильм' };
+const VIBE_DUR = { '': 'Любая', S: 'До 10 минут', D: 'До 30 минут', F: 'Больше 30 минут' };
+const VIBE_ORDER = { ranked: 'По рейтингу', popularity: 'По популярности' };
+const VIBE_SCORE = { 0: 'Любая', 7: 'От 7', 8: 'От 8' };
+const vibeWords = v => [
+  (v.genre || []).join(', ') || 'любые жанры',
+  v.kind ? VIBE_KIND[v.kind].toLowerCase() : '',
+  v.duration ? VIBE_DUR[v.duration].toLowerCase() : '',
+  v.score ? 'оценка ' + VIBE_SCORE[v.score].toLowerCase() : '',
+].filter(Boolean).join(' · ');
+const customMood = (key, list) => {
+  const v = (list || []).find(x => 'my:' + x.id === key);
+  return v ? { k: key, n: v.name, note: vibeWords(v), f: v, custom: true, id: v.id } : null;
+};
+
+// Редактор своего вайба. Жанры - через существующее окно выбора, остальное - обычные списки.
+async function editVibe(base = null) {
+  const gs = await genres();
+  const draft = base ? { ...base, genre: [...(base.genre || [])] }
+    : { id: '', name: '', genre: [], kind: '', duration: '', score: 0, order: 'ranked' };
+  const draw = () => {
+    const b = modal(`<h3>${base ? 'Свой вайб' : 'Новый вайб'}</h3>
+      <div class="vibe-form">
+        <label><span>Название</span><input class="input" id="vb-name" maxlength="28" placeholder="Пятничный вечер" value="${esc(draft.name)}"></label>
+        <label><span>Жанры</span><button class="btn" id="vb-genres">${draft.genre.length ? esc(draft.genre.join(', ')) : 'Любые'}</button></label>
+        <label><span>Тип</span><select class="select" id="vb-kind">${Object.entries(VIBE_KIND).map(([k, n]) => `<option value="${k}" ${(draft.kind || '') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label><span>Длительность серии</span><select class="select" id="vb-dur">${Object.entries(VIBE_DUR).map(([k, n]) => `<option value="${k}" ${(draft.duration || '') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label><span>Оценка</span><select class="select" id="vb-score">${Object.entries(VIBE_SCORE).map(([k, n]) => `<option value="${k}" ${+draft.score === +k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label><span>Порядок</span><select class="select" id="vb-order">${Object.entries(VIBE_ORDER).map(([k, n]) => `<option value="${k}" ${(draft.order || 'ranked') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      </div>
+      <div class="row-btns">${base ? '<button class="btn" data-del>Удалить</button>' : ''}<button class="btn" data-c>Отмена</button><button class="btn primary" data-s>Сохранить</button></div>`, 'vibe', () => {});
+    b.querySelector('#vb-genres').onclick = async () => {
+      draft.name = b.querySelector('#vb-name').value;
+      const picked = await picker('Жанры вайба', gs.map(g => ({ v: g.russian, label: g.russian, group: g.kind })), draft.genre, { search: true, note: 'Можно выбрать несколько. Пусто - любые жанры.' });
+      if (picked === null) { draw(); return; }
+      draft.genre = picked;
+      draw();
+    };
+    b.querySelector('[data-s]').onclick = () => {
+      draft.name = (b.querySelector('#vb-name').value || '').trim();
+      if (!draft.name) { toast('Дай вайбу название'); return; }
+      draft.kind = b.querySelector('#vb-kind').value;
+      draft.duration = b.querySelector('#vb-dur').value;
+      draft.score = +b.querySelector('#vb-score').value || 0;
+      draft.order = b.querySelector('#vb-order').value;
+      S.vibes = S.vibes || [];
+      if (base) {
+        const i = S.vibes.findIndex(x => x.id === base.id);
+        if (i >= 0) S.vibes[i] = { ...S.vibes[i], ...draft };
+      } else {
+        draft.id = uid();
+        S.vibes.push(draft);
+      }
+      save();
+      answerModal();
+      toast('Вайб сохранён');
+      route();
+    };
+    b.querySelector('[data-c]').onclick = () => { answerModal(); };
+    b.querySelector('[data-del]')?.addEventListener('click', async () => {
+      if (!await confirmBox('Удалить вайб «' + esc(base.name) + '»?', 'Удалить')) return;
+      S.vibes = S.vibes.filter(x => x.id !== base.id);
+      save();
+      toast('Вайб удалён');
+      go('#/recs');
+    });
+  };
+  draw();
+}
+// Лента выбранного вайба: жанр по названию -> id, дальше обычный каталог с постраничной загрузкой.
+// Жанр берём один: несколько через запятую Shikimori понимает как «все сразу» (почти всегда пусто).
+async function moodArgs(mood) {
+  const all = await genres();
+  const id = (mood.f.genre || []).map(n => all.find(g => g.russian.toLowerCase() === n.toLowerCase())?.id).find(Boolean);
+  const args = { order: mood.f.order || 'ranked' };
+  for (const k of ['kind', 'status', 'duration', 'rating', 'score']) if (mood.f[k]) args[k] = mood.f[k];
+  if (id) args.genre = id;
+  return args;
+}
+async function moodFeed(mood) {
+  return catalogPage(await moodArgs(mood));
+}
+// Случайный тайтл в выбранном вайбе: те же условия, но порядок «случайно».
+// Просмотренное и брошенное не предлагаем, недавно выпадавшее - тоже.
+async function randomInVibe(mood) {
+  try {
+    const args = await moodArgs(mood);
+    const used = new Set(S.randomSeen || []);
+    for (let i = 0; i < 3; i++) {
+      const d = await gql(animes({ ...args, order: 'random', limit: 50 }, 'id'));
+      const pool = d.animes.map(a => +a.id)
+        .filter(id => !['completed', 'dropped'].includes(S.list[id]?.status) && !used.has(id));
+      if (pool.length) {
+        const id = pool[Math.floor(Math.random() * pool.length)];
+        S.randomSeen = [id, ...(S.randomSeen || []).filter(x => x !== id)].slice(0, 300);
+        save();
+        go(`#/anime/${id}?random=1&vibe=${mood.k}`);
+        return;
+      }
+    }
+    toast('В этом вайбе ничего нового не нашлось - попробуй ещё раз');
+  } catch (err) { toast('Ошибка: ' + err.message); }
+}
 
 async function pageHome(view, q, _, alive) {
   const tab = HOME_TABS[q.get('tab')] ? q.get('tab') : S.settings.homeTab in HOME_TABS ? S.settings.homeTab : 'latest';
@@ -29,7 +166,7 @@ async function pageHome(view, q, _, alive) {
       <div class="tabs" style="margin:0;flex:1">${Object.keys(HOME_TABS).map(k => `<a class="tab ${k === tab ? 'on' : ''}" data-tab="${k}" href="#/?tab=${k}" title="${HOME_TABS[k][2]}">${esc(tabName(k))}${k === S.settings.homeTab ? ' <small>★</small>' : ''}</a>`).join('')}</div>
       <button class="icon-btn" id="tab-set" title="Настройка вкладок">☰</button>
     </div>
-    ${hint('tabs', 'Правый клик по названию вкладки — сделать её вкладкой по умолчанию или настроить «Мою вкладку».')}
+    ${hint('tabs', 'Правый клик по названию вкладки - сделать её вкладкой по умолчанию или настроить «Мою вкладку».')}
     <div id="home-grid"></div>`;
   const tabMenu = (x, y, k) => {
     const items = [['★', 'Назначить по умолчанию', () => { S.settings.homeTab = k; save(); toast(`«${tabName(k)}» будет открываться при запуске`); route(); }]];
@@ -76,7 +213,7 @@ async function pageHome(view, q, _, alive) {
   if (rl) {
     const kind = RL_KINDS[q.get('k')] ? q.get('k') : 'all';
     box.innerHTML = `<div class="tabs rl-kinds">${Object.entries(RL_KINDS).map(([k, n]) => `<a class="tab ${k === kind ? 'on' : ''}" href="#/?tab=${tab}&k=${k}">${n}</a>`).join('')}</div>
-      ${hint('releases', 'Включи «Следить» у анонса — Анимир сообщит, когда начнётся показ, а потом о новых сериях. Донхуа (китайская анимация) определяется по названиям приблизительно.')}
+      ${hint('releases', 'Включи «Следить» у анонса - Анимир сообщит, когда начнётся показ, а потом о новых сериях. Донхуа (китайская анимация) определяется по названиям приблизительно.')}
       <div id="rl"><div class="loading">Загрузка…</div></div>`;
     return releasesList($('#rl'), rl, kind, alive);
   }
@@ -135,14 +272,14 @@ async function pageDiscover(view, q, _, alive) {
     $('#hero .in').innerHTML = `<img ${pimg(s, 180)} alt=""><div>
       <div class="chip">Интересное · сейчас выходит</div>
       <h1>${esc(title(s))}</h1>
-      <div class="meta">★ ${s.score || '—'} · ${esc(metaLine(s))}</div>
+      <div class="meta">★ ${s.score || '-'} · ${esc(metaLine(s))}</div>
       <p>${esc(s.desc)}</p>
       <a class="btn primary" href="#/anime/${s.id}">Подробнее</a></div>`;
     $$('#hero .dots button').forEach((b, k) => b.classList.toggle('on', k === i));
   };
   $$('#hero .dots button').forEach(b => b.onclick = () => { show(+b.dataset.i); clearInterval(timer); });
   show(0);
-  // в лёгком режиме баннер не листается сам — меньше перерисовок
+  // в лёгком режиме баннер не листается сам - меньше перерисовок
   const timer = LITE ? 0 : setInterval(() => { if (!alive() || !$('#hero')) return clearInterval(timer); show(i + 1); }, 8000);
   $('#t-rand').onclick = randomAnime;
 
@@ -150,13 +287,13 @@ async function pageDiscover(view, q, _, alive) {
     const recs = await recommendations(16);
     if (!alive()) return;
     $('#recs').innerHTML = recs === null
-      ? `<div class="hint"><span>✦</span><div>Оценивай просмотренное — чем честнее оценки, тем точнее подборка. Нужно хотя бы 2 тайтла с оценкой ${likedText()} или мнением «👍 Положительный». <a class="linkbtn" href="#/rate">Оценить просмотренное</a></div></div>`
+      ? `<div class="hint"><span>✦</span><div>Оценивай просмотренное - чем честнее оценки, тем точнее подборка. Нужно хотя бы 2 тайтла с оценкой ${likedText()} или мнением «👍 Положительный». <a class="linkbtn" href="#/rate">Оценить просмотренное</a></div></div>`
       : `<div class="row">${recs.map(a => card(a)).join('')}</div>`;
   } catch (err) { $('#recs').innerHTML = `<div class="muted">Не удалось подобрать: ${esc(err.message)}</div>`; }
 }
-// Рекомендации: похожие на тайтлы с оценкой 4–5 ★, которых ещё нет в закладках
-// Насколько мне понравился тайтл, от −3 до +3: оценка (0.5–5 ★, т.е. 1–10 → −2.5…+2) + моё мнение о нём.
-// Положительное добавляет, отрицательное заметно убавляет, нейтральное не влияет. «Брошено» — минус.
+// Рекомендации: похожие на тайтлы с оценкой 4-5 ★, которых ещё нет в закладках
+// Насколько мне понравился тайтл, от −3 до +3: оценка (0.5-5 ★, т.е. 1-10 → −2.5…+2) + моё мнение о нём.
+// Положительное добавляет, отрицательное заметно убавляет, нейтральное не влияет. «Брошено» - минус.
 const TONE_W = { pos: 1, neu: 0, neg: -1.5 };
 function tastes() {
   const m = new Map();
@@ -201,10 +338,10 @@ async function rankedRecs() {
   // запросы отправляем сразу пачкой: сервер сам держит паузы для Shikimori, а ожидание ответов
   // идёт параллельно (по одному было больше минуты). Порядок весов от этого не зависит.
   await Promise.all([...liked, ...disliked].map(t => addSimilar(t.anime, t.w, t.anime)));
-  // второй шаг: похожее на лучших кандидатов — с меньшим весом, чтобы список не кончался быстро
+  // второй шаг: похожее на лучших кандидатов - с меньшим весом, чтобы список не кончался быстро
   const first = [...cand.values()].filter(c => c.w > 0).sort((x, y) => y.w - x.w).slice(0, 12);
   await Promise.all(first.map(c => addSimilar(c.a, 0.4, c.why)));
-  // жанры: что нравится — плюс, что нет — минус. Уточняем только верх списка (RECS_GENRE_TOP):
+  // жанры: что нравится - плюс, что нет - минус. Уточняем только верх списка (RECS_GENRE_TOP):
   // кандидатов тысячи, а жанры приходят по 50 за запрос.
   const genreW = {};
   all.forEach(t => (t.anime.genres || []).forEach(g => { genreW[g] = (genreW[g] || 0) + t.w; }));
@@ -230,7 +367,7 @@ async function recommendations(limit = 60) {
   const r = await rankedRecs();
   return r && fillPosters(r.list.slice(0, limit));
 }
-// Лента для страницы рекомендаций: сначала подборка по похожим, когда она кончится — лучшие тайтлы
+// Лента для страницы рекомендаций: сначала подборка по похожим, когда она кончится - лучшие тайтлы
 // любимых жанров (по одному жанру, по рейтингу), без уже показанного и того, что есть в закладках.
 async function recsFeed(r) {
   const all = await genres();
@@ -258,13 +395,37 @@ async function recsFeed(r) {
 }
 const recMeta = a => a.why ? { meta: 'Похоже на «' + a.why + '»' } : a.genreWhy ? { meta: 'Любимый жанр: ' + a.genreWhy } : undefined;
 async function pageRecs(view, q, _, alive) {
+  const vibe = moodOf(q);
   view.innerHTML = '<h1 class="page-title">Рекомендации</h1><div class="loading">Подбираю…</div>';
-  const r = await rankedRecs();
+  const r = vibe ? null : await rankedRecs();
   if (!alive()) return;
-  view.innerHTML = `<h1 class="page-title">Рекомендации</h1>
-    ${hint('recs3', 'Подборка строится по твоим оценкам и мнениям о тайтлах: похожее на то, что понравилось, выше; похожее на то, что не понравилось (низкая оценка, «Брошено», мнение 👎), ниже. Когда похожие закончатся, дальше идут лучшие тайтлы твоих любимых жанров. Под каждым тайтлом — что о нём думают зрители по отзывам на Shikimori.')}
-    ${r === null ? emptyHtml('✦', 'Пока мало данных', 'Поставь ' + likedText() + ' или мнение «👍 Положительный» хотя бы двум тайтлам — и здесь появятся рекомендации.<br><br><a class="btn primary" href="#/rate">Оценить просмотренное</a>')
-      : `<div class="tabs" id="rc-sort"><a class="tab on" data-s="me">По моему вкусу</a><a class="tab" data-s="people">Советуют зрители</a></div><div id="rc-box"></div>`}`;
+  const custom = (S.vibes || []).map(v => customMood('my:' + v.id, S.vibes)).filter(Boolean);
+  const chipOf = m => `<a class="chip ${vibe?.k === m.k ? 'on' : ''}" href="#/recs?vibe=${encodeURIComponent(m.k)}" title="${esc(m.note)}">${esc(m.n)}${m.custom ? `<b class="mood-x" data-x="${esc(m.id)}" title="Удалить вайб">✕</b>` : ''}</a>`;
+  const chips = `<div class="mood-chips"><a class="chip ${vibe ? '' : 'on'}" href="#/recs" title="По твоим оценкам и мнениям">✦ По моему вкусу</a>${[...MOODS, ...custom].map(chipOf).join('')}<button class="chip mood-add" id="vibe-add" title="Свой набор жанров и условий">+ Свой вайб</button></div>`;
+  view.innerHTML = `<h1 class="page-title">Рекомендации</h1>${chips}${vibe
+    ? `<div class="mood-head"><p class="muted">${esc(vibe.note)}</p><button class="btn" id="vibe-rand">🎲 Случайное в вайбе</button></div><div id="rc-box"></div>`
+    : `${hint('recs3', 'Подборка строится по твоим оценкам и мнениям о тайтлах: похожее на то, что понравилось, выше; похожее на то, что не понравилось (низкая оценка, «Брошено», мнение 👎), ниже. Когда похожие закончатся, дальше идут лучшие тайтлы твоих любимых жанров. Под каждым тайтлом - что о нём думают зрители по отзывам на Shikimori.')}
+    ${r === null ? emptyHtml('✦', 'Пока мало данных', 'Поставь ' + likedText() + ' или мнение «👍 Положительный» хотя бы двум тайтлам - и здесь появятся рекомендации.<br><br>А пока выбери вайб сверху: «Отдыхаю», «Кушаю», «Хочу плакать» и другие - подберём по настроению.<br><br><a class="btn primary" href="#/rate">Оценить просмотренное</a>')
+      : `<div class="tabs" id="rc-sort"><a class="tab on" data-s="me">По моему вкусу</a><a class="tab" data-s="people">Советуют зрители</a></div><div id="rc-box"></div>`}`}`;
+  $('#vibe-add').onclick = () => editVibe();
+  $$('.mood-x').forEach(el => el.onclick = async e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const v = (S.vibes || []).find(x => x.id === el.dataset.x);
+    if (!v || !await confirmBox('Удалить вайб «' + esc(v.name) + '»?', 'Удалить')) return;
+    S.vibes = S.vibes.filter(x => x.id !== v.id);
+    save();
+    toast('Вайб удалён');
+    go('#/recs');
+  });
+  if (vibe) {
+    $('#vibe-rand').onclick = () => randomInVibe(vibe);
+    const feed = await moodFeed(vibe);
+    if (!alive()) return;
+    pager($('#rc-box'), feed, a => item(a), alive);
+    $('#rc-box').firstChild.id = 'rc-grid';
+    return;
+  }
   if (!r) return;
   const viewers = viewersOnCards(alive);
   const feed = await recsFeed(r);
@@ -274,7 +435,7 @@ async function pageRecs(view, q, _, alive) {
 }
 // Мнения зрителей под рекомендациями: доля положительных отзывов на Shikimori.
 // Отзывы читаются по одному тайтлу (Shikimori просит не чаще 5 запросов в секунду), поэтому догружаются постепенно.
-// Возвращает функцию: передай ей новые карточки — подпишем и их.
+// Возвращает функцию: передай ей новые карточки - подпишем и их.
 function viewersOnCards(alive) {
   const stat = new Map(), order = [], queue = [];
   let running = false;
@@ -298,7 +459,7 @@ function viewersOnCards(alive) {
       if (!alive() || !grid()) break;  // пока ждали ответ, ушли со страницы
       if (!c?.all) continue;
       const share = Math.round(c.positive / c.all * 100);
-      // мало отзывов — доверяем меньше: тянем долю к 50 %
+      // мало отзывов - доверяем меньше: тянем долю к 50 %
       stat.set(id, { rank: (c.positive + 2) / (c.all + 4) });
       const el = $(`[data-aid="${id}"] .m`, grid());
       if (el) el.insertAdjacentHTML('afterend', `<div class="viewers-line" title="Отзывы на Shikimori: 👍 ${c.positive} · 😐 ${c.neutral} · 👎 ${c.negative}">
@@ -326,7 +487,7 @@ async function pageNow(view, q, _, alive) {
   view.innerHTML = `<h1 class="page-title">Смотрят сейчас</h1><p class="muted" style="margin-top:-10px">Самые популярные из того, что выходит прямо сейчас</p><div id="nl"></div>`;
   pager($('#nl'), catalogPage({ status: 'ongoing', order: 'popularity' }), a => item(a), alive);
 }
-// Случайный тайтл. Берём у Shikimori сразу пачку из 50 случайных и выдаём по одному — так быстро и без повторов.
+// Случайный тайтл. Берём у Shikimori сразу пачку из 50 случайных и выдаём по одному - так быстро и без повторов.
 // Пропускаем то, что уже просмотрено или брошено, и то, что выпадало недавно.
 const randomPool = [];
 let randomBusy = false;
@@ -344,7 +505,7 @@ async function randomAnime() {
   try {
     if (randomPool.length < 5) await refillRandom();
     const id = randomPool.shift();
-    if (!id) { toast('Не нашлось ничего нового — попробуй ещё раз'); return; }
+    if (!id) { toast('Не нашлось ничего нового - попробуй ещё раз'); return; }
     S.randomSeen = [id, ...(S.randomSeen || []).filter(x => x !== id)].slice(0, 300);
     save();
     const h = `#/anime/${id}?random=1`;

@@ -1,5 +1,5 @@
 /* ============================================================================
-   Анимир — Aurora Glass
+   Анимир - Aurora Glass
    Слой оформления поверх base.css/pages.css: глубина, «стекло», мягкое свечение
    и динамическая подсветка (следит за курсором, постером и прокруткой).
    Подключается последним, поэтому аккуратно переопределяет базовые стили.
@@ -79,9 +79,7 @@ body::before {
   background:
     radial-gradient(38vmax 38vmax at 22% 18%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 68%),
     radial-gradient(32vmax 32vmax at 78% 72%, color-mix(in srgb, var(--accent2) 15%, transparent), transparent 70%);
-  filter: blur(20px);
   opacity: 1;
-  animation: aurora 26s ease-in-out infinite alternate;
 }
 
 /* тонкая сетка, чтобы фон не выглядел пустым */
@@ -106,7 +104,7 @@ body::after {
 
 .app { position: relative; z-index: 1; }
 
-/* прогресс прокрутки — тонкая светящаяся линия сверху */
+/* прогресс прокрутки - тонкая светящаяся линия сверху */
 .scroll-progress {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -182,11 +180,10 @@ body::after {
 .brand:hover img { transform: rotate(-8deg) scale(1.06); }
 .brand b {
   background: linear-gradient(115deg, var(--accent) 10%, var(--accent2) 60%, var(--accent) 100%);
-  background-size: 220% 100%;
+  background-size: 100% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: brandFlow 9s linear infinite;
 }
 @keyframes brandFlow { to { background-position: 220% 0; } }
 
@@ -328,7 +325,6 @@ body.scrolled .top {
   background: var(--grad);
   border: 1px solid rgba(255, 255, 255, .35);
   box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--accent2) 90%, transparent);
-  animation: bellPulse 2.6s ease-out infinite;
 }
 @keyframes bellPulse {
   0%, 55%, 100% { box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--accent2) 90%, transparent), 0 0 0 0 color-mix(in srgb, var(--accent2) 45%, transparent); }
@@ -461,11 +457,10 @@ body.scrolled .top {
   overflow: hidden;
   border: 1px solid color-mix(in srgb, #fff 18%, transparent);
   background-image: linear-gradient(120deg, var(--accent), var(--accent2), var(--accent));
-  background-size: 220% 100%;
+  background-size: 100% 100%;
   color: #fff;
   box-shadow: 0 14px 34px -18px color-mix(in srgb, var(--accent) 95%, transparent),
               inset 0 1px 0 rgba(255, 255, 255, .22);
-  animation: btnFlow 9s linear infinite;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
 }
 .btn.primary:hover {
@@ -528,6 +523,85 @@ body.scrolled .top {
               inset 0 1px 0 rgba(255, 255, 255, .18);
 }
 .tab.on small { opacity: .9; }
+
+/* «Вайбы» на странице рекомендаций: подбор под настроение */
+.mood-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+.mood-chips .chip { text-decoration: none; font-size: 13px; padding: 6px 12px; }
+.mood-chips .chip.on { background: var(--grad); color: #fff; border-color: transparent; }
+.mood-chips .mood-add { border-style: dashed; color: var(--muted); cursor: pointer; }
+.mood-chips .mood-x {
+  margin-left: 6px;
+  padding: 0 2px;
+  opacity: .55;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mood-chips .mood-x:hover { opacity: 1; }
+.mood-head { display: flex; align-items: center; gap: 12px; margin: -4px 0 14px; }
+.mood-head p { flex: 1; margin: 0; }
+/* окно своего вайба */.vibe-form { display: grid; gap: 10px; margin: 14px 0 4px; }
+.vibe-form > label { display: flex; align-items: center; gap: 12px; }
+.vibe-form > label > span { width: 150px; color: var(--muted); font-size: 13px; }
+.vibe-form .input, .vibe-form .select, .vibe-form .btn { flex: 1; }
+/* достижения в профиле */
+.achi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.achi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--hair);
+  background: color-mix(in srgb, var(--card) 60%, transparent);
+  opacity: .55;
+}
+.achi.got { opacity: 1; border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.achi .ic { font-size: 22px; }
+.achi b { font-size: 13px; }
+.achi small { color: var(--muted); font-size: 11.5px; }
+/* проверка источников */
+.hl-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: color-mix(in srgb, var(--card) 55%, transparent); margin-bottom: 8px; }
+.hl-row .dot { width: 9px; height: 9px; border-radius: 50%; background: #4ade80; flex: none; }
+.hl-row.bad .dot { background: #f87171; }
+.hl-row b { font-size: 14px; }
+.hl-row .note { margin-left: auto; color: var(--muted); font-size: 12.5px; text-align: right; }
+/* окно загрузок */
+.dl-job { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--hair); margin-bottom: 10px; background: color-mix(in srgb, var(--card) 55%, transparent); }
+.dl-top { display: flex; gap: 10px; align-items: baseline; }
+.dl-top b { font-size: 14px; }
+.dl-state { margin-left: auto; font-size: 12px; color: var(--muted); }
+.dl-state.running { color: var(--accent2); }
+.dl-state.done { color: #4ade80; }
+.dl-state.error, .dl-state.partial { color: #f87171; }
+.dl-bar { height: 6px; border-radius: 4px; background: rgba(255, 255, 255, .1); margin: 8px 0 6px; overflow: hidden; }
+.dl-bar i { display: block; height: 100%; background: var(--grad); transition: width .3s; }
+.dl-bar.done i { background: #4ade80; }
+.dl-sub { display: flex; gap: 12px; font-size: 12px; color: var(--muted); align-items: center; }
+.dl-sub .link { margin-left: auto; }
+
+/* Список озвучек: обычная плашка, а не «капсула» - у капсулы скругление в полвысоты,
+   и на второй-третьей строке крайние вкладки прятались за её рамкой */
+.tabs.dubs-tabs {
+  width: 100%;
+  flex-wrap: wrap;
+  overflow: visible;
+  border-radius: 16px;
+  align-items: center;
+}
+.dub-pop {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--muted) 15%, transparent);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 17px;
+  vertical-align: 1px;
+}
+.tab.on .dub-pop { background: rgba(255, 255, 255, .18); color: rgba(255, 255, 255, .92); }
 .tabs .icon-btn.tab-refresh {
   margin-left: 4px;
   width: 32px; height: 32px;
@@ -676,7 +750,7 @@ button.chip.on {
 .card .more-btn:hover { background: color-mix(in srgb, var(--accent) 75%, #000) !important; transform: scale(1.08); }
 .card .fav { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent2) 85%, transparent)); }
 
-/* появление первых карточек — без нагрузки на длинные списки */
+/* появление первых карточек - без нагрузки на длинные списки */
 .grid > .card:nth-child(-n+10),
 .lgrid > .lrow:nth-child(-n+8) {
   animation: cardIn .5s cubic-bezier(.22, 1, .36, 1) both;
@@ -754,9 +828,8 @@ button.chip.on {
   z-index: 1;
   background: radial-gradient(50% 100% at 50% 100%,
       color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%);
-  filter: blur(40px);
+  filter: blur(24px);
   pointer-events: none;
-  animation: heroGlow 9s ease-in-out infinite alternate;
 }
 @keyframes heroGlow { to { opacity: .5; transform: translateY(-8px) scale(1.05); } }
 .hero .in {
@@ -1372,7 +1445,7 @@ button.chip.on {
     radial-gradient(100% 80% at -10% 110%, color-mix(in srgb, var(--accent2) 9%, transparent), transparent 55%),
     var(--bg);
 }
-/* ночью — звёзды своим слоем (под пятнами и сеткой body), медленно мерцают */
+/* ночью - звёзды своим слоем (под пятнами и сеткой body), медленно мерцают */
 :root[data-sky="night"]::before {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background-image:
@@ -1390,7 +1463,6 @@ button.chip.on {
   -webkit-mask-image: linear-gradient(#000 0%, transparent 80%);
   mask-image: linear-gradient(#000 0%, transparent 80%);
   opacity: .55;
-  animation: twinkle 6s ease-in-out infinite alternate;
 }
 @keyframes twinkle { from { opacity: .35; } to { opacity: .7; } }
 :root[data-theme="light"][data-sky="night"]::before { display: none; }
@@ -1419,6 +1491,32 @@ button.chip.on {
 .lite .btn.primary::after,
 .lite .tile::after { display: none; }
 
+/* Экономия заряда («power» на <html>): вид тот же, но без слоёв, которые заставляют
+   видеокарту перерисовывать всё окно каждый кадр. Включается на батарее - там частоты
+   сброшены, и любой «перелив» сразу виден как тормоза. */
+:root.power body::before,
+:root.power body::after,
+:root.power .hero::before,
+:root.power .rating-box::before,
+:root.power[data-sky="night"]::before { display: none; }
+:root.power .side,
+:root.power .top,
+:root.power .suggest,
+:root.power .modal-box,
+:root.power .ctx,
+:root.power .toast,
+:root.power .to-top,
+:root.power .tabs .icon-btn.tab-refresh {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--bg2);
+}
+:root.power .modal { -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root.power .card .poster::after,
+:root.power .btn.primary::after,
+:root.power .tile::after { display: none; }
+:root.power .hero .bg { filter: brightness(.52) saturate(1.12); transform: none; transition: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .001ms !important;
@@ -1430,7 +1528,7 @@ button.chip.on {
 }
 
 /* ============================================================================
-   Анимир — дополнения: типы сообщений, кнопка ✕ у окон, горячие клавиши, «Наверх»
+   Анимир - дополнения: типы сообщений, кнопка ✕ у окон, горячие клавиши, «Наверх»
    ========================================================================== */
 .toast { cursor: pointer; transition: opacity .2s, transform .2s; }
 .toast.ok { border-left-color: var(--ok); }
@@ -1483,13 +1581,25 @@ kbd {
 .to-top[hidden] { display: none; }
 .lite .to-top { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg2); }
 
-/* строки серий и ролики стали доступны с клавиатуры — показываем, где фокус */
+/* строки серий и ролики стали доступны с клавиатуры - показываем, где фокус */
 .ep:focus-visible, .video:focus-visible, .wide-card:focus-visible, .card:focus-visible, .lrow:focus-visible, .tile:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 75%, transparent);
   outline-offset: 3px;
 }
 
-/* картинка не загрузилась — заглушка на спокойном фоне */
+/* Ночной кинозал (class="night" на <html>): тише цвета и крупнее субтитры,
+   чтобы смотреть в темноте и не будить домашних. Поведение плеера - в library.js. */
+:root.night body::before { opacity: .22; }
+:root.night body::after { opacity: .1; }
+:root.night .top,
+:root.night .side,
+:root.night .suggest { background: color-mix(in srgb, var(--bg) 90%, transparent); }
+:root.night .player-page { background: #000; }
+:root.night .player-page video::cue { font-size: 36px; background: rgba(0, 0, 0, .78); }
+:root.night .pl-ui { filter: brightness(.86); }
+:root.night .btn.primary { box-shadow: none; }
+
+/* картинка не загрузилась - заглушка на спокойном фоне */
 img.img-missing { object-fit: contain !important; background: var(--card2); }
 
 /* долгая загрузка с пояснением (поиск озвучек) */

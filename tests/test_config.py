@@ -15,7 +15,7 @@ import config  # noqa: E402
 
 class MigrateTest(unittest.TestCase):
     def setUp(self):
-        # не tempfile.mkdtemp — см. test_server.py
+        # не tempfile.mkdtemp - см. test_server.py
         self.root = Path(tempfile.gettempdir()) / f"animir-mig-{uuid.uuid4().hex[:8]}"
         self.root.mkdir()
         self.new = self.root / "Animir"

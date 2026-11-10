@@ -44,11 +44,11 @@ def _throttle(background: bool) -> None:
         time.sleep(min(wait, 1.0))
 
 
-# Картинки (постеры, кадры) — обычные файлы, под лимит API не попадают: только не больше 6 загрузок разом.
+# Картинки (постеры, кадры) - обычные файлы, под лимит API не попадают: только не больше 6 загрузок разом.
 _img_slots = threading.Semaphore(6)
 
 # Хост картинок недоступен (например, заблокирован YouTube с его превью роликов): каждая попытка висела бы
-# до таймаута и занимала одно из 6 мест загрузки — постеры Shikimori ждали бы в очереди за ними.
+# до таймаута и занимала одно из 6 мест загрузки - постеры Shikimori ждали бы в очереди за ними.
 # Поэтому после 3 неудач подряд хост «отдыхает» 5 минут, и на его картинки отвечаем сразу.
 # Сам Shikimori не выключаем: с него все постеры, и пара медленных ответов (картинка бывает идёт почти
 # минуту) оставила бы Анимир без картинок на 5 минут.
@@ -58,17 +58,17 @@ _host_down: dict[str, float] = {}
 
 
 # ---------- соединения ----------
-# Через VPN TLS-рукопожатие с Shikimori идёт 4–10 с, а сам запрос — 0,3 с. urllib открывает новое соединение
+# Через VPN TLS-рукопожатие с Shikimori идёт 4-10 с, а сам запрос - 0,3 с. urllib открывает новое соединение
 # на каждый запрос (и шлёт «Connection: close»), поэтому соединения держим открытыми и берём повторно.
 IDLE_MAX = 45   # сек.: Shikimori закрывает соединение после 60 с простоя (Keep-Alive: timeout=60)
 POOL_MAX = 8    # столько простаивающих соединений храним на один хост
-_PROXIES = urllib.request.getproxies()  # если в системе настроен прокси — ходим, как раньше, через urllib
+_PROXIES = urllib.request.getproxies()  # если в системе настроен прокси - ходим, как раньше, через urllib
 _ssl_ctx = ssl.create_default_context()
 _idle: dict[tuple[str, str, int], list[tuple[http.client.HTTPConnection, float]]] = {}
 
 
 def _origin(url: str) -> tuple[str, str, int]:
-    """Схема, хост и порт — «происхождение» адреса; по нему же различаются соединения в запасе."""
+    """Схема, хост и порт - «происхождение» адреса; по нему же различаются соединения в запасе."""
     parts = urllib.parse.urlsplit(url)
     return parts.scheme, parts.hostname or "", parts.port or (443 if parts.scheme == "https" else 80)
 
@@ -145,7 +145,7 @@ def warm_up(url: str, n: int = 4) -> None:
 
 def _exchange(key, method: str, path: str, body: bytes | None, headers: dict, timeout: float, idempotent: bool):
     while True:
-        # что-то меняющий запрос — только по новому соединению: при обрыве на старом он мог дойти дважды
+        # что-то меняющий запрос - только по новому соединению: при обрыве на старом он мог дойти дважды
         conn, reused = _take(key, timeout, fresh=not idempotent)
         try:
             conn.request(method, path, body=body, headers=headers)
@@ -154,7 +154,7 @@ def _exchange(key, method: str, path: str, body: bytes | None, headers: dict, ti
         except (OSError, http.client.HTTPException) as e:
             conn.close()
             if reused and not isinstance(e, TimeoutError):
-                # соединение из запаса сервер уже закрыл (обрыв, SSL EOF) — повторяем по другому;
+                # соединение из запаса сервер уже закрыл (обрыв, SSL EOF) - повторяем по другому;
                 # таймаут не повторяем: сервер просто медленный, второй раз ждали бы столько же
                 continue
             raise urllib.error.URLError(e) from e
@@ -168,7 +168,7 @@ def _exchange(key, method: str, path: str, body: bytes | None, headers: dict, ti
 def _urlopen(req: urllib.request.Request, timeout: float, idempotent: bool | None = None) -> tuple[int, bytes]:
     """Как urllib.request.urlopen(req).read(), но по сохранённому соединению.
 
-    Ответ с ошибкой — HTTPError (с телом), обрыв и таймаут — URLError, переадресации выполняются.
+    Ответ с ошибкой - HTTPError (с телом), обрыв и таймаут - URLError, переадресации выполняются.
     """
     if _PROXIES:
         with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -204,10 +204,10 @@ def _urlopen(req: urllib.request.Request, timeout: float, idempotent: bool | Non
 
 def urlopen_pooled(req: urllib.request.Request, timeout: float,
                    idempotent: bool | None = None) -> tuple[int, bytes]:
-    """Запрос по сохранённому соединению без пауз Shikimori — для онлайн-озвучек (sources.py).
+    """Запрос по сохранённому соединению без пауз Shikimori - для онлайн-озвучек (sources.py).
 
     В отличие от open_url не вызывает _throttle: у sources.py своя вежливая пауза _wait_turn
-    перед каждым обращением к сайту. Ошибки и переадресации — как у _urlopen.
+    перед каждым обращением к сайту. Ошибки и переадресации - как у _urlopen.
     """
     return _urlopen(req, timeout, idempotent)
 
@@ -221,7 +221,7 @@ def fetch_image(url: str, user_agent: str, timeout: int | None = None) -> bytes:
         with _img_slots:
             data = _urlopen(req, timeout or (30 if host.endswith("shikimori.io") else 10))[1]
     except urllib.error.HTTPError:
-        _host_fail.pop(host, None)  # хост ответил (пусть и 404) — значит, он доступен
+        _host_fail.pop(host, None)  # хост ответил (пусть и 404) - значит, он доступен
         raise
     except OSError:  # URLError, таймаут, обрыв соединения
         if not host.endswith("shikimori.io"):
@@ -237,9 +237,9 @@ def fetch_image(url: str, user_agent: str, timeout: int | None = None) -> bytes:
 
 def open_url(req: urllib.request.Request, timeout: int = 20, background: bool = False,
              idempotent: bool | None = None) -> tuple[int, bytes]:
-    """Выполняет запрос с паузами и повтором после 429. Ответ с ошибкой (кроме 429) — исключение HTTPError.
+    """Выполняет запрос с паузами и повтором после 429. Ответ с ошибкой (кроме 429) - исключение HTTPError.
 
-    idempotent=True — запрос ничего не меняет (GraphQL-запрос на чтение) и его можно слать по старому соединению;
+    idempotent=True - запрос ничего не меняет (GraphQL-запрос на чтение) и его можно слать по старому соединению;
     по умолчанию так считаются только GET и HEAD.
     """
     for attempt in range(RETRIES + 1):

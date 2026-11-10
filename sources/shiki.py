@@ -28,7 +28,7 @@ def _part_chain(sid: str) -> tuple[str, int, int] | None:
         m = re.search(r"(.*?)\s+Part\s+(\d+)$", names["en"] or "", re.I)
         if not m:
             return None
-        base_en, part = m.group(1).strip().rstrip(" -—–"), int(m.group(2))
+        base_en, part = m.group(1).strip().rstrip(" ---"), int(m.group(2))
         if part <= 1 or not base_en:
             return None
 
@@ -60,7 +60,7 @@ def _part_chain(sid: str) -> tuple[str, int, int] | None:
         base_sid = cached(f"pt:base:{sid}", 1800, lambda: look(base_en))
         if not base_sid:
             return None
-        # смещение: сумма серий предыдущих частей (часть 1 — базовая запись)
+        # смещение: сумма серий предыдущих частей (часть 1 - базовая запись)
         parts = [(base_sid, cached(f"pt:c:{base_sid}", 1800, lambda: count_of(base_sid)))]
         for i in range(2, part):
             q = f"{base_en} Part {i}"

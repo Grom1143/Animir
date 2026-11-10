@@ -44,7 +44,7 @@ class HostPauseTest(unittest.TestCase):
 
 class QuietServer(ThreadingHTTPServer):
     def handle_error(self, request, client_address):
-        # клиент закрыл соединение из пула, пока сервер ждал следующий запрос, — так и задумано, не шумим
+        # клиент закрыл соединение из пула, пока сервер ждал следующий запрос, - так и задумано, не шумим
         if not isinstance(sys.exc_info()[1], ConnectionError):
             super().handle_error(request, client_address)
 
@@ -118,7 +118,7 @@ class ConnectionReuseTest(unittest.TestCase):
         return len({port for port, _, _ in Upstream.seen})
 
     def test_requests_reuse_one_connection(self):
-        # До Shikimori TLS-рукопожатие идёт ~5 с, а запрос ~0,3 с: новое соединение на каждый запрос — главный тормоз
+        # До Shikimori TLS-рукопожатие идёт ~5 с, а запрос ~0,3 с: новое соединение на каждый запрос - главный тормоз
         for _ in range(3):
             self.assertEqual(self.get("/ok"), (200, b"ok"))
         self.assertEqual(self.connections(), 1)
@@ -130,7 +130,7 @@ class ConnectionReuseTest(unittest.TestCase):
 
     def test_connection_closed_by_server_is_replaced(self):
         self.get("/drop")
-        self.assertEqual(self.get("/ok"), (200, b"ok"))  # соединение из пула уже мёртвое — молча берём новое
+        self.assertEqual(self.get("/ok"), (200, b"ok"))  # соединение из пула уже мёртвое - молча берём новое
         self.assertEqual(self.connections(), 2)
 
     def test_error_status_is_http_error_with_body(self):
@@ -166,7 +166,7 @@ class ConnectionReuseTest(unittest.TestCase):
         self.assertEqual(self.get_with_token("/redirect-to/" + self.base + "/echo-auth"), b"Bearer secret")
 
     def test_token_not_sent_to_other_port(self):
-        # Тот же хост, но другой порт — уже другой сервер (из ревью DeepSeek): токен туда не уходит
+        # Тот же хост, но другой порт - уже другой сервер (из ревью DeepSeek): токен туда не уходит
         other = QuietServer(("127.0.0.1", 0), Upstream)
         threading.Thread(target=other.serve_forever, daemon=True).start()
         try:
@@ -188,7 +188,7 @@ class ConnectionReuseTest(unittest.TestCase):
         return ("http", host, self.srv.server_address[1])
 
     def test_timeout_on_pooled_connection_is_not_retried(self):
-        # Медленный сервер — не «умершее» соединение: повтор удвоил бы ожидание
+        # Медленный сервер - не «умершее» соединение: повтор удвоил бы ожидание
         self.get("/ok")
         with self.assertRaises(urllib.error.URLError):
             shiki_net.open_url(urllib.request.Request(self.base + "/slow"), 0.5)
@@ -232,7 +232,7 @@ class ConnectionReuseTest(unittest.TestCase):
     def test_dead_host_is_url_error(self):
         srv = QuietServer(("127.0.0.1", 0), Upstream)
         port = srv.server_address[1]
-        srv.server_close()  # порт свободен — подключаться некуда
+        srv.server_close()  # порт свободен - подключаться некуда
         with self.assertRaises(urllib.error.URLError):
             shiki_net.open_url(urllib.request.Request(f"http://127.0.0.1:{port}/ok"), 5)
 

@@ -20,7 +20,7 @@ from .kodik import _kdk_api, kodik_token
 def dubs_list() -> list[dict]:
     """Все озвучки Kodik: [{id, title, type: voice|subtitles}].
 
-    Список почти статичен — кэш на сутки. Порядок важности (известные студии
+    Список почти статичен - кэш на сутки. Порядок важности (известные студии
     сверху) на клиенте расставляет DUB_RANK."""
     return cached("kdk:translations", 86400,
                   lambda: _kdk_api("translations", {"token": kodik_token()}))
@@ -28,7 +28,7 @@ def dubs_list() -> list[dict]:
 
 def _shiki_candidates(q: str, limit: int, extra: dict | None = None, page: int = 1) -> list[dict]:
     """Список кандидатов из Shikimori: поиск по названию и/или остальные
-    условия фильтра (kind/status/genre/… в формате Shikimori-REST); без q —
+    условия фильтра (kind/status/genre/… в формате Shikimori-REST); без q -
     популярные тайтлы."""
     parts = [f"limit={limit}", f"page={page}"]
     for k, v in (extra or {}).items():
@@ -47,7 +47,7 @@ def _shiki_candidates(q: str, limit: int, extra: dict | None = None, page: int =
 
 
 def _kdk_probe(sid: str, tid: str) -> dict | None:
-    """Есть ли у тайтла эта озвучка (проверка без общего троттлинга —
+    """Есть ли у тайтла эта озвучка (проверка без общего троттлинга -
     kodik-api спокойно держит короткие очереди; запись кэшируем на полчаса)."""
     def run() -> dict | None:
         body = urllib.parse.urlencode({
@@ -61,7 +61,7 @@ def _kdk_probe(sid: str, tid: str) -> dict | None:
             data = json.loads(shiki_net.urlopen_pooled(req, 15, idempotent=True)[1].decode("utf-8", "replace"))
             res = (data.get("results") or [])
             return res[0] if res else None
-        except Exception:  # noqa: BLE001 — ошибка = «не найдено», каталог работает дальше
+        except Exception:  # noqa: BLE001 - ошибка = «не найдено», каталог работает дальше
             return None
     return cached(f"kdk:probe:{sid}:{tid}", 1800, run)
 

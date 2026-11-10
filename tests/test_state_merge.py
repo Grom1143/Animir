@@ -9,7 +9,7 @@ import unittest
 import uuid
 from pathlib import Path
 
-# config.py создаёт папку данных в %APPDATA% при импорте — подменяем её на временную.
+# config.py создаёт папку данных в %APPDATA% при импорте - подменяем её на временную.
 # Не tempfile.mkdtemp: его права «только владелец» не пускают песочницу DeepSeek (см. test_server.py).
 os.environ["APPDATA"] = os.path.join(tempfile.gettempdir(), f"animir-test-{uuid.uuid4().hex[:8]}")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -20,7 +20,7 @@ from state import merge3  # noqa: E402
 
 class Merge3Test(unittest.TestCase):
     def test_untouched_window_does_not_overwrite_others(self):
-        # главное окно ничего не меняло, плеер за это время записал прогресс — прогресс остаётся
+        # главное окно ничего не меняло, плеер за это время записал прогресс - прогресс остаётся
         base = {"progress": {"a": {"t": 10}}, "settings": {"volume": 1}}
         mine = {"progress": {"a": {"t": 10}}, "settings": {"volume": 1}}
         theirs = {"progress": {"a": {"t": 300}}, "settings": {"volume": 1}}
@@ -83,7 +83,7 @@ class WriteFromTest(unittest.TestCase):
         # плеер сохраняет прогресс
         r1 = state.write_from({"progress": {"x": {"t": 100}}, "_base": player["_rev"], "_win": "player"})
         self.assertIsNone(r1["state"])  # слияние не понадобилось
-        # главное окно со старой копией сохраняет оценку — прогресс плеера не должен пропасть
+        # главное окно со старой копией сохраняет оценку - прогресс плеера не должен пропасть
         r2 = state.write_from({"progress": {}, "list": {"1": {"score": 5}}, "_base": main["_rev"], "_win": "main"})
         self.assertEqual(r2["state"]["progress"], {"x": {"t": 100}})
         self.assertEqual(r2["state"]["list"], {"1": {"score": 5}})
@@ -96,7 +96,7 @@ class WriteFromTest(unittest.TestCase):
         b = state.read_for("b")
         state.write_from({"notes": {"1": "x"}, "_base": b["_rev"], "_win": "b"})
         r = state.write_from({"notes": {}, "marks": {"5": {"1": 1}}, "_base": a["_rev"], "_win": "a"})
-        # окно «a» не взяло слитый результат (пока шёл ответ, оно поменяло ещё) — база для него теперь «mine»
+        # окно «a» не взяло слитый результат (пока шёл ответ, оно поменяло ещё) - база для него теперь «mine»
         state.write_from({"notes": {}, "marks": {"5": {"1": 1, "2": 2}}, "_base": r["mine"], "_win": "a"})
         saved = state.load_state()
         self.assertEqual(saved["notes"], {"1": "x"})

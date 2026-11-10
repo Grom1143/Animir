@@ -1,30 +1,68 @@
 'use strict';
-// Анимир — снег зимой и запуск приложения.
+// Анимир - снег зимой и запуск приложения.
 
 // ================= Снег зимой =================
 let snowRaf = 0;
 function snowfall() {
   const c = $('#snow');
   const m = new Date().getMonth();
-  const on = S.settings.snow && !LITE && (m === 11 || m <= 1);
+  const on = S.settings.snow && !LITE && !POWER && (m === 11 || m <= 1);
   cancelAnimationFrame(snowRaf);
   c.hidden = !on;
   if (!on) return;
   const g = c.getContext('2d');
-  const flakes = Array.from({ length: 40 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 1.6, s: 0.15 + Math.random() * 0.35, w: Math.random() * 6 }));
+  const flakes = Array.from({ length: 28 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 1.6, s: 0.15 + Math.random() * 0.35, w: Math.random() * 6 }));
+  let w = 0, h = 0, last = 0;
   const tick = t => {
-    c.width = c.clientWidth; c.height = c.clientHeight;
-    g.clearRect(0, 0, c.width, c.height);
+    snowRaf = requestAnimationFrame(tick);
+    if (document.hidden || t - last < 33) return;  // 30 кадров в секунду: на снежинках не видно, а батареи вдвое меньше
+    last = t;
+    const cw = c.clientWidth, ch = c.clientHeight;
+    if (!cw || !ch) return;
+    // раньше c.width/c.height менялись на каждом кадре - холст пересоздавался и это стоило дороже самих снежинок
+    if (cw !== w || ch !== h) { w = c.width = cw; h = c.height = ch; }
+    g.clearRect(0, 0, w, h);
     g.fillStyle = 'rgba(255,255,255,.75)';
     flakes.forEach(f => {
-      f.y += f.s / c.height * 2;
+      f.y += f.s / h * 2;
       if (f.y > 1) { f.y = -0.05; f.x = Math.random(); }
-      const x = f.x * c.width + Math.sin(t / 900 + f.w) * 4;
-      g.beginPath(); g.arc(x, f.y * c.height, f.r, 0, 7); g.fill();
+      const x = f.x * w + Math.sin(t / 900 + f.w) * 4;
+      g.beginPath(); g.arc(x, f.y * h, f.r, 0, 7); g.fill();
     });
-    snowRaf = requestAnimationFrame(tick);
   };
   snowRaf = requestAnimationFrame(tick);
+}
+
+// ================= Экономия заряда =================
+// На батарее ноутбук сам сбрасывает частоты, и постоянные «переливы» оформления сразу
+// превращаются в тормоза. Тогда тяжёлые слои выключаются (правила .power в theme.css),
+// снег и «стекло» тоже. Настройка «Экономия заряда»: авто (на батарее) / всегда / выкл.
+let POWER = false;
+function applyPower(on) {
+  POWER = !!on;
+  document.documentElement.classList.toggle('power', POWER);
+  snowfall();  // сам себя выключит, если POWER
+}
+async function initPower() {
+  const mode = S.settings.power || 'auto';
+  if (mode === 'on') { applyPower(true); return; }
+  if (mode === 'off') { applyPower(false); return; }
+  // navigator.getBattery в WebView2 бывает не отвечает вовсе: ждём не дольше 1,5 с и идём дальше,
+  // иначе запуск замирает на этом await и окно остаётся пустым
+  const quick = p => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1500))]);
+  if (navigator.getBattery) {
+    try {
+      const b = await quick(navigator.getBattery());
+      applyPower(!b.charging);
+      b.addEventListener('chargingchange', () => applyPower(!b.charging));  // воткнули или вынули зарядку
+      return;
+    } catch { /* WebView2 без Battery API или не ответил - спросим сервер */ }
+  }
+  applyPower(!!SYS?.on_battery);
+  setInterval(async () => {  // зарядку могли воткнуть или вынуть - узнаём раз в 2 минуты
+    const j = await fetch('/api/sys').then(r => r.json()).catch(() => null);
+    if (j) { SYS = j; applyPower(!!j.on_battery); }
+  }, 120000);
 }
 
 // ================= запуск =================
@@ -52,7 +90,7 @@ $('#stream-btn').onclick = () => streamDialog();
 $('#keys-btn').onclick = () => keysHelp();
 
 // Окно «Горячие клавиши» (клавиша ? или кнопка ⌨ сверху)
-// клавиши — массивом: «или», «/» — связки между ними, «~текст» — действие мышью (без рамки клавиши)
+// клавиши - массивом: «или», «/» - связки между ними, «~текст» - действие мышью (без рамки клавиши)
 const KEYS_HELP = [
   ['Везде', [[['Ctrl+K', 'или', '/'], 'Поиск'], [['Alt+←', '|', 'Alt+→'], 'Назад / вперёд'], [['F5'], 'Обновить экран'],
     [['Esc'], 'Закрыть окно или меню'], [['Home'], 'Наверх страницы'], [['?'], 'Это окно'], [['~Правый клик по карточке'], 'Быстрые действия']]],
@@ -79,8 +117,8 @@ document.addEventListener('scroll', e => {
 }, { capture: true, passive: true });
 const scrollTopNow = () => $('#view').scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches || LITE ? 'auto' : 'smooth' });
 toTop.onclick = scrollTopNow;
-// пропал интернет — честно говорим, почему ничего не грузится
-addEventListener('offline', () => toast('Нет подключения к интернету — каталог и озвучки не загрузятся', 'err'));
+// пропал интернет - честно говорим, почему ничего не грузится
+addEventListener('offline', () => toast('Нет подключения к интернету - каталог и озвучки не загрузятся', 'err'));
 addEventListener('online', () => toast('Интернет снова есть', 'ok'));
 
 document.addEventListener('keydown', e => {
@@ -103,20 +141,24 @@ document.addEventListener('keydown', e => {
 });
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
 
-// Лёгкий режим: «Как у компьютера» — по памяти и ядрам (ответ сервера), иначе как выбрано в настройках
+// Лёгкий режим: «Как у компьютера» - по памяти и ядрам (ответ сервера), иначе как выбрано в настройках
 let SYS = null;
 async function initLite() {
   SYS ??= await fetch('/api/sys').then(r => r.json()).catch(() => ({}));
   const m = S.settings.lite || 'auto';
   LITE = m === 'on' || (m === 'auto' && !!SYS.low_end);
-  PAGE = LITE ? 20 : 30;  // меньше карточек за раз — меньше памяти и картинок
+  PAGE = LITE ? 20 : 30;  // меньше карточек за раз - меньше памяти и картинок
   document.documentElement.classList.toggle('lite', LITE);
 }
 
 (async () => {
   await loadState();
   await initLite();
+  initPower();  // не ждём: режим экономии подтянется следом, окно должно рисоваться сразу
   applyTheme();
+  applyNight();
+  setTimeout(() => { try { checkAchievements(); } catch { /* достижения не критичны */ } }, 2500);
+  setTimeout(() => { flushShikiQueue().catch(() => {}); }, 4000);
   updateBadge();
   await route();
   $('#splash').classList.add('hide');

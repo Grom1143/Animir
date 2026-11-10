@@ -1,4 +1,4 @@
-"""Анимир — сведения о компьютере: сколько памяти и ядер. По ним включается лёгкий режим."""
+"""Анимир - сведения о компьютере: сколько памяти и ядер. По ним включается лёгкий режим."""
 import ctypes
 import os
 from ctypes import wintypes
@@ -27,20 +27,42 @@ def cores() -> int:
 
 
 def low_ram() -> bool:
-    """Мало оперативной памяти — экономим её в первую очередь."""
+    """Мало оперативной памяти - экономим её в первую очередь."""
     return ram_gb() <= 4.2
 
 
 def low_cpu() -> bool:
-    """Одно-два ядра — меньше параллельных процессов и фоновой работы."""
+    """Одно-два ядра - меньше параллельных процессов и фоновой работы."""
     return cores() <= 2
 
 
 def low_end() -> bool:
-    """Слабый компьютер: до 4 ГБ памяти или 1–2 ядра."""
+    """Слабый компьютер: до 4 ГБ памяти или 1-2 ядра."""
     return low_ram() or low_cpu()
+
+
+class _PowerStatus(ctypes.Structure):
+    _fields_ = [("ACLineStatus", wintypes.BYTE), ("BatteryFlag", wintypes.BYTE),
+                ("BatteryLifePercent", wintypes.BYTE), ("SystemStatusFlag", wintypes.BYTE),
+                ("BatteryLifeTime", wintypes.DWORD), ("BatteryFullLifeTime", wintypes.DWORD)]
+
+
+_BATTERY_NONE = 128  # BatteryFlag: батареи нет (стационарный ПК)
+
+
+def _from_status(ac_line: int, battery_flag: int) -> bool:
+    """Решение по данным Windows: от сети (ac_line=1) - нет; батареи нет совсем - тоже нет."""
+    return ac_line == 0 and not battery_flag & _BATTERY_NONE
+
+
+def on_battery() -> bool:
+    """Ноутбук работает от батареи, а не от сети. На ПК без батареи - всегда False."""
+    s = _PowerStatus()
+    if not ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(s)):
+        return False
+    return _from_status(s.ACLineStatus, s.BatteryFlag)
 
 
 def info() -> dict:
     return {"ram_gb": round(ram_gb(), 1), "cores": cores(), "low_end": low_end(),
-            "low_ram": low_ram(), "low_cpu": low_cpu()}
+            "low_ram": low_ram(), "low_cpu": low_cpu(), "on_battery": on_battery()}

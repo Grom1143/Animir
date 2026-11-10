@@ -2,10 +2,10 @@
 защита сервера.
 
 Запуск: python tests/ui_smoke.py   (нужны интернет и Playwright: pip install playwright)
-Браузер — установленный Edge, скачивать Chromium не нужно. Сервер поднимается на свободном порту
-с временной папкой данных — настоящие закладки не трогаются. Скриншоты — в папке, которую напечатает скрипт.
+Браузер - установленный Edge, скачивать Chromium не нужно. Сервер поднимается на свободном порту
+с временной папкой данных - настоящие закладки не трогаются. Скриншоты - в папке, которую напечатает скрипт.
 
-Не входит в `unittest discover`: зависит от сети и Shikimori. Ответы 502 от /api/* — это сбой связи
+Не входит в `unittest discover`: зависит от сети и Shikimori. Ответы 502 от /api/* - это сбой связи
 с Shikimori, они показываются отдельно и проверку не роняют.
 """
 import collections
@@ -58,7 +58,7 @@ def settle(page) -> bool:
     try:
         page.wait_for_load_state("networkidle", timeout=15000)
     except PWTimeout:
-        pass  # приложение всё время что-то подгружает — тишины в сети может и не быть
+        pass  # приложение всё время что-то подгружает - тишины в сети может и не быть
     try:
         page.wait_for_function(LOADED, timeout=40000)
     except PWTimeout:
@@ -125,7 +125,7 @@ def walk(p, base: str, shots: Path) -> tuple[list, list]:
 
 
 def image_retry(p, base: str) -> list:
-    """Первая загрузка каждой картинки «падает» — повторная попытка из ui.js должна её спасти."""
+    """Первая загрузка каждой картинки «падает» - повторная попытка из ui.js должна её спасти."""
     tries = collections.Counter()
 
     def flaky(route):
@@ -152,9 +152,9 @@ def image_retry(p, base: str) -> list:
 
 def player_choice(p, base: str) -> list:
     """Настройка «Окно плеера» и правило «видео одновременно одно»: вопрос «Переключить?» перед новой серией.
-    Окна плеера в браузере нет — ответы сервера о нём подменяем, сеть Shikimori тут не нужна."""
+    Окна плеера в браузере нет - ответы сервера о нём подменяем, сеть Shikimori тут не нужна."""
     errors, calls = [], []
-    playing = '{"open": true, "title": "Анимир · Фрирен — серия 1", "hash": "#/watch?o=52991&e=1&w=1"}'
+    playing = '{"open": true, "title": "Анимир · Фрирен - серия 1", "hash": "#/watch?o=52991&e=1&w=1"}'
 
     def check(ok, label):
         print(f"  {'OK ' if ok else 'ERR'} {label}")
@@ -165,7 +165,7 @@ def player_choice(p, base: str) -> list:
     page = browser.new_page(viewport={"width": 1280, "height": 800})
     page.route("**/api/player", lambda r: r.fulfill(status=200, content_type="application/json", body=playing))
     def answer(path):
-        def handler(route, *_):  # Playwright передаёт (route, request) — второй нам не нужен
+        def handler(route, *_):  # Playwright передаёт (route, request) - второй нам не нужен
             calls.append((path, route.request.post_data or ""))
             route.fulfill(status=200, content_type="application/json", body='{"ok": true}')
         return handler
@@ -174,7 +174,7 @@ def player_choice(p, base: str) -> list:
         page.route(f"**/api/{path}", answer(path))
     page.goto(base + "#/settings?s=play")
     settle(page)
-    check(page.evaluate("() => S.settings.playerWindow") == "main", "по умолчанию плеер — в основном окне")
+    check(page.evaluate("() => S.settings.playerWindow") == "main", "по умолчанию плеер - в основном окне")
     page.locator("label:has(input[name=pw][value=separate])").click()
     page.wait_for_timeout(300)
     check(page.evaluate("() => S.settings.playerWindow") == "separate", "настройка переключается на «отдельное окно»")
@@ -190,23 +190,23 @@ def player_choice(p, base: str) -> list:
 
     calls.clear()
     text = ask("n")
-    check("Фрирен — серия 1" in text and "серию 2" in text, f"вопрос: {text.replace(chr(10), ' ')!r}")
-    check(not calls, "«Отмена» — ничего не открыли")
+    check("Фрирен - серия 1" in text and "серию 2" in text, f"вопрос: {text.replace(chr(10), ' ')!r}")
+    check(not calls, "«Отмена» - ничего не открыли")
     ask("y")
     check(any(c[0] == "open-window" and "e=2" in c[1] and "w=1" in c[1] for c in calls),
-          "«Переключить» в режиме отдельного окна — окно плеера переключено на серию 2")
+          "«Переключить» в режиме отдельного окна - окно плеера переключено на серию 2")
     page.evaluate("() => { S.settings.playerWindow = 'main'; }")
     calls.clear()
     ask("y")
     check([c[0] for c in calls] == ["player/close"] and page.evaluate("() => location.hash").startswith("#/watch?o=52991&e=2"),
-          "«Переключить» в режиме основного окна — окно плеера закрыто, серия 2 здесь")
-    # Кнопки плеера (нужен живой поток серии — без интернета пропускаем)
+          "«Переключить» в режиме основного окна - окно плеера закрыто, серия 2 здесь")
+    # Кнопки плеера (нужен живой поток серии - без интернета пропускаем)
     try:
         page.locator("#b-pin").wait_for(timeout=15000)
         check("on" not in page.get_attribute("#b-pin", "class").split(), "📌 «поверх всех» по умолчанию выключено")
         check(page.locator("#b-pip").is_visible(), "кнопка «картинка в картинке» видна (P)")
     except Exception:  # noqa: BLE001
-        print("  -- плеер не открылся (нет сети?) — кнопки не проверены")
+        print("  -- плеер не открылся (нет сети?) - кнопки не проверены")
     browser.close()
     return errors
 
@@ -243,16 +243,16 @@ def year_page(p, base: str) -> list:
     check(stat("titles") == "2", f"тайтлов: {stat('titles')}")
     check(stat("done") == "1", f"досмотрено: {stat('done')}")
     check(stat("streak") == "10", f"дней подряд: {stat('streak')}")
-    check(page.locator("[data-top-genre]").inner_text().strip() == "Драма", "главный жанр — Драма")
-    check("март" in page.locator("[data-peak-month]").inner_text().lower(), "самый насыщенный месяц — март")
-    check(page.locator("[data-top-title]").first.inner_text().find("Тест А") >= 0, "чаще всего смотрел — «Тест А»")
+    check(page.locator("[data-top-genre]").inner_text().strip() == "Драма", "главный жанр - Драма")
+    check("март" in page.locator("[data-peak-month]").inner_text().lower(), "самый насыщенный месяц - март")
+    check(page.locator("[data-top-title]").first.inner_text().find("Тест А") >= 0, "чаще всего смотрел - «Тест А»")
     page.screenshot(path=str(Path(tempfile.gettempdir()) / "animir-year.png"), full_page=True)
     browser.close()
     return errors
 
 
 def resume_card(p, base: str) -> list:
-    """Главная: крупная карточка «Продолжить с того места» — последняя недосмотренная серия, с серией и временем."""
+    """Главная: крупная карточка «Продолжить с того места» - последняя недосмотренная серия, с серией и временем."""
     errors = []
 
     def check(ok, label):
@@ -273,7 +273,7 @@ def resume_card(p, base: str) -> list:
         { file: 'o:52991:AniLibria:4', name: 'Серия 4', dub: 'AniLibria', ep: 4, anime: fr, at: now - 1e5 },
       ];
       S.progress = { 'o:52991:AniLibria:5': { t: 750, d: 1420, done: false, at: now }, 'o:52991:AniLibria:4': { t: 1400, d: 1420, done: true, at: now - 1e5 } };
-      S.settings.playerWindow = 'main';  // соседний тест мог оставить «отдельное окно» — тогда серия уйдёт туда
+      S.settings.playerWindow = 'main';  // соседний тест мог оставить «отдельное окно» - тогда серия уйдёт туда
       save(); location.hash = '#/'; route();
     }""")
     box = page.locator("#resume")

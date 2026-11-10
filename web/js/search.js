@@ -1,5 +1,5 @@
 'use strict';
-// Анимир — поиск, фильтр каталога, поиск по озвучкам.
+// Анимир - поиск, фильтр каталога, поиск по озвучкам.
 
 // ================= Поиск =================
 const searchInput = $('#search'), suggestBox = $('#suggest');
@@ -18,18 +18,64 @@ const runSuggest = debounce(async text => {
     } else hideSuggest();
     return;
   }
+  const cmds = commandMatches(text);
   try {
-    const d = await gql(animes({ search: text, limit: 6 }));
+    const d = await gql(animes({ search: text, limit: cmds.length ? 4 : 6 }));
     if (searchInput.value.trim() !== text) return;
-    suggestBox.innerHTML = d.animes.map(snap).map(a => `<a href="#/anime/${a.id}" data-q="${esc(text)}"><img src="${img(a.poster, 100)}" alt="">
+    suggestBox.innerHTML = cmds.map(commandHtml).join('')
+      + d.animes.map(snap).map(a => `<a href="#/anime/${a.id}" data-q="${esc(text)}"><img src="${img(a.poster, 100)}" alt="">
       <div><div class="s-t">${esc(title(a))}</div><div class="s-m">${esc(a.name)} · ${esc(metaLine(a))}</div></div></a>`).join('')
-      + `<a class="s-all" href="#/search?q=${encodeURIComponent(text)}">Все результаты →</a>`;
+      + (cmds.length ? '' : `<a class="s-all" href="#/search?q=${encodeURIComponent(text)}">Все результаты →</a>`);
     suggestBox.hidden = false;
     suggestSel = -1;
-  } catch { hideSuggest(); }
+  } catch {
+    // сеть не нужна, чтобы пользоваться командами
+    suggestBox.innerHTML = cmds.map(commandHtml).join('');
+    suggestBox.hidden = !cmds.length;
+    suggestSel = -1;
+  }
 }, 280);
 searchInput.addEventListener('input', () => runSuggest(searchInput.value.trim()));
 searchInput.addEventListener('focus', () => runSuggest(searchInput.value.trim()));
+
+// ================= команды в поиске =================
+// Ctrl+K и так открывает поиск. Теперь в нём же можно набрать команду («наст» -> Настройки,
+// «случа» -> Случайное, «ноч» -> Ночной кинозал) и выполнить её Enter'ом.
+const COMMANDS = [
+  { n: 'Продолжить просмотр', h: 'последняя недосмотренная серия', run: () => { const c = continueItems()[0]; go(c ? histHref(c) : '#/bookmarks?tab=history'); } },
+  { n: 'Случайное аниме', h: 'из всего каталога', run: () => randomAnime() },
+  { n: 'Рекомендации', h: 'по вкусу и вайбам', href: '#/recs' },
+  { n: 'Медиатека', h: 'свои файлы и папки', href: '#/library' },
+  { n: 'Закладки', h: 'списки и история', href: '#/bookmarks' },
+  { n: 'Расписание', h: 'когда выходит', href: '#/schedule' },
+  { n: 'Мой год в аниме', h: 'итоги года картинкой', href: '#/year' },
+  { n: 'Ночной кинозал', h: 'приглушить и крупные субтитры', run: () => {
+    S.settings.night = !S.settings.night;
+    applyNight();
+    save();
+    toast(S.settings.night ? 'Ночной кинозал включён' : 'Ночной кинозал выключен');
+  } },
+  { n: 'Настройки', h: 'всё о приложении', href: '#/settings' },
+  { n: 'Профиль', h: 'статистика и оценки', href: '#/profile' },
+  { n: 'Уведомления', h: 'новые серии и ответы', href: '#/notifications' },
+  { n: 'Обновить экран', h: 'как F5', run: () => { ANIME_CACHE.clear(); route(); } },
+];
+const commandMatches = text => {
+  const q = text.toLowerCase().replace(/^>/, '').trim();
+  if (!q) return [];
+  return COMMANDS.filter(c => c.n.toLowerCase().includes(q) || c.h.toLowerCase().includes(q))
+    .slice(0, text.startsWith('>') ? 8 : 3);
+};
+const commandHtml = c => `<a href="${c.href || '#'}" data-cmd="${esc(c.n)}"><span class="muted">⌘</span>
+  <div><div class="s-t">${esc(c.n)}</div><div class="s-m">${esc(c.h)}</div></div></a>`;
+const runCommand = name => {
+  const c = COMMANDS.find(x => x.n === name);
+  if (!c) return;
+  hideSuggest();
+  searchInput.value = '';
+  searchInput.blur();
+  if (c.run) c.run(); else go(c.href);
+};
 searchInput.addEventListener('keydown', e => {
   const items = $$('a', suggestBox);
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -39,14 +85,18 @@ searchInput.addEventListener('keydown', e => {
     items.forEach((a, i) => a.classList.toggle('sel', i === suggestSel));
   } else if (e.key === 'Enter') {
     const v = searchInput.value.trim();
-    if (suggestSel >= 0 && items[suggestSel]) go(items[suggestSel].getAttribute('href'));
+    const sel = suggestSel >= 0 ? items[suggestSel] : null;
+    if (sel?.dataset.cmd) runCommand(sel.dataset.cmd);
+    else if (sel) go(sel.getAttribute('href'));
     else if (v) go('#/search?q=' + encodeURIComponent(v));
-    if (v) rememberSearch(v);
+    if (v && !sel?.dataset.cmd) rememberSearch(v);
     searchInput.blur();
     hideSuggest();
   } else if (e.key === 'Escape') { hideSuggest(); searchInput.blur(); }
 });
 suggestBox.addEventListener('click', e => {
+  const cmd = e.target.closest('a[data-cmd]');
+  if (cmd) { runCommand(cmd.dataset.cmd); return; }
   const a = e.target.closest('a[data-q]');
   if (a) rememberSearch(a.dataset.q);
   hideSuggest();
@@ -76,6 +126,44 @@ async function pageSearch(view, q, _, alive) {
     if (alive() && sr && sr.querySelector('.empty')) sr.insertAdjacentHTML('beforeend', `<div style="text-align:center"><a class="btn" href="#/filter">Открыть фильтр</a></div>
       <p class="muted" style="text-align:center">Попробуй написать название по-английски или латиницей (например, «Sousou no Frieren»).</p>`);
   }, 2500);
+  smartBlock(text, alive);
+}
+
+// ================= поиск по описанию =================
+// Обычный поиск Shikimori ищет по названию. Если человек пишет фразу («аниме где герой готовит
+// и все его хвалят»), подбираем по словам в описаниях популярных тайтлов и подписываем, почему подошло.
+// Всё локально: три запроса к Shikimori, никаких внешних ИИ.
+const SMART_STOP = new Set(('аниме где и в на с которые который что как его ее они для из о об по но или не у же бы '
+  + 'это мне хочу посмотреть смотреть про когда после через только очень все всё там тот этот фильм сериал '
+  + 'главный герой героиня парень девушка история').split(/\s+/));
+const smartWords = text => text.toLowerCase().replace(/ё/g, 'е').split(/[^a-zа-я0-9]+/)
+  .filter(w => w.length > 2 && !SMART_STOP.has(w)).slice(0, 8);
+const smartStem = w => (w.length > 5 ? w.slice(0, w.length - 2) : w);
+
+async function smartBlock(text, alive) {
+  const words = smartWords(text);
+  if (words.length < 2) return;
+  const stems = words.map(smartStem);
+  try {
+    const pool = [];
+    for (const page of [1, 2]) {
+      const d = await gql(animes({ order: 'ranked', score: 7, kind: 'tv,movie,ona,ova', limit: 50, page },
+        'id name russian description kind score episodes status poster { mainUrl main2xUrl originalUrl } genres { russian }'));
+      pool.push(...d.animes);
+    }
+    if (!alive()) return;
+    const scored = pool.map(a => {
+      const hay = `${a.russian || ''} ${a.name || ''} ${a.description || ''} ${(a.genres || []).map(g => g.russian).join(' ')}`
+        .toLowerCase().replace(/ё/g, 'е');
+      const why = words.filter((w, i) => hay.includes(stems[i]));
+      return { a: snap(a), why };
+    }).filter(x => x.why.length >= Math.min(2, words.length))
+      .sort((x, y) => y.why.length - x.why.length)
+      .slice(0, 12);
+    if (!scored.length) return;
+    $('#fr').innerHTML = `<div class="sec-head"><h2>Подошло по описанию</h2><span class="sub">${plural(scored.length, 'тайтл', 'тайтла', 'тайтлов')}</span></div>
+      <div class="row">${scored.map(x => card(x.a, { meta: 'Подошло: ' + x.why.join(', ') })).join('')}</div>`;
+  } catch { /* блок подсказок необязателен: обычный поиск уже работает */ }
 }
 async function franchiseBlock(a, alive) {
   try {
@@ -89,7 +177,7 @@ async function franchiseBlock(a, alive) {
 }
 
 // ================= Фильтр =================
-// Фильтр хранится как объект и кладётся в адрес страницы — поэтому его можно скопировать ссылкой.
+// Фильтр хранится как объект и кладётся в адрес страницы - поэтому его можно скопировать ссылкой.
 const F_KEYS = ['kind', 'genre', 'gmode', 'excl', 'studio', 'studioName', 'origin', 'from', 'to', 'season', 'status', 'duration', 'rating', 'score', 'order', 'dub', 'dubName'];
 function filterFromQuery(q) {
   const f = {};
@@ -120,7 +208,7 @@ function filterArgs(f) {
   } else if (y0 || y1) a.season = `${y0 || 1917}_${y1 || new Date().getFullYear() + 3}`;
   return a;
 }
-// Чего нет в Shikimori — фильтруем у себя (исключить закладки)
+// Чего нет в Shikimori - фильтруем у себя (исключить закладки)
 function filterLocal(f) {
   if (!f.excl) return null;
   const ex = new Set(f.excl.split(','));
@@ -179,7 +267,7 @@ async function pageFilter(view, q, _, alive) {
         ${field('kind', 'Тип', names(F_KIND, f.kind))}
         ${field('genre', 'Жанры', gnames && (f.gmode === 'none' ? 'Кроме: ' : '') + gnames)}
         ${field('status', 'Статус', names(F_STATUS, f.status))}
-        ${field('years', 'Годы', f.from || f.to ? `${f.from || '…'} — ${f.to || '…'}` : '')}
+        ${field('years', 'Годы', f.from || f.to ? `${f.from || '…'} - ${f.to || '…'}` : '')}
         ${field('season', 'Сезон', names(F_SEASON, f.season))}
         ${field('origin', 'Первоисточник', names(ORIGIN, f.origin))}
         ${field('studio', 'Студия', f.studioName || '')}
@@ -190,7 +278,7 @@ async function pageFilter(view, q, _, alive) {
         ${field('excl', 'Исключить закладки', names(F_EXCL, f.excl), 'Уберёт из выдачи тайтлы из выбранных списков')}
         ${field('order', 'Сортировка', F_ORDER[f.order || 'popularity'], F_ORDER_NOTE[f.order || 'popularity'])}
       </div>
-      ${f.genre && f.genre.split(',').length > 4 && f.gmode !== 'none' ? '<p class="field-err">Выбрано много жанров — нужны тайтлы со всеми сразу, поэтому результатов может не быть.</p>' : ''}
+      ${f.genre && f.genre.split(',').length > 4 && f.gmode !== 'none' ? '<p class="field-err">Выбрано много жанров - нужны тайтлы со всеми сразу, поэтому результатов может не быть.</p>' : ''}
       <div class="fbar"><button class="btn" id="f-reset">Сбросить</button><button class="btn primary" id="f-apply">${target === 'mytab' ? 'Сохранить вкладку' : 'Применить'}</button></div></div>`;
     $$('[data-f]', view).forEach(b => b.onclick = () => edit(b.dataset.f));
     $('#f-link').onclick = () => copy(`${location.origin}/#/results?${filterToQuery(f)}`, 'Ссылка на фильтр скопирована');
@@ -200,14 +288,14 @@ async function pageFilter(view, q, _, alive) {
       else go('#/results?' + filterToQuery(f));
     };
   };
-  // arr === null — окно закрыли без выбора: фильтр не трогаем
+  // arr === null - окно закрыли без выбора: фильтр не трогаем
   const set = (k, arr) => { if (!arr) return; if (arr.length) f[k] = arr.join(','); else delete f[k]; draw(); };
   const opts = map => Object.entries(map).map(([v, label]) => ({ v, label }));
   const cur = k => (f[k] || '').split(',').filter(Boolean);
   async function edit(k) {
     if (k === 'kind') set(k, await picker('Тип', opts(F_KIND), cur(k)));
     else if (k === 'status') set(k, await picker('Статус', opts(F_STATUS), cur(k)));
-    else if (k === 'season') set(k, await picker('Сезон', opts(F_SEASON), cur(k), { note: 'Вместе с «Годами» — сезоны в этих годах.' }));
+    else if (k === 'season') set(k, await picker('Сезон', opts(F_SEASON), cur(k), { note: 'Вместе с «Годами» - сезоны в этих годах.' }));
     else if (k === 'origin') set(k, await picker('Первоисточник', opts(ORIGIN), cur(k), { search: true }));
     else if (k === 'duration') set(k, await picker('Длительность эпизода', opts(F_DUR), cur(k)));
     else if (k === 'rating') set(k, await picker('Возрастное ограничение', opts(F_RATING), cur(k)));
@@ -232,7 +320,7 @@ async function pageFilter(view, q, _, alive) {
       <input class="input" id="gq" placeholder="Поиск жанра" style="width:100%">
       <div class="checks" id="gl"></div>
       <div class="row-btns" style="justify-content:space-between"><button class="btn" data-all>Выбрать все</button><div style="display:flex;gap:10px"><button class="btn" data-r>Сбросить</button><button class="btn primary" data-ok>Выбрать</button></div></div>`);
-    const notes = { all: 'Покажем тайтлы со всеми выбранными жанрами. Для точного результата выбирай 2–3 жанра.', none: 'Покажем только тайтлы без выбранных жанров.' };
+    const notes = { all: 'Покажем тайтлы со всеми выбранными жанрами. Для точного результата выбирай 2-3 жанра.', none: 'Покажем только тайтлы без выбранных жанров.' };
     const drawMode = () => { $$('[data-m]', box).forEach(c => c.classList.toggle('on', c.dataset.m === mode)); $('#gm-note', box).textContent = notes[mode]; };
     const drawList = (qq = '') => {
       $('#gl', box).innerHTML = Object.entries(groups).map(([g, gname]) => {
@@ -284,14 +372,14 @@ async function pageResults(view, q, _, alive) {
   if (!alive()) return;
   view.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><h1 class="page-title" style="margin:0;flex:1">Фильтр</h1>
       <a class="btn" href="#/filter?${filterToQuery(f)}">⚲ Изменить</a><button class="icon-btn" id="r-more">⋮</button></div>
-    <div class="fsum" style="margin-top:12px">⚲ ${esc(filterSummary(f) || 'Без условий — весь каталог')}</div><div id="rs"></div>`;
+    <div class="fsum" style="margin-top:12px">⚲ ${esc(filterSummary(f) || 'Без условий - весь каталог')}</div><div id="rs"></div>`;
   $('#r-more').onclick = () => {
     const r = $('#r-more').getBoundingClientRect();
     const items = [
       ['🔗', 'Скопировать ссылку', () => copy(location.href, 'Ссылка на фильтр скопирована')],
       ['★', `Установить для «${S.myTab.name}»`, async () => {
         if (S.myTab.filter && !(await confirmBox(`«${esc(S.myTab.name)}» уже настроена.<br><small class="muted">Сейчас: ${esc(filterSummary(S.myTab.filter) || 'без условий')}<br>Будет: ${esc(filterSummary(f) || 'без условий')}</small>`, 'Заменить'))) return;
-        S.myTab.filter = { ...f }; save(); toast('Готово — смотри на главной');
+        S.myTab.filter = { ...f }; save(); toast('Готово - смотри на главной');
       }],
     ];
     ctx.innerHTML = items.map(([i, t], n) => `<button data-k="${n}"><i>${i}</i>${esc(t)}</button>`).join('');
@@ -351,7 +439,7 @@ async function dubsAll() {
         for (const d of arr) if (d !== lead) drop.add(d);
       }
       DUBS_CACHE = DUBS_CACHE.filter(d => !drop.has(d));
-      // сначала то, что реально озвучено (больше тайтлов), известные студии — раньше
+      // сначала то, что реально озвучено (больше тайтлов), известные студии - раньше
       DUBS_CACHE.sort((x, y) => (y.n || 0) - (x.n || 0) || dubRank(x.title) - dubRank(y.title) || x.title.localeCompare(y.title));
     } catch { DUBS_CACHE = []; DUBS_CACHE.sample = 0; }
   }
@@ -367,7 +455,7 @@ const dubBase = t => {
   const w = ((t || '').toLowerCase().replace(/ё/g, 'е').match(/[a-zа-я0-9]+/g) || [])
     .filter(x => !(/^\d+$/.test(x)));
   while (w.length > 1 && DUB_JUNK.has(w[w.length - 1])) w.pop();
-  // AniLiberty и AniLibria — одна студия, в Kodik они записаны по-разному
+  // AniLiberty и AniLibria - одна студия, в Kodik они записаны по-разному
   if (w[0] === 'aniliberty') w[0] = 'anilibria';
   return w;
 };
@@ -376,7 +464,7 @@ const dubBase = t => {
 function dubPickerModal(pick, clearable = false) {
   const box = modal(`<h3>Выбор озвучки</h3>
     <div class="mode-chips"><button class="chip" data-t="voice">Озвучки</button><button class="chip" data-t="subtitles">Субтитры</button><button class="chip" data-t="all">Все</button></div>
-    <input class="input" id="dp-q" placeholder="Название озвучки — например, AniDUB" style="width:100%">
+    <input class="input" id="dp-q" placeholder="Название озвучки - например, AniDUB" style="width:100%">
     <div class="checks" id="dp-list"></div>
     ${clearable ? '<div class="row-btns"><button class="btn" id="dp-r">Без озвучки</button></div>' : ''}`);
   let type = 'voice';
@@ -384,8 +472,8 @@ function dubPickerModal(pick, clearable = false) {
     if ($('#modal').hidden) return;
     if (!list.length) { $('#dp-list', box).innerHTML = '<div class="muted" style="padding:8px">Не удалось загрузить список озвучек</div>'; return; }
     const draw = (qq = '') => {
-      // по умолчанию — только то, что реально озвучено (есть счётчик > 0);
-      // пока счётчики считаются — известные студии по DUB_RANK
+      // по умолчанию - только то, что реально озвучено (есть счётчик > 0);
+      // пока счётчики считаются - известные студии по DUB_RANK
       const hasCounts = (list.sample || 0) > 0;
       let pool = hasCounts ? list.filter(x => x.n > 0) : list.filter(x => dubRank(x.title) < 999);
       let rest = null;
@@ -398,8 +486,8 @@ function dubPickerModal(pick, clearable = false) {
       const row = x => `<button class="drow" data-tid="${x.id}" data-label="${esc(x.title)}"><span>${esc(x.title)}</span><small>${DUB_TYPES[x.type] || x.type}${x.n ? ' · ' + x.n + ' тайтлов' : ''}</small></button>`;
       $('#dp-list', box).innerHTML = (pool.slice(0, 60).map(row).join('')
         + (rest && rest.length ? `<h5 style="margin:10px 8px 4px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.8px">Остальное (пустые / каналы / одиночные)</h5>` + rest.slice(0, 60).map(row).join('') : ''))
-        || (hasCounts ? '<div class="muted" style="padding:8px">Не нашлось — попробуй написать иначе</div>'
-          : '<div class="muted" style="padding:8px">Не нашлось; подождём пару минут — сейчас подтягиваются счётчики тайтлов, после список станет точным</div>');
+        || (hasCounts ? '<div class="muted" style="padding:8px">Не нашлось - попробуй написать иначе</div>'
+          : '<div class="muted" style="padding:8px">Не нашлось; подождём пару минут - сейчас подтягиваются счётчики тайтлов, после список станет точным</div>');
       $$('[data-tid]', $('#dp-list', box)).forEach(b => b.onclick = () => { closeModal(); pick(+b.dataset.tid, b.dataset.label); });
     };
     $('#dp-q', box).oninput = e => draw(e.target.value.trim().toLowerCase());
@@ -416,7 +504,7 @@ function dubPickerModal(pick, clearable = false) {
 
 async function pageDubs(view, q, _, alive) {
   if (SYS?.online === false) {
-    view.innerHTML = '<h1 class="page-title">Озвучки</h1>' + emptyHtml('🎙', 'В этой версии Анимир онлайн-озвучек нет', 'Смотри свои файлы из «Медиатеки», ссылки на свой медиасервер (🔗) или официальные площадки — кнопка «Где смотреть» на странице тайтла.');
+    view.innerHTML = '<h1 class="page-title">Озвучки</h1>' + emptyHtml('🎙', 'В этой версии Анимир онлайн-озвучек нет', 'Смотри свои файлы из «Медиатеки», ссылки на свой медиасервер (🔗) или официальные площадки - кнопка «Где смотреть» на странице тайтла.');
     return;
   }
   const tid = q.get('tid');
@@ -424,7 +512,7 @@ async function pageDubs(view, q, _, alive) {
   if (!tid) {
     // витрина: словарь озвучек (известные сверху), поиск по подстроке
     view.innerHTML = `<h1 class="page-title">Озвучки</h1>
-      <div class="muted" style="margin:6px 0 16px">Выбери студию — покажем тайтлы, где она озвучивала. Тайтл из выдачи открывается сразу на сериях выбранной озвучки, там же кнопка «🔔 Следить».</div>
+      <div class="muted" style="margin:6px 0 16px">Выбери студию - покажем тайтлы, где она озвучивала. Тайтл из выдачи открывается сразу на сериях выбранной озвучки, там же кнопка «🔔 Следить».</div>
       <div class="fsum" style="margin-bottom:10px"><span style="display:flex;gap:8px;align-items:center">⚲ <input class="input" id="d-q" placeholder="Найти озвучку…" style="width:240px">
       <select class="select" id="d-t" style="width:auto"><option value="voice">Озвучки</option><option value="subtitles">Субтитры</option><option value="all">Все</option></select></span></div>
       <label class="muted" style="display:flex;gap:8px;align-items:center;margin:0 0 16px;cursor:pointer"><input type="checkbox" id="d-all">
@@ -434,24 +522,24 @@ async function pageDubs(view, q, _, alive) {
       const box = $('#d-list', view);
       if (!alive() || !box) return;
       box.classList.remove('loading');
-      $('#d-all-t', view).textContent = `Показать все записи (${list.length} — включая каналы, сабы и одиночные озвучки)`;
+      $('#d-all-t', view).textContent = `Показать все записи (${list.length} - включая каналы, сабы и одиночные озвучки)`;
       const hasCounts = (list.sample || 0) > 0;
       if (!hasCounts) box.insertAdjacentHTML('beforebegin',
-        '<div class="muted" style="margin:0 0 12px">⏳ Считаем, сколько тайтлов у каждой озвучки — подсветим числа и уберём пустые через пару минут. Пока показаны известные студии.</div>');
+        '<div class="muted" style="margin:0 0 12px">⏳ Считаем, сколько тайтлов у каждой озвучки - подсветим числа и уберём пустые через пару минут. Пока показаны известные студии.</div>');
       const draw = () => {
         const qq = ($('#d-q', view)?.value || '').trim().toLowerCase();
         const ty = $('#d-t', view)?.value || 'voice';
         const all = $('#d-all', view)?.checked;
-        // по умолчанию — только реально озвученные (счётчик > 0); пока счётчики
-        // считаются — известные студии по DUB_RANK
+        // по умолчанию - только реально озвученные (счётчик > 0); пока счётчики
+        // считаются - известные студии по DUB_RANK
         const pool = all ? list : list.filter(x => hasCounts ? x.n > 0 : dubRank(x.title) < 999);
         const shown = pool.filter(x => (ty === 'all' || x.type === ty) && (!qq || x.title.toLowerCase().includes(qq))).slice(0, 400);
         let empty = '<span class="muted">Ничего не нашлось</span>';
         if (!shown.length && !all &&
             list.some(x => (ty === 'all' || x.type === ty) && (!qq || x.title.toLowerCase().includes(qq))))
-          empty = `<span class="muted">${hasCounts ? 'Такие записи есть, но пустые/нишевые — включи «Показать все записи» ↑' : 'Такие записи есть, но в полном списке — включи «Показать все записи» ↑'}</span>`;
+          empty = `<span class="muted">${hasCounts ? 'Такие записи есть, но пустые/нишевые - включи «Показать все записи» ↑' : 'Такие записи есть, но в полном списке - включи «Показать все записи» ↑'}</span>`;
         box.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px">${shown.length ? shown.map(dubChip).join('') : empty}</div>
-          ${shown.length && pool.length > shown.length ? `<div class="muted" style="margin-top:10px">Показаны первые ${shown.length} — уточни поиск или переключи тип.</div>` : ''}`;
+          ${shown.length && pool.length > shown.length ? `<div class="muted" style="margin-top:10px">Показаны первые ${shown.length} - уточни поиск или переключи тип.</div>` : ''}`;
       };
       $('#d-q', view).oninput = draw;
       $('#d-t', view).onchange = draw;
@@ -465,7 +553,7 @@ async function pageDubs(view, q, _, alive) {
       <a class="btn" href="#/dubs">⇠ Другая озвучка</a></div>
     <div class="fsum" style="margin:12px 0 16px"><span style="display:flex;gap:8px;align-items:center">⚲ <input class="input" id="d-q" placeholder="Название тайтла (необязательно)" style="width:280px" value="${esc(q.get('q') || '')}">
       <button class="btn primary" id="d-go">Показать</button></span></div>
-    ${hint('dubcat', 'Выдача — самые популярные тайтлы Shikimori, у которых проверена эта озвучка. Прокрути вниз — подгрузим ещё страницу. Если ищешь конкретный тайтл — впиши его название выше: проверим точно его.')}
+    ${hint('dubcat', 'Выдача - самые популярные тайтлы Shikimori, у которых проверена эта озвучка. Прокрути вниз - подгрузим ещё страницу. Если ищешь конкретный тайтл - впиши его название выше: проверим точно его.')}
     <div id="d-box"></div>`;
   const href = a => `#/anime/${a.id}/watch?g=${encodeURIComponent(label)}`;
   const applyQ = () => go(`#/dubs?tid=${tid}&label=${encodeURIComponent(label)}&q=` + encodeURIComponent($('#d-q', view).value.trim()));
@@ -473,7 +561,7 @@ async function pageDubs(view, q, _, alive) {
   $('#d-q', view).addEventListener('keydown', e => { if (e.key === 'Enter') applyQ(); });
   const sq = (q.get('q') || '').trim();
   const qs = `tid=${encodeURIComponent(tid)}` + (sq ? `&q=${encodeURIComponent(sq)}` : '');
-  const oneShot = !!sq; // поиск по названию — одна порция, прокрутка не нужна
+  const oneShot = !!sq; // поиск по названию - одна порция, прокрутка не нужна
   dubsAll().then(list => {  // счётчик тайтлов в заголовке
     const d = list.find(x => String(x.id) === String(tid));
     if (alive() && d && $('#d-cnt', view)) $('#d-cnt', view).textContent = d.n ? ` · ${d.n} тайтлов в топе` : '';

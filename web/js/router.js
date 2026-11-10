@@ -1,15 +1,15 @@
 'use strict';
-// Анимир — переходы между экранами и «Назад».
+// Анимир - переходы между экранами и «Назад».
 
 // ================= роутер =================
 let navToken = 0;
-// таблица экранов (routes) — в start.js: её строки ссылаются на страницы из файлов ниже
+// таблица экранов (routes) - в start.js: её строки ссылаются на страницы из файлов ниже
 function parseHash() {
   const [path, qs] = (location.hash.slice(1) || '/').split('?');
   return { path: path || '/', q: new URLSearchParams(qs || '') };
 }
-// Прокрутка: тот же экран перерисовывается (отметил серию, поставил оценку) — остаёмся на месте;
-// «Назад/Вперёд» — возвращаемся туда, где были (позиция лежит в history.state.y); новый экран — сверху.
+// Прокрутка: тот же экран перерисовывается (отметил серию, поставил оценку) - остаёмся на месте;
+// «Назад/Вперёд» - возвращаемся туда, где были (позиция лежит в history.state.y); новый экран - сверху.
 let lastHash = null, fromHistory = false;
 async function route() {
   const { path, q } = parseHash();
@@ -29,7 +29,7 @@ async function route() {
   const navKey = sect === 'bookmarks' && q.get('tab') === 'history' ? 'history' : navMap[sect] || sect;
   $$('.nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
   const old = $('#view');
-  const view = old.cloneNode(false); // новый элемент — сбрасываем обработчики прокрутки прошлой страницы
+  const view = old.cloneNode(false); // новый элемент - сбрасываем обработчики прокрутки прошлой страницы
   old.replaceWith(view);
   rememberScroll(view);
   for (const [re, fn] of routes) {
@@ -48,17 +48,17 @@ async function route() {
   history.replaceState({ d: navDepth() }, '', '#/');
   route();
 }
-// Позиция прокрутки экрана — в его запись истории (после того как прокрутка остановилась)
+// Позиция прокрутки экрана - в его запись истории (после того как прокрутка остановилась)
 function rememberScroll(view) {
   view.addEventListener('scroll', debounce(() => {
     if (view.isConnected && location.hash === lastHash) history.replaceState({ ...(history.state || {}), y: Math.round(view.scrollTop) }, '');
   }, 250), { passive: true });
-  // крутит сам — больше не возвращаем его на сохранённое место
+  // крутит сам - больше не возвращаем его на сохранённое место
   ['wheel', 'pointerdown', 'touchstart'].forEach(ev => view.addEventListener(ev, () => { view.keepStop = true; }, { passive: true }));
 }
 // Возвращаемся на позицию y. Страницы догружают карточки постепенно (pager), поэтому пробуем
-// несколько раз, пока содержимого не хватит, — но не дольше 4 секунд.
-// keepWant — сколько ещё не хватает до цели: pager видит его и догружает страницы, пока содержимого не хватит.
+// несколько раз, пока содержимого не хватит, - но не дольше 4 секунд.
+// keepWant - сколько ещё не хватает до цели: pager видит его и догружает страницы, пока содержимого не хватит.
 function keepScroll(view, y, alive) {
   if (!y) return;
   clearTimeout(view.keepT);
@@ -95,14 +95,14 @@ function addRefresh(view) {
     ongoingCache = null;
     route();
   };
-  const set = $('#tab-set', view);  // на главной рядом уже есть ☰ — ставим перед ним
+  const set = $('#tab-set', view);  // на главной рядом уже есть ☰ - ставим перед ним
   if (set) set.before(b); else tabs.append(b);
 }
-// hashchange приходит от «Назад/Вперёд» (Alt+←, кнопки мыши) — тогда восстанавливаем прокрутку
+// hashchange приходит от «Назад/Вперёд» (Alt+←, кнопки мыши) - тогда восстанавливаем прокрутку
 addEventListener('hashchange', () => { fromHistory = true; route(); });
 // «Назад» должен идти по экранам шаг за шагом: серии → тайтл → откуда пришёл. Поэтому тайтл,
 // его страницы (серии, просмотр) и плеер считаются разными экранами; внутри одного экрана
-// (вкладки, фильтры, поиск, выбор озвучки/источника, соседняя серия в плеере) — заменяют запись.
+// (вкладки, фильтры, поиск, выбор озвучки/источника, соседняя серия в плеере) - заменяют запись.
 const screenKey = h => {
   const path = (h.replace(/^#/, '') || '/').split('?')[0] || '/';
   if (path.startsWith('/watch')) return '/watch';
@@ -110,47 +110,47 @@ const screenKey = h => {
   if (m) return m[1];
   return path.replace(/^(\/anime\/\d+)\/.*$/, '$1');
 };
-// В history.state храним глубину: 0 — первый экран. Так «назад» знает, есть ли куда возвращаться внутри Анимир.
+// В history.state храним глубину: 0 - первый экран. Так «назад» знает, есть ли куда возвращаться внутри Анимир.
 const navDepth = () => history.state?.d || 0;
 function go(h) {
   if (location.hash === h) return route();
   if (screenKey(h) === screenKey(location.hash)) history.replaceState({ d: navDepth() }, '', h);
   else {
-    // запоминаем, где был этот экран, — «Назад» вернёт сюда же
+    // запоминаем, где был этот экран, - «Назад» вернёт сюда же
     history.replaceState({ ...(history.state || {}), y: Math.round($('#view').scrollTop) }, '');
     history.pushState({ d: navDepth() + 1 }, '', h);
   }
   route();
 }
-// Шаг назад; если назад некуда (Анимир открыли сразу на этом экране) — на запасной экран
+// Шаг назад; если назад некуда (Анимир открыли сразу на этом экране) - на запасной экран
 function goBack(fallback = '#/') {
   if (navDepth() > 0) history.back();
   else { history.replaceState({ d: 0 }, '', fallback); route(); }
 }
 
 // Просмотр открывается отдельным окном приложения (Edge --app), главное окно остаётся на месте.
-// Не получилось (сервер недоступен, Edge не найден) — открываем внутри этого окна, как раньше.
+// Не получилось (сервер недоступен, Edge не найден) - открываем внутри этого окна, как раньше.
 async function watchOpen(h) {
-  // Плеер — только один: если в отдельном окне уже что-то идёт, спрашиваем, переключить ли его.
+  // Плеер - только один: если в отдельном окне уже что-то идёт, спрашиваем, переключить ли его.
   let cur = { open: false };
-  try { cur = await (await fetch('/api/player')).json(); } catch { /* сервер старый — не спрашиваем */ }
+  try { cur = await (await fetch('/api/player')).json(); } catch { /* сервер старый - не спрашиваем */ }
   if (cur.open && !await confirmBox(switchQuestion(cur, h), 'Переключить')) return false;
   if (S.settings.playerWindow === 'separate') {
     try {
       const r = await fetch('/api/open-window', { method: 'POST', body: JSON.stringify({ url: h + (h.includes('?') ? '&' : '?') + 'w=1' }) });
       if ((await r.json()).ok === true) {
         toast(cur.open ? 'Окно плеера переключено' : 'Просмотр открыт в отдельном окне');
-        if (location.hash.startsWith('#/watch')) goBack('#/');  // здесь тоже шло видео — второе не нужно
+        if (location.hash.startsWith('#/watch')) goBack('#/');  // здесь тоже шло видео - второе не нужно
         return true;
       }
     } catch { /* открываем здесь */ }
   } else if (cur.open) {
-    fetch('/api/player/close', { method: 'POST', body: '{}' }).catch(() => {});  // смотрим здесь — окно плеера закрываем
+    fetch('/api/player/close', { method: 'POST', body: '{}' }).catch(() => {});  // смотрим здесь - окно плеера закрываем
   }
   go(h);
   return false;
 }
-// «Сейчас идёт: Фрирен — серия 1. Переключить на серию 2?»
+// «Сейчас идёт: Фрирен - серия 1. Переключить на серию 2?»
 function switchQuestion(cur, h) {
   const q = new URLSearchParams(h.split('?')[1] || '');
   const was = new URLSearchParams((cur.hash || '').split('?')[1] || '');
@@ -160,16 +160,16 @@ function switchQuestion(cur, h) {
     : q.get('e') ? `другой тайтл, серию ${esc(q.get('e'))}` : file ? `«${esc(file)}»` : 'новое видео';
   return `Сейчас идёт: ${esc(name)}.<br>Переключить на ${what}?`;
 }
-// флаг «мы — отдельное окно просмотра» (метка w=1, которую watchOpen дописывает к адресу)
+// флаг «мы - отдельное окно просмотра» (метка w=1, которую watchOpen дописывает к адресу)
 const PLAYER_WINDOW = (() => {
   const q = new URLSearchParams((location.hash.split('?')[1] || '').split('#')[0]);
   return q.get('w') === '1';
 })();
 const withW = h => PLAYER_WINDOW ? h + (h.includes('?') ? '&' : '?') + 'w=1' : h;
-// «Назад» в отдельном окне = закрыть окно; не вышло — возвращаемся внутри него
+// «Назад» в отдельном окне = закрыть окно; не вышло - возвращаемся внутри него
 function closeOrBack(fallback) {
   if (PLAYER_WINDOW) {
-    try { window.close(); } catch { /* запретили — вернёмся внутри окна */ }
+    try { window.close(); } catch { /* запретили - вернёмся внутри окна */ }
     setTimeout(() => { if (!window.closed) goBack(fallback); }, 150);
     return;
   }
@@ -178,7 +178,7 @@ function closeOrBack(fallback) {
 
 // Ссылки без адреса: иначе при наведении внизу окна всплывает «127.0.0.1:8790/#/...», как на сайте.
 // При первом наведении переносим href в data-go, а переход делаем сами.
-// Без href ссылка выпала бы из обхода клавишей Tab — поэтому ставим ей tabindex.
+// Без href ссылка выпала бы из обхода клавишей Tab - поэтому ставим ей tabindex.
 document.addEventListener('pointerover', e => {
   const a = e.target.closest?.('a[href]');
   if (!a || a.hasAttribute('download') || /^(blob|data):/.test(a.href)) return;
@@ -187,8 +187,8 @@ document.addEventListener('pointerover', e => {
   a.removeAttribute('href');
   if (!a.hasAttribute('tabindex')) a.tabIndex = 0;
 }, true);
-// Все ссылки — один обработчик: внутренние идут через go() (в историю попадает «глубина»),
-// просмотр — отдельным окном, Shikimori — в обычном браузере, остальное — новым окном.
+// Все ссылки - один обработчик: внутренние идут через go() (в историю попадает «глубина»),
+// просмотр - отдельным окном, Shikimori - в обычном браузере, остальное - новым окном.
 document.addEventListener('click', e => {
   if (e.defaultPrevented || e.button !== 0) return;
   const a = e.target.closest?.('a[href], a[data-go]');
@@ -203,7 +203,7 @@ document.addEventListener('click', e => {
   else if (h.startsWith(SHIKI_URL)) openInBrowser(h);
   else if (/^https?:/i.test(h)) window.open(h, '_blank');
 });
-// Enter / пробел на «ссылке» без href и на кликабельных строках (серии, ролики) — как клик
+// Enter / пробел на «ссылке» без href и на кликабельных строках (серии, ролики) - как клик
 document.addEventListener('keydown', e => {
   if ((e.key !== 'Enter' && e.key !== ' ') || e.defaultPrevented || e.repeat) return;
   const el = e.target;
@@ -218,7 +218,7 @@ async function checkGoto() {
   try {
     const { hash } = await fetch('/api/goto').then(r => r.json());
     if (hash) go(hash);
-  } catch { /* сервер перезапускается — спросим позже */ }
+  } catch { /* сервер перезапускается - спросим позже */ }
 }
 const openInBrowser = url => fetch('/api/open-url', { method: 'POST', body: JSON.stringify({ url }) })
   .then(r => { if (!r.ok) window.open(url, '_blank'); }).catch(() => window.open(url, '_blank'));

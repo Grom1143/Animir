@@ -1,5 +1,5 @@
 'use strict';
-// Анимир — страница тайтла: описание, оценки, комментарии, отзывы.
+// Анимир - страница тайтла: описание, оценки, комментарии, отзывы.
 
 // ================= Страница тайтла =================
 const ANIME_FIELDS = `id russian name japanese english synonyms kind score status episodes episodesAired duration rating origin franchise
@@ -22,13 +22,13 @@ function htmlText(h) {
   return d.body.textContent.replace(/\n{3,}/g, '\n\n').trim();
 }
 // Уведомления по тайтлу: каждая серия, только последняя серия (тайтл вышел целиком) или не уведомлять.
-// «Не уведомлять» нужно и для тайтлов из закладок — иначе они попадают в проверку по спискам.
+// «Не уведомлять» нужно и для тайтлов из закладок - иначе они попадают в проверку по спискам.
 const SUB_MODES = { each: '🔔 Каждая новая серия', final: '🏁 Только когда выйдет последняя серия', off: '🔕 Не уведомлять' };
 const subMode = id => S.subs[id]?.mode || (S.subs[id] ? 'each' : null);
 const subOn = id => !!S.subs[id] && subMode(id) !== 'off';
 // Придут ли уведомления: своя подписка или тайтл в закладках из проверяемых списков (если не выключено)
 const followOn = id => subOn(id) || S.settings.notifyLists.includes(S.list[id]?.status) && subMode(id) !== 'off';
-// Что сейчас с уведомлениями по тайтлу — одно место для значка на странице тайтла, карточках и в меню.
+// Что сейчас с уведомлениями по тайтлу - одно место для значка на странице тайтла, карточках и в меню.
 // on: уведомления придут (значок яркий); иначе значок бледный, чтобы не отвлекал.
 const NOTIFY_ON = new Set(['each', 'final', 'list', 'dub']);
 function notifyState(a) {
@@ -42,9 +42,9 @@ function notifyState(a) {
     st = { k: 'list', i: '🔔', t: `Уведомления приходят сами: тайтл в закладках «${LIST_NAME[e.status]}»` };
   else if (dub) st = { k: 'dub', i: '🎙', t: `Следишь за озвучкой «${dub.dubLabel || 'озвучка'}»` };
   else if (mode === 'off') st = { k: 'off', i: '🔕', t: 'Уведомления по тайтлу отключены' };
-  else st = { k: 'none', i: '🔔', t: 'Уведомлений нет — нажми, чтобы следить за сериями' };
+  else st = { k: 'none', i: '🔔', t: 'Уведомлений нет - нажми, чтобы следить за сериями' };
   st.on = NOTIFY_ON.has(st.k);
-  // вышедший целиком тайтл новых серий не даст — значок на карточке ему не нужен (кроме озвучки: её серии ещё выходят)
+  // вышедший целиком тайтл новых серий не даст - значок на карточке ему не нужен (кроме озвучки: её серии ещё выходят)
   st.badge = st.on && (st.k === 'dub' || status !== 'released');
   return st;
 }
@@ -62,7 +62,7 @@ function setSub(a, mode) {
   refreshCards(a.id);  // значок уведомлений на карточках этого тайтла
 }
 // Маленькое меню выбора режима прямо у кнопки (вместо окна по центру).
-// at — кнопка, под которой открыть, или точка { x, y }. Выбор → Promise с режимом; закрыли мимо — промис просто не сработает.
+// at - кнопка, под которой открыть, или точка { x, y }. Выбор → Promise с режимом; закрыли мимо - промис просто не сработает.
 function subMenu(a, cur, at, note) {
   return new Promise(res => {
     ctx.innerHTML = (note ? `<div class="ch sub-note">${esc(note)}</div>` : '')
@@ -77,10 +77,10 @@ function subMenu(a, cur, at, note) {
 }
 async function toggleSub(a, at) {
   const st = S.subs[a.id]?.status || a.status;
-  if (st === 'released') { toast('Этот тайтл уже вышел полностью — новых серий не будет'); return; }
+  if (st === 'released') { toast('Этот тайтл уже вышел полностью - новых серий не будет'); return; }
   const inList = S.settings.notifyLists.includes(S.list[a.id]?.status);
   const cur = subMode(a.id) || (inList ? 'each' : 'off');
-  const note = inList ? `В закладках «${LIST_NAME[S.list[a.id].status]}» — уведомления приходят сами` : '';
+  const note = inList ? `В закладках «${LIST_NAME[S.list[a.id].status]}» - уведомления приходят сами` : '';
   const mode = at ? await subMenu(a, cur, at, note)
     : ((await picker('Уведомления: ' + esc(title(a)), Object.entries(SUB_MODES).map(([v, label]) => ({ v, label })), [cur], { multi: false, note })) || [])[0];
   if (!mode || mode === cur) return;
@@ -91,7 +91,7 @@ async function toggleSub(a, at) {
 function weekdayName(d) { return ['воскресенье', 'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу'][new Date(d).getDay()]; }
 
 // Окно «Где смотреть»: бесплатные и подписочные площадки, прямой ссылкой если Shikimori её знает,
-// иначе — поиск по названию. Всё открывается в браузере; ролики VK/RuTube/YouTube можно добавить в плеер через 🔗.
+// иначе - поиск по названию. Всё открывается в браузере; ролики VK/RuTube/YouTube можно добавить в плеер через 🔗.
 function watchWhereDialog(a, legal = []) {
   const q = title(a);
   const row = (x, href) => {
@@ -105,9 +105,9 @@ function watchWhereDialog(a, legal = []) {
     return row(x, hit ? hit.url : x.url(q));
   }).join('');
   modal(`<h3>Где смотреть</h3>
-    <p class="muted">Официальные площадки: VK Видео, RuTube и YouTube — бесплатно; у Иви, Wink и Okko часть каталога открыта бесплатно с рекламой, остальное по подписке. Анимир не ищет пиратские копии и не обходит защиты.</p>
+    <p class="muted">Официальные площадки: VK Видео, RuTube и YouTube - бесплатно; у Иви, Wink и Okko часть каталога открыта бесплатно с рекламой, остальное по подписке. Анимир не ищет пиратские копии и не обходит защиты.</p>
     <div class="list">${body}</div>
-    <p class="muted" style="font-size:12px">Свои файлы и домашний медиасервер играют прямо в Анимир — раздел «Медиатека», а ссылку на ролик площадки можно добавить кнопкой 🔗 сверху.</p>
+    <p class="muted" style="font-size:12px">Свои файлы и домашний медиасервер играют прямо в Анимир - раздел «Медиатека», а ссылку на ролик площадки можно добавить кнопкой 🔗 сверху.</p>
     <div class="row-btns"><button class="btn" onclick="closeModal()">Закрыть</button></div>`);
 }
 
@@ -151,7 +151,7 @@ async function pageAnime(view, q, [id], alive) {
     ['🎬', [KIND_FULL[a.kind], a.airedOn?.year && a.airedOn.year + ' год', seasonTxt].filter(Boolean).join(', ')],
     ['📺', a.status === 'ongoing' ? `${a.episodesAired} из ${a.episodes || '?'} эп.${a.duration ? ` по ~${a.duration} мин.` : ''}` : a.episodes ? `${a.episodes} эп.${a.duration ? ` по ~${a.duration} мин.` : ''}` : a.duration ? `~${a.duration} мин.` : ''],
     ['📅', a.nextEpisodeAt ? `Новые серии каждую ${weekdayName(a.nextEpisodeAt)} · ${a.episodesAired + 1}-я серия ${fmtWhen(a.nextEpisodeAt)}` : a.status === 'anons' ? (a.airedOn?.date ? 'Выход: ' + fmtDate(a.airedOn.date) : 'Дата выхода пока неизвестна')
-      : a.airedOn?.date ? `Выходил: ${fmtDate(a.airedOn.date)}${a.releasedOn?.date && a.releasedOn.date !== a.airedOn.date ? ' — ' + fmtDate(a.releasedOn.date) : ''}` : ''],
+      : a.airedOn?.date ? `Выходил: ${fmtDate(a.airedOn.date)}${a.releasedOn?.date && a.releasedOn.date !== a.airedOn.date ? ' - ' + fmtDate(a.releasedOn.date) : ''}` : ''],
     ['📖', a.origin && ORIGIN[a.origin] ? 'Первоисточник: ' + ORIGIN[a.origin].toLowerCase() : ''],
     ['🏢', a.studios.length ? 'Студия: ' + a.studios.map(x => `<a class="linkbtn" href="#/results?studio=${x.id}&studioName=${encodeURIComponent(x.name)}">${esc(x.name)}</a>`).join(', ') : ''],
     ['✓', watched ? `Ты посмотрел ${watched} из ${a.episodes || a.episodesAired || '?'} серий` : ''],
@@ -174,7 +174,7 @@ async function pageAnime(view, q, [id], alive) {
           <button class="btn" id="more" title="Ещё">⋮</button>
         </div>
         ${anons ? `<div class="btn soon">📅 ${a.airedOn?.year ? 'Выход: ' + partDate(a.airedOn) : 'Дата выхода пока неизвестна'}</div>
-        <label class="rl-follow anons-follow" title="Уведомим, когда начнётся показ, а потом — о новых сериях"><span>🔔 Следить за выходом</span>
+        <label class="rl-follow anons-follow" title="Уведомим, когда начнётся показ, а потом - о новых сериях"><span>🔔 Следить за выходом</span>
           <span class="switch"><input type="checkbox" id="follow" ${followOn(s.id) ? 'checked' : ''}><span></span></span></label>`
         : `<button class="btn primary" id="play">▶ Смотреть</button>
         <div class="last-upd">${myFiles.length || myStreams.length ? `Мои источники: ${plural(myFiles.length, 'файл', 'файла', 'файлов')}${myStreams.length ? ', ' + plural(myStreams.length, 'ссылка', 'ссылки', 'ссылок') : ''}` : 'Выбери источник: файлы, ссылка или онлайн-озвучки'}</div>`}
@@ -195,7 +195,7 @@ async function pageAnime(view, q, [id], alive) {
 
         <div class="sec-head"><h2>Рейтинг</h2></div>
         <div class="rating-box">
-          <div class="avg"><b>${a.score > 0 ? (a.score / 2).toFixed(1) : '—'}</b><div class="stars5 ro sm">${starsHtml(Math.round(a.score / 2))}</div><span>${scoreTotal ? kfmt(scoreTotal) + ' голосов на Shikimori' : 'Недостаточно голосов'}</span></div>
+          <div class="avg"><b>${a.score > 0 ? (a.score / 2).toFixed(1) : '-'}</b><div class="stars5 ro sm">${starsHtml(Math.round(a.score / 2))}</div><span>${scoreTotal ? kfmt(scoreTotal) + ' голосов на Shikimori' : 'Недостаточно голосов'}</span></div>
           <div class="hist">${hist5.map(h => `<div class="r"><span>${h.st}★</span><div class="tr"><i style="width:${h.n / histMax * 100}%"></i></div><span>${kfmt(h.n)}</span></div>`).join('')}</div>
           <div class="my-rate"><div class="avatar" style="${S.settings.avatar ? `background-image:url('${S.settings.avatar}')` : ''}">${S.settings.avatar ? '' : esc(nick[0].toUpperCase())}</div>
             <div><div class="muted" style="font-size:12px">${S.list[s.id]?.score ? 'Твоя оценка · ' + scoreText(S.list[s.id].score) : 'Оцени тайтл'}</div><div class="stars5" id="my-stars">${starsHtml(S.list[s.id]?.score || 0)}</div></div>
@@ -228,7 +228,7 @@ async function pageAnime(view, q, [id], alive) {
       </div>
     </div>`;
 
-  // озвучки ищутся несколько секунд — начинаем заранее, пока человек читает описание
+  // озвучки ищутся несколько секунд - начинаем заранее, пока человек читает описание
   if (!anons && !['music', 'pv', 'cm'].includes(a.kind) && SYS?.online !== false) onlineDubs(s);
   // кнопки
   $('#poster').onclick = () => viewer([a.poster?.originalUrl || s.poster]);
@@ -240,7 +240,7 @@ async function pageAnime(view, q, [id], alive) {
     toast(e.target.checked ? 'Сообщим, когда начнётся показ, и о новых сериях' : 'Уведомления по тайтлу отключены');
   });
   $('#coll').onclick = $('#coll2').onclick = () => collectionPicker(s);
-  $('#reroll')?.addEventListener('click', randomAnime);
+  $('#reroll')?.addEventListener('click', () => { const v = moodOf(q); if (v) randomInVibe(v); else randomAnime(); });
   $('#st').onclick = async () => { if ((await statusPicker(s)) !== null) route(); };
   $('#fav').onclick = () => { toggleFav(s); route(); };
   $('#play')?.addEventListener('click', () => go(`#/anime/${s.id}/watch`));
@@ -251,7 +251,7 @@ async function pageAnime(view, q, [id], alive) {
       ['🔗', 'Открыть ссылку на видео…', () => streamDialog({ anime: s })],
       ['↗', 'Открыть на Shikimori', () => window.open(shikiUrl(s.id), '_blank')],
       ['⧉', 'Скопировать ссылку', () => copy(shikiUrl(s.id), 'Ссылка скопирована')],
-      ['✉', 'Поделиться', () => copy(`Рекомендую посмотреть: «${title(s)}» — ${shikiUrl(s.id)}`, 'Текст для отправки скопирован')],
+      ['✉', 'Поделиться', () => copy(`Рекомендую посмотреть: «${title(s)}» - ${shikiUrl(s.id)}`, 'Текст для отправки скопирован')],
       ['✎', S.notes[s.id] ? 'Изменить впечатления' : 'Записать впечатления', () => noteDialog(s)],
     ];
     ctx.innerHTML = items.map(([i, t], n) => `<button data-k="${n}"><i>${i}</i>${esc(t)}</button>`).join('');
@@ -268,7 +268,7 @@ async function pageAnime(view, q, [id], alive) {
     $$('[data-c]', b).forEach(x => x.onclick = () => copy(x.dataset.c));
   };
   $('#age')?.addEventListener('click', () => modal(`<h3>Возрастное ограничение ${RATING[a.rating]}</h3><p>${esc(RATING_INFO[a.rating] || '')}</p>
-    <p class="muted">Возрастные пометки — по американской системе MPAA, которую использует Shikimori: 0+ → G, 6+ → PG, 13+ → PG-13, 16+ → R, 18+ → R+.</p><div class="row-btns"><button class="btn" onclick="closeModal()">Понятно</button></div>`));
+    <p class="muted">Возрастные пометки - по американской системе MPAA, которую использует Shikimori: 0+ → G, 6+ → PG, 13+ → PG-13, 16+ → R, 18+ → R+.</p><div class="row-btns"><button class="btn" onclick="closeModal()">Понятно</button></div>`));
   $('#desc-t')?.addEventListener('click', e => { const d = $('#desc'); d.classList.toggle('clamp'); e.target.textContent = d.classList.contains('clamp') ? 'Подробнее…' : 'Скрыть'; });
   $$('.video', view).forEach(el => el.onclick = () => openVideo(vids[+el.dataset.v]));
   $$('.shots-row img', view).forEach(im => im.onclick = () => viewer(shots.map(x => x.originalUrl), +im.dataset.i));
@@ -277,7 +277,7 @@ async function pageAnime(view, q, [id], alive) {
   $$('.my-note .spoiler', view).forEach(sp => sp.onclick = () => sp.classList.add('open'));
 
   renderMyReview($('#my-review'), a).then(() => {
-    // ?rvc=<id> — пришли из уведомления «комментарий к отзыву»: показываем комментарии отзыва
+    // ?rvc=<id> - пришли из уведомления «комментарий к отзыву»: показываем комментарии отзыва
     const rv = myReview(a.id);
     if (q.get('rvc') && rv && alive()) {
       $('#my-review').scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -298,7 +298,7 @@ async function pageAnime(view, q, [id], alive) {
     }).catch(() => { if (alive()) $('#cm-prev').innerHTML = '<div class="muted">Комментарии не загрузились.</div>'; });
   } else $('#cm-prev').innerHTML = '<div class="muted">Обсуждения пока нет.</div>';
 }
-// Оценка Shikimori: основная — в шкале из настроек, вторая всплывает над ней при наведении
+// Оценка Shikimori: основная - в шкале из настроек, вторая всплывает над ней при наведении
 function shikiScore(a, cls, digits = 1) {
   const ten = (+a.score).toFixed(digits), five = (a.score / 2).toFixed(digits);
   const [main, alt] = scale10() ? [ten, five + ' из 5'] : [five, ten + ' из 10'];
@@ -308,11 +308,11 @@ function starsHtml(n, ro = false) {
   const half = scale10() && !ro;
   return [1, 2, 3, 4, 5].map(i => `<button data-s="${i}" class="${i <= n ? 'on' : i - 0.5 <= n ? 'half' : ''}">★${half ? `<i data-s="${i - 0.5}"></i>` : ''}</button>`).join('');
 }
-// значение звезды под курсором: в режиме 1–10 левая половинка звезды — «половинка»
+// значение звезды под курсором: в режиме 1-10 левая половинка звезды - «половинка»
 const starVal = e => +e.target.closest('[data-s]').dataset.s;
 const videoName = v => v.kind === 'episode_preview' && /^\d+$/.test(v.name) ? `Превью ${+v.name} серии` : v.name || VIDEO_KINDS[v.kind] || 'Видео';
 
-// Оценка: подтверждение со словом, потом — по желанию — впечатления
+// Оценка: подтверждение со словом, потом - по желанию - впечатления
 function rateDialog(a, n) {
   const e = S.list[a.id];
   let v = n;
@@ -339,7 +339,7 @@ function rateDialog(a, n) {
 }
 function noteDialog(a, afterRate = false) {
   const n = S.notes[a.id] || { text: '', spoiler: false };
-  const b = modal(`<h3>${afterRate ? 'Оценка сохранена' : 'Мои впечатления'}</h3><p class="muted">${afterRate ? 'Запиши, что понравилось, а что разочаровало — это увидишь только ты.' : 'Заметка о тайтле видна только тебе.'}</p>
+  const b = modal(`<h3>${afterRate ? 'Оценка сохранена' : 'Мои впечатления'}</h3><p class="muted">${afterRate ? 'Запиши, что понравилось, а что разочаровало - это увидишь только ты.' : 'Заметка о тайтле видна только тебе.'}</p>
     <textarea class="input" id="nt" rows="5" maxlength="2000" placeholder="Твои впечатления">${esc(n.text)}</textarea>
     <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="ns" ${n.spoiler ? 'checked' : ''}> Содержит спойлер</label>
     <div class="row-btns">${S.notes[a.id] ? '<button class="btn" data-del>Удалить</button>' : ''}<button class="btn" data-c>${afterRate ? 'Нет, спасибо' : 'Отмена'}</button><button class="btn primary" data-ok>Сохранить</button></div>`);
@@ -405,11 +405,11 @@ const animeSnap = a => ({ id: +a.id, russian: a.russian || '', name: a.name || '
 // BB-коды комментария → простой текст (для профиля и уведомлений)
 const bbText = t => String(t || '').replace(/\[comment=\d+(;\d+)?\],?\s*/g, '').replace(/\[\/?[a-z_]+(=[^\]]*)?\]/gi, '').trim();
 
-// Поле «написать комментарий». Возвращает { reply({id, uid, nick}) } — ответить на чужой комментарий
+// Поле «написать комментарий». Возвращает { reply({id, uid, nick}) } - ответить на чужой комментарий
 async function composer(box, anime, topicId, onSent) {
   const au = await authStatus();
   if (!au.logged) {
-    box.innerHTML = `<div class="hint"><span>💬</span><div>Чтобы писать и отвечать, войди через Shikimori — комментарии увидят все пользователи сайта.
+    box.innerHTML = `<div class="hint"><span>💬</span><div>Чтобы писать и отвечать, войди через Shikimori - комментарии увидят все пользователи сайта.
       <a class="linkbtn" href="#/settings?s=account">Войти</a></div></div>`;
     return { reply() { go('#/settings?s=account'); } };
   }
@@ -453,7 +453,7 @@ async function composer(box, anime, topicId, onSent) {
 }
 
 // Ответы на мои комментарии: смотрим свежие комментарии в обсуждениях, где я писал,
-// и ищем упоминания [comment=<id моего комментария>]. Новые — в уведомления.
+// и ищем упоминания [comment=<id моего комментария>]. Новые - в уведомления.
 let repliesBusy = false;
 async function checkReplies() {
   return (await checkCommentReplies()) + (await checkReviewComments());
@@ -482,24 +482,24 @@ async function checkCommentReplies() {
             const href = `#/anime/${c.anime.id}/comments?c=${x.id}`;  // сразу к этому ответу
             S.notifications.unshift({ id: uid(), type: 'reply', anime: c.anime, at: Date.now(), read: false, href,
               text: `${nick} ответил на твой комментарий: «${text.slice(0, 120)}»` });
-            if (S.settings.notifyDesktop !== false) desktop('Ответ на комментарий', `${nick}: ${text.slice(0, 120)}`, href);
+            if (S.settings.notifyDesktop !== false) desktop('Ответ на комментарий', `${nick}: ${text.slice(0, 120)}`, href, c.anime.poster);
             added++;
           }
         }
         if (cs.length < 30 || Date.parse(cs.at(-1).created_at) < oldest) break;
       }
     }
-  } catch { /* нет сети — проверим в следующий раз */ }
+  } catch { /* нет сети - проверим в следующий раз */ }
   finally { repliesBusy = false; }
   if (added) { S.notifications = S.notifications.slice(0, 300); save(); updateBadge(); }
   return added;
 }
 
 // ---- моё мнение о тайтле: 👍 / 😐 / 👎. Влияет на рекомендации; на Shikimori мнение есть только у отзыва,
-// поэтому если отзыв написан — мнение в нём меняется вместе с мнением в Анимир ----
+// поэтому если отзыв написан - мнение в нём меняется вместе с мнением в Анимир ----
 const myOpinion = id => S.opinions[id]?.tone || null;
 function migrateOpinions() {
-  // раньше тон ставился у каждого комментария — переносим самый свежий на тайтл, отзыв главнее
+  // раньше тон ставился у каждого комментария - переносим самый свежий на тайтл, отзыв главнее
   S.opinions = {};
   [...S.myComments].reverse().forEach(c => { if (c.tone) S.opinions[c.anime.id] = { tone: c.tone, anime: c.anime, at: c.at }; });
   S.myReviews.forEach(r => { S.opinions[r.anime.id] = { tone: r.tone, anime: r.anime, at: r.at }; });
@@ -520,7 +520,7 @@ function opinionPicker(a, note = true) {
   const t = myOpinion(a.id), r = myReview(a.id);
   return `<div class="opinion-box"><span class="muted">Моё мнение:</span>
     <div class="tone-pick">${Object.entries(TONES).map(([k, [i, n]]) => `<button class="btn sm ${k === t ? 'on' : ''}" data-op="${k}">${i} ${n}</button>`).join('')}</div>
-    ${note ? `<span class="muted op-note">${r ? 'Видно на Shikimori — в твоём отзыве' : 'Учитывается в рекомендациях. На Shikimori мнение появится вместе с отзывом'}</span>` : ''}</div>`;
+    ${note ? `<span class="muted op-note">${r ? 'Видно на Shikimori - в твоём отзыве' : 'Учитывается в рекомендациях. На Shikimori мнение появится вместе с отзывом'}</span>` : ''}</div>`;
 }
 function bindOpinion(root, a, after) {
   $$('[data-op]', root).forEach(b => b.onclick = async () => {
@@ -544,7 +544,7 @@ async function reviewTopic(r) {
   return r.topicId;
 }
 // Голоса: отдельного метода «прочитать отзыв» у Shikimori нет, но ответ на изменение содержит свежие голоса.
-// Поэтому «изменяем» отзыв тем же мнением — текст не трогаем.
+// Поэтому «изменяем» отзыв тем же мнением - текст не трогаем.
 async function refreshReview(r) {
   const j = await postJson('/api/shiki/review', { id: r.id, opinion: OPINION[r.tone] });
   if (j.id) Object.assign(r, { up: j.cached_votes_up || 0, down: j.cached_votes_down || 0, comments: j.comments_count || 0, checkedAt: Date.now() });
@@ -566,7 +566,7 @@ async function checkReviewComments() {
         const href = `#/anime/${r.anime.id}?rvc=${x.id}`;  // тайтл → «Мой отзыв» → этот комментарий
         S.notifications.unshift({ id: uid(), type: 'reply', anime: r.anime, at: Date.now(), read: false, href,
           text: `${nick} прокомментировал твой отзыв: «${text.slice(0, 120)}»` });
-        if (S.settings.notifyDesktop !== false) desktop('Комментарий к отзыву', `${nick}: ${text.slice(0, 120)}`, href);
+        if (S.settings.notifyDesktop !== false) desktop('Комментарий к отзыву', `${nick}: ${text.slice(0, 120)}`, href, r.anime.poster);
         added++;
       }
     }
@@ -639,7 +639,7 @@ function bindReviewCards(root, a) {
     };
   });
 }
-// Комментарии к своему отзыву — окном поверх страницы; hl — какой подсветить (из уведомления)
+// Комментарии к своему отзыву - окном поверх страницы; hl - какой подсветить (из уведомления)
 async function reviewComments(r, hl) {
   const box = modal(`<h3>Комментарии к отзыву</h3><div class="comments rv-cm"><div class="loading">Загрузка…</div></div>
     <div class="row-btns"><a class="sh-link" href="${SHIKI_URL}animes/${r.anime.id}/reviews/${r.id}" target="_blank" rel="noopener">отзыв на Shikimori ↗</a>
@@ -651,7 +651,7 @@ async function reviewComments(r, hl) {
     const cs = tid ? await loadComments(tid, 1, 30, true) : [];
     if (!list.isConnected) return;  // окно уже закрыли
     list.innerHTML = cs.length ? cs.map(commentHtml).join('') : emptyHtml('💬', 'Комментариев пока нет');
-    $$('[data-reply]', list).forEach(b => b.remove());  // ответить можно на Shikimori — ссылка у комментария
+    $$('[data-reply]', list).forEach(b => b.remove());  // ответить можно на Shikimori - ссылка у комментария
     bindSpoilers(list);
     const el = hl && $('#c' + hl, list);
     if (el) { el.classList.add('cm-hl'); el.scrollIntoView({ block: 'center' }); }
@@ -670,7 +670,7 @@ async function renderMyReview(box, a) {
   }
   const can = au.logged && (au.scope || '').includes('topics');
   box.innerHTML = `<div class="sec-head"><h2>Моё мнение</h2></div>${opinionPicker(a)}
-    ${au.logged ? `<div class="hint"><span>✍</span><div>${can ? 'Напиши отзыв на Shikimori — тогда твоё мнение увидят все, как у других отзывов («Положительный», «Нейтральный», «Отрицательный»).'
+    ${au.logged ? `<div class="hint"><span>✍</span><div>${can ? 'Напиши отзыв на Shikimori - тогда твоё мнение увидят все, как у других отзывов («Положительный», «Нейтральный», «Отрицательный»).'
       : 'Чтобы писать отзывы, поставь галочку <b>topics</b> в своём приложении на Shikimori и войди заново (Настройки → Аккаунт).'}
       ${can ? '<button class="btn primary" id="rv-new" style="margin-left:10px">Написать отзыв</button>' : ''}</div></div>` : ''}`;
   bindOpinion(box, a, again);
@@ -692,7 +692,7 @@ async function renderViewerReviews(box, a, alive) {
         <span class="muted" style="margin-left:auto">${fmtWhen(x.created_at)}</span></div>
       <div class="tx vr-tx">${commentBody(x.html)}</div>
       <div class="cm-act"><button class="linkbtn" data-more-tx>Читать полностью</button>
-        <span class="rv-votes" title="Полезен ли отзыв — голоса на Shikimori">👍 ${x.up} · 👎 ${x.down}</span>
+        <span class="rv-votes" title="Полезен ли отзыв - голоса на Shikimori">👍 ${x.up} · 👎 ${x.down}</span>
         <span class="muted">💬 ${x.comments}</span>
         <a class="linkbtn" href="${SHIKI_URL}animes/${a.id}/reviews/${x.id}" target="_blank" rel="noopener">На Shikimori ↗</a></div></div></div>`;
   };
@@ -729,7 +729,7 @@ async function renderViewerReviews(box, a, alive) {
   };
   await load();
 }
-// Свой отзыв в общем списке: если на сайте поменяли мнение или пришли голоса — подтягиваем в Анимир
+// Свой отзыв в общем списке: если на сайте поменяли мнение или пришли голоса - подтягиваем в Анимир
 function syncMyReviewFrom(a, items) {
   const r = myReview(a.id), x = r && items.find(i => i.id === r.id);
   if (!x) return false;
@@ -745,7 +745,7 @@ function profileReviews(box) {
   const all = S.myReviews;
   const tile = (n, t) => `<div class="stat-tile"><b>${n}</b><span>${t}</span></div>`;
   box.innerHTML = `<div class="pc-tiles">${tile(all.length, 'отзывов')}${tile(all.reduce((n, r) => n + (r.up || 0), 0), '👍 полезно')}${tile(all.reduce((n, r) => n + (r.down || 0), 0), '👎 не полезно')}${tile(all.reduce((n, r) => n + (r.comments || 0), 0), '💬 комментариев')}</div>
-    <div style="display:flex;gap:10px;align-items:center;margin:14px 0"><span class="muted" style="flex:1;font-size:13px">Голоса и комментарии берутся с Shikimori. Написать отзыв — на странице тайтла.</span>
+    <div style="display:flex;gap:10px;align-items:center;margin:14px 0"><span class="muted" style="flex:1;font-size:13px">Голоса и комментарии берутся с Shikimori. Написать отзыв - на странице тайтла.</span>
       <button class="btn" id="rv-all" ${all.length ? '' : 'disabled'}>⟳ Обновить все</button></div>
     <div class="pc-list">${all.map(r => reviewCard(r, true)).join('') || emptyHtml('✍', 'Отзывов пока нет', 'Открой тайтл и нажми «Написать отзыв».')}</div>`;
   bindReviewCards(box);
@@ -799,9 +799,9 @@ async function pageComments(view, q, [id], alive) {
       <div class="tabs" id="cf-t" style="margin:0">${[['', 'Все'], ['pos', '👍'], ['neu', '😐'], ['neg', '👎'], ['none', '?']]
         .map(([k, n]) => `<a class="tab ${k ? '' : 'on'}" data-t="${k}" title="${k ? (TONES[k]?.[1] || 'Отношение неизвестно') : 'Любое отношение'}">${n}</a>`).join('')}</div>
       <select class="input" id="cf-s"><option value="">Оценка автора: любая</option><option value="rated">есть оценка</option>
-        ${opts.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}<option value="low">низкая (${scale10() ? '1–4' : '1–2 ★'})</option></select>
+        ${opts.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}<option value="low">низкая (${scale10() ? '1-4' : '1-2 ★'})</option></select>
       <span class="muted" id="cf-n"></span></div>
-    <div class="muted cf-note">Отношение к тайтлу — по отзыву автора на Shikimori, а если отзыва нет, по его оценке: ${scale10() ? '8–10' : '4–5 ★'} 👍, ${scale10() ? '5–7' : '2.5–3.5 ★'} 😐, ниже 👎.</div>
+    <div class="muted cf-note">Отношение к тайтлу - по отзыву автора на Shikimori, а если отзыва нет, по его оценке: ${scale10() ? '8-10' : '4-5 ★'} 👍, ${scale10() ? '5-7' : '2.5-3.5 ★'} 😐, ниже 👎.</div>
     <div id="cl"></div>`;
   if (!a.topic?.id) { $('#cl').innerHTML = emptyHtml('💬', 'Обсуждения пока нет'); return; }
   const cmp = await composer($('#cmp'), a, a.topic.id, () => route());
@@ -811,13 +811,13 @@ async function pageComments(view, q, [id], alive) {
     if (b) cmp.reply({ id: +b.dataset.reply, uid: +b.dataset.uid, nick: b.dataset.nick });
   });
   // Свой загрузчик вместо pager: при фильтре часть комментариев скрыта, и бесконечная подгрузка
-  // могла бы выкачать всё обсуждение. Здесь — кнопка «Ещё» и не больше 5 страниц автоматически.
+  // могла бы выкачать всё обсуждение. Здесь - кнопка «Ещё» и не больше 5 страниц автоматически.
   const box = $('#cl'), grid = document.createElement('div'), more = document.createElement('div');
   grid.className = 'comments';
   box.append(grid, more);
   let page = 1, done = false, busy = false, total = 0;
   const f = { q: '', t: '', s: '' };
-  // ?c=<id> — пришли из уведомления: ищем этот комментарий (до 10 страниц) и подсвечиваем
+  // ?c=<id> - пришли из уведомления: ищем этот комментарий (до 10 страниц) и подсвечиваем
   const target = /^\d+$/.test(q.get('c') || '') ? q.get('c') : null;
   let seek = target ? 10 : 0;
   const reveal = () => {
@@ -832,7 +832,7 @@ async function pageComments(view, q, [id], alive) {
     if (f.q && !el.textContent.toLowerCase().includes(f.q)) return false;
     if (!f.t && !f.s) return true;
     const x = ATT.get(`${id}:${el.dataset.uid}`), t = attitude(x);
-    if (el.classList.contains('mine')) {  // свой комментарий — по своему мнению и оценке
+    if (el.classList.contains('mine')) {  // свой комментарий - по своему мнению и оценке
       const e = S.list[id];
       return (!f.t || (myOpinion(id) || 'none') === f.t) && (!f.s || okScore(e?.score ? Math.round(e.score * 2) : 0));
     }
@@ -859,7 +859,7 @@ async function pageComments(view, q, [id], alive) {
       page++;
       done = list.length < PAGE;
       apply();
-      if (seek) reveal();  // к комментарию из уведомления — сразу, не дожидаясь «отношения» авторов
+      if (seek) reveal();  // к комментарию из уведомления - сразу, не дожидаясь «отношения» авторов
       if (f.t || f.s) more.innerHTML = '<div class="loading">Смотрю, как авторы относятся к тайтлу…</div>';
       await fillAttitudes(grid, id);
       if (!alive()) return;
@@ -875,8 +875,8 @@ async function pageComments(view, q, [id], alive) {
       : '<button class="btn" data-more>Ещё комментарии</button>';
     if (done && total && !shown) more.innerHTML = emptyHtml('🔍', 'Ничего не найдено', 'Попробуй изменить условия.');
     $('[data-more]', more)?.addEventListener('click', () => load());
-    if (seek && !reveal()) { if (!done && --seek) return load(auto); toast('Комментарий не нашёлся — возможно, его удалили'); seek = 0; }
-    if (!done && shown < 10 && auto < 5) load(auto + 1);  // под фильтр подошло мало — подгружаем ещё
+    if (seek && !reveal()) { if (!done && --seek) return load(auto); toast('Комментарий не нашёлся - возможно, его удалили'); seek = 0; }
+    if (!done && shown < 10 && auto < 5) load(auto + 1);  // под фильтр подошло мало - подгружаем ещё
   }
   const refilter = () => { if (apply() < 10 && !done) load(1); };
   $('#cf-q').addEventListener('input', debounce(e => { f.q = e.target.value.trim().toLowerCase(); refilter(); }, 250));

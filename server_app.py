@@ -1,4 +1,4 @@
-"""Анимир — маршруты самого приложения: окна, переходы, уведомления, состояние, медиатека, кэш."""
+"""Анимир - маршруты самого приложения: окна, переходы, уведомления, состояние, медиатека, кэш."""
 import os
 import threading
 import urllib.parse
@@ -53,7 +53,7 @@ class AppRoutes:
 
     @post("/api/show")
     def show(self):
-        # второй запуск Анимир просит своё окно показаться; ok=False — окна нет, откроется Edge
+        # второй запуск Анимир просит своё окно показаться; ok=False - окна нет, откроется Edge
         self.send_json({"ok": windows.show_main()})
 
     @post("/api/open-window")
@@ -86,7 +86,7 @@ class AppRoutes:
 
     @post("/api/open-url")
     def open_url(self):
-        # открыть ссылку в обычном браузере Windows — только Shikimori
+        # открыть ссылку в обычном браузере Windows - только Shikimori
         url = str(self.json_body().get("url", ""))
         if not url.startswith(SHIKI + "/"):
             return self.send_json({"error": "forbidden"}, 403)
@@ -95,14 +95,15 @@ class AppRoutes:
 
     @post("/api/notify")
     def notify(self):
-        # тост-уведомление на рабочем столе: {"title": "...", "body": "...", "href": "#/anime/1"}
+        # тост-уведомление на рабочем столе: {"title": "...", "body": "...", "href": "#/anime/1", "img": "<постер>"}
         # клик по нему откроет Анимир на экране href (ссылка animir:, её регистрирует Animir.pyw)
         d = self.json_body()
         href = str(d.get("href") or "#/notifications")
         if not href.startswith("#/") or len(href) > 300:
             href = "#/notifications"
+        poster = windows.toast_poster(str(d.get("img") or "")[:500])
         ok, err = windows._win_toast(str(d.get("title") or "Анимир")[:80], str(d.get("body") or "")[:220],
-                                     "animir:open?h=" + urllib.parse.quote(href, safe=""))
+                                     "animir:open?h=" + urllib.parse.quote(href, safe=""), poster)
         self.send_json({"ok": True} if ok else {"error": err or "toast failed"}, 200 if ok else 500)
 
     # ---------- закладки и настройки ----------

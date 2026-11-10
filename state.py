@@ -1,4 +1,4 @@
-"""Анимир — файл состояния state.json: чтение, запись и слияние изменений из разных окон.
+"""Анимир - файл состояния state.json: чтение, запись и слияние изменений из разных окон.
 
 Каждое окно (главное и окна плеера) держит свою копию состояния. Раньше побеждало то окно,
 которое сохранилось последним, и, например, главное окно затирало прогресс, только что
@@ -60,7 +60,7 @@ def merge_subs(state: dict) -> None:
             except (TypeError, ValueError, AttributeError):
                 sub_at = 0
             if ts and sub_at and ts > sub_at + 1:
-                continue  # удалена ПОСЛЕ подписки — убираем
+                continue  # удалена ПОСЛЕ подписки - убираем
             inc[sk] = sub
     merged_dels = {}
     merged_dels.update(old_dels)
@@ -86,18 +86,18 @@ def _merge_list(base: list, mine: list, theirs: list) -> list:
     added = [x for x, k in zip(mine, mk) if k not in bk and k not in restk]
     if not added:
         return rest
-    # Одна и та же запись (тот же id / файл), изменённая у меня, — моя версия главнее
+    # Одна и та же запись (тот же id / файл), изменённая у меня, - моя версия главнее
     ident = next((f for f in ("id", "file") if all(isinstance(x, dict) and f in x for x in added)), None)
     if ident:
         ids = {_key(x[ident]) for x in added}
         rest = [x for x in rest if not (isinstance(x, dict) and ident in x and _key(x[ident]) in ids)]
-    # новые записи окно добавляло в начало (история) или в конец (журнал) — сохраняем это
+    # новые записи окно добавляло в начало (история) или в конец (журнал) - сохраняем это
     prepend = bool(mk) and mk[0] not in bk
     return added + rest if prepend else rest + added
 
 
 def merge3(base, mine, theirs, depth: int = 0):
-    """mine — что прислало окно, theirs — что сейчас в файле, base — от чего окно отталкивалось."""
+    """mine - что прислало окно, theirs - что сейчас в файле, base - от чего окно отталкивалось."""
     if mine == base:
         return theirs
     if theirs == base or theirs == mine:
@@ -107,11 +107,11 @@ def merge3(base, mine, theirs, depth: int = 0):
         out = {}
         for k in dict.fromkeys([*theirs, *mine]):
             bv, mv, tv = b.get(k, _MISSING), mine.get(k, _MISSING), theirs.get(k, _MISSING)
-            if mv is _MISSING:  # у меня ключа нет: удалил сам — убираем, иначе это чужое новое
+            if mv is _MISSING:  # у меня ключа нет: удалил сам - убираем, иначе это чужое новое
                 if bv is _MISSING or tv != bv:
                     out[k] = tv
                 continue
-            if tv is _MISSING:  # в файле ключа нет: удалили другие — убираем, если я его не менял
+            if tv is _MISSING:  # в файле ключа нет: удалили другие - убираем, если я его не менял
                 if bv is _MISSING or mv != bv:
                     out[k] = mv
                 continue
@@ -119,10 +119,10 @@ def merge3(base, mine, theirs, depth: int = 0):
         return out
     if isinstance(mine, list) and isinstance(theirs, list) and depth == 1:
         return _merge_list(base if isinstance(base, list) else [], mine, theirs)
-    return mine  # одно и то же значение поменяли оба — побеждает тот, кто сохраняет сейчас
+    return mine  # одно и то же значение поменяли оба - побеждает тот, кто сохраняет сейчас
 
 
-# Снимки версий, от которых отталкиваются окна: «r5» — версия 5 файла, «m5» — то, что
+# Снимки версий, от которых отталкиваются окна: «r5» - версия 5 файла, «m5» - то, что
 # прислало окно при сохранении версии 5 (если окно не взяло себе слитый результат).
 _snaps: dict[str, dict] = {}
 _win_keys: collections.OrderedDict[str, list[str]] = collections.OrderedDict()
@@ -162,13 +162,13 @@ def write_from(incoming: dict) -> dict:
     with _state_lock:
         cur = load_state()
         rev = int(cur.get("_rev") or 0)
-        if base_key == f"r{rev}" or incoming.get("_replace") is True:  # _replace — загрузка резервной копии
+        if base_key == f"r{rev}" or incoming.get("_replace") is True:  # _replace - загрузка резервной копии
             merged, did = mine, False
         else:
             base = _snaps.get(base_key) if isinstance(base_key, str) else None
             merged, did = merge3(base if base is not None else {}, mine, _strip(cur)), True
             if base is None:
-                merge_subs(merged)  # версия окна неизвестна — хотя бы подписки не теряем
+                merge_subs(merged)  # версия окна неизвестна - хотя бы подписки не теряем
         rev += 1
         save_state({**merged, "_rev": rev})
         keys = [f"r{rev}"]
@@ -181,6 +181,6 @@ def write_from(incoming: dict) -> dict:
 
 
 def lite_mode() -> bool:
-    """Лёгкий режим для слабых компьютеров: настройка «Лёгкий режим» (auto / on / off), по умолчанию — сам по железу."""
+    """Лёгкий режим для слабых компьютеров: настройка «Лёгкий режим» (auto / on / off), по умолчанию - сам по железу."""
     mode = (load_state().get("settings") or {}).get("lite", "auto")
     return mode == "on" or (mode == "auto" and low_end())

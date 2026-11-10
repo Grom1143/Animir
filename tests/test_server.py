@@ -1,6 +1,6 @@
 """Локальный сервер: защита от чужих сайтов (Host / Origin), сохранение состояния, статика.
 
-Сервер поднимается на свободном порту с временной папкой данных — настоящие закладки не трогаются.
+Сервер поднимается на свободном порту с временной папкой данных - настоящие закладки не трогаются.
 Интернет не нужен: проверяются только локальные маршруты.
 """
 import hashlib
@@ -31,7 +31,7 @@ import shiki_data  # noqa: E402
 class ServerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.srv = server.make_server(0)  # 0 — любой свободный порт
+        cls.srv = server.make_server(0)  # 0 - любой свободный порт
         cls.port = cls.srv.server_address[1]
         cls.base = f"http://127.0.0.1:{cls.port}"
         threading.Thread(target=cls.srv.serve_forever, daemon=True).start()
@@ -84,7 +84,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(shown, [1])
 
     def test_show_without_own_window(self):
-        # окно — Edge (pywebview не запустился): показать некому, второй запуск откроет Edge сам
+        # окно - Edge (pywebview не запустился): показать некому, второй запуск откроет Edge сам
         with mock.patch.object(server.windows, "ON_SHOW", []):
             code, body = self.req("/api/show", data=b"{}")
         self.assertEqual(code, 200)
@@ -97,7 +97,7 @@ class ServerTest(unittest.TestCase):
 
     def test_player_info_tells_what_is_playing(self):
         # перед новой серией окно спрашивает, не идёт ли уже что-то в отдельном окне плеера
-        info = {"open": True, "title": "Анимир · Фрирен — серия 1", "hash": "#/watch?o=52991&e=1&w=1"}
+        info = {"open": True, "title": "Анимир · Фрирен - серия 1", "hash": "#/watch?o=52991&e=1&w=1"}
         with mock.patch.dict(server.windows.PLAYER, {"info": lambda: info}):
             code, body = self.req("/api/player")
         self.assertEqual(code, 200)
@@ -121,7 +121,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(code, 403)
 
     def test_unknown_api_group_path_is_404(self):
-        # опечатка в адресе API — 404, а не страница интерфейса
+        # опечатка в адресе API - 404, а не страница интерфейса
         for path in ("/api/auth/nope", "/api/shiki/nope", "/api/colls/nope"):
             code, _ = self.req(path)
             self.assertEqual(code, 404, path)
@@ -152,7 +152,7 @@ class ServerTest(unittest.TestCase):
 
     def test_same_image_downloaded_twice_at_once(self):
         # Постер в двух размерах (srcset) качается двумя потоками сразу: второй кладёт файл в кэш, когда первый
-        # уже положил его и читает. В Windows заменить открытый файл нельзя — было «Отказано в доступе» и 500.
+        # уже положил его и читает. В Windows заменить открытый файл нельзя - было «Отказано в доступе» и 500.
         url = "https://shikimori.io/uploads/poster/animes/1/race.jpg"
         cached = server.IMG_CACHE / hashlib.sha1(url.encode()).hexdigest()
         readers = []
@@ -185,7 +185,7 @@ class ServerTest(unittest.TestCase):
 
 
 class RouteTableTest(unittest.TestCase):
-    """Все маршруты сервера — в одной таблице (server_routes); при переносе ни один не должен потеряться."""
+    """Все маршруты сервера - в одной таблице (server_routes); при переносе ни один не должен потеряться."""
     GET = ["/api/attitudes", "/api/cache", "/api/coll", "/api/dubs", "/api/dubs/find", "/api/goto", "/api/library",
            "/api/online", "/api/online/stream", "/api/ping", "/api/player", "/api/rest", "/api/reviews", "/api/state",
            "/api/sys", "/img", "/media", "/sub", "/api/auth/login", "/api/auth/status", "/api/shiki/rates",
@@ -208,7 +208,7 @@ class RouteTableTest(unittest.TestCase):
 
 
 class QuietLogTest(unittest.TestCase):
-    """Клиент оборвал соединение (окно закрыли посреди загрузки) — обычное дело, а не ошибка для лога."""
+    """Клиент оборвал соединение (окно закрыли посреди загрузки) - обычное дело, а не ошибка для лога."""
     def errors_printed(self, exc) -> str:
         import contextlib
         import io
@@ -242,11 +242,11 @@ class ImageCacheTrimTest(unittest.TestCase):
         return f
 
     def trim_to_nothing(self):
-        with mock.patch.object(server_files, "_img_cache_cap", return_value=50):  # кэш «переполнен» — чистить всё, что можно
+        with mock.patch.object(server_files, "_img_cache_cap", return_value=50):  # кэш «переполнен» - чистить всё, что можно
             server_files._trim_img_cache(force=True)
 
     def test_trim_keeps_files_being_written(self):
-        # .part и .tmp прямо сейчас дописывает другой поток: удалить их — уронить тот запрос в 500
+        # .part и .tmp прямо сейчас дописывает другой поток: удалить их - уронить тот запрос в 500
         old = self.make("trim-old", 3600)
         part = self.make("trim-new.123.part", 1)
         tmp = self.make("trim-new-w420.tmp", 1)
@@ -275,7 +275,7 @@ class UpstreamTest(unittest.TestCase):
         self.assertTrue(self.idempotent_for(b'{"query":"{ animes(limit: 1) { id } }"}'))
 
     def test_mutation_is_never_repeated(self):
-        # Мутацию при обрыве повторять нельзя — она могла дойти, и действие выполнилось бы дважды
+        # Мутацию при обрыве повторять нельзя - она могла дойти, и действие выполнилось бы дважды
         self.assertFalse(self.idempotent_for(b'{"query":"mutation { rate(id: 1, score: 9) { id } }"}'))
 
 
