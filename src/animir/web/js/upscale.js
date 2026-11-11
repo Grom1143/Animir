@@ -25,6 +25,8 @@ class Upscaler {
     this.video = video;
     this.root = root;
     this.fit = opts.fit || (() => 'contain');
+    this.target = opts.target || (() => 0);   // 0 - по размеру окна, иначе высота рендера (1080, 1440, 2160)
+    this.override = 0;                        // снижение на этот сеанс, если карта не тянет
     this.onSlow = opts.onSlow || (() => {});
     this.onFatal = opts.onFatal || (() => {});
     this.canvas = document.createElement('canvas');
@@ -62,8 +64,6 @@ class Upscaler {
     this.enabled = true;
     this.canvas.hidden = false;
     this.video.classList.add('upscaled');
-    // на батарее рисуем чуть дешевле: на глаз почти не видно, а видеокарте легче
-    if (document.documentElement.classList.contains('power')) this.scale = Math.min(this.scale, 0.8);
     this._resize();
     this._draw();          // пауза: новых кадров не будет, показываем текущий
     this._schedule();
@@ -73,6 +73,7 @@ class Upscaler {
   disable() {
     if (!this.enabled) return;
     this.enabled = false;
+    this.override = 0;  // следующий показ снова начнёт с выбранного качества
     this.canvas.hidden = true;
     this.video.classList.remove('upscaled');
     this.subs.hidden = true;
@@ -142,7 +143,7 @@ class Upscaler {
         vec3 smoothCol = acc / max(wsum, 0.001);
         // мягко убираем шум, но исходную деталь не теряем:
         // возвращаем разницу между оригиналом и сглаженным с усилением (unsharp mask)
-        vec3 col = smoothCol + (c - smoothCol) * (1.0 + u_sharp * 2.2);
+        vec3 col = smoothCol + (c - smoothCol) * (1.0 + u_sharp * 3.4);
         // и слегка подчёркиваем контур там, где перепад яркости уже заметный
         float edge = smoothstep(0.05, 0.30, abs(lc - luma(smoothCol)));
         col += (c - smoothCol) * edge * u_sharp;
@@ -193,19 +194,25 @@ class Upscaler {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    // кадр из <video> приходит сверху вниз, а у текстур WebGL начало координат снизу:
+    // без этого видео вставало вверх ногами
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     return true;
   }
 
   _resize() {
     if (!this.enabled) return;
-    const dpr = Math.min(devicePixelRatio || 1, 2);
     const cssW = Math.max(1, this.root.clientWidth);
     const cssH = Math.max(1, this.root.clientHeight);
-    // потолок 4K по высоте: выше всё равно не покажет экран
-    const cap = 2160;
-    let w = Math.round(cssW * dpr * this.scale);
-    let h = Math.round(cssH * dpr * this.scale);
-    if (h > cap) { w = Math.round(w * cap / h); h = cap; }
+    const aspect = cssW / cssH;
+    // цель: выбранная высота (1080/1440/2160) или размер окна с учётом плотности экрана
+    const display = Math.round(cssH * Math.min(devicePixelRatio || 1, 2));
+    let h = +this.target() || 0;
+    // уровень - потолок: если окно меньше, рисуем в размер окна (иначе браузер сам размылит)
+    h = h ? Math.min(h, display) : display;
+    if (this.override) h = Math.min(h, this.override);
+    h = Math.max(480, Math.min(h, 2160));
+    const w = Math.round(h * aspect);
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w;
       this.canvas.height = h;
@@ -240,16 +247,19 @@ class Upscaler {
   }
 
   _adapt() {
-    // если видеокарта стабильно не успевает - снижаем разрешение рендера, потом выключаем
-    const slow = (this.gpuMs || 0) > 30;
+    // если видеокарта стабильно не успевает - опускаемся на ступень ниже и говорим об этом.
+    // Выбранное в настройках качество не меняем: следующая серия снова попробует его.
+    const slow = (this.gpuMs || 0) > 40;
     if (slow) this.slowFrames++;
     else this.slowFrames = Math.max(0, this.slowFrames - 1);
-    if (this.slowFrames < 4) return;
+    if (this.slowFrames < 5) return;
     this.slowFrames = 0;
-    if (this.scale > 0.72) {
-      this.scale = Math.max(0.7, this.scale - 0.15);
+    const current = Math.min(+(this.target() || 0) || 2160, this.override || 9999);
+    const next = current > 1440 ? 1440 : current > 1080 ? 1080 : 0;
+    if (next) {
+      this.override = next;
       this._resize();
-      this.onSlow('Видеокарта не успевает: снизили разрешение апскейлинга');
+      this.onSlow('Видеокарта не успевает: на эту серию рисуем в ' + next + 'p');
       return;
     }
     this.disable();
@@ -263,7 +273,7 @@ class Upscaler {
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v);
     gl.uniform2f(this.u_texel, 1 / v.videoWidth, 1 / v.videoHeight);
-    gl.uniform1f(this.u_sharp, 0.35);
+    gl.uniform1f(this.u_sharp, 0.75);
 
     // как показывать кадр: вписать, заполнить с обрезкой или растянуть
     const cw = this.canvas.width, ch = this.canvas.height;
