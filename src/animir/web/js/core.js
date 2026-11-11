@@ -124,7 +124,7 @@ const VIDEO_KINDS = { pv: 'Трейлеры', op: 'Опенинги', ed: 'Эн�
 
 const CARD = 'id russian name kind score status episodes episodesAired airedOn{year date} poster{mainUrl main2xUrl originalUrl}';
 let PAGE = 30;
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.1.0';
 const SNAPS = new Map(); // id → короткая запись о тайтле (для контекстного меню)
 
 // ================= API =================
@@ -195,7 +195,7 @@ const DEFAULTS = {
   library: { folders: [], links: {} },
   settings: {
     theme: 'dark', accent: ACCENTS[0], playerWindow: 'main', autoNext: true, skipLen: 85, notify: true, notifyLists: ['watching', 'planned', 'on_hold'],
-    notifyOne: true, notifyPremieres: true, notifyFinished: true, view: 'cards', homeTab: 'latest', bookmarksTab: 'watching', timeFormat: 'dh', compactNav: false, snow: true, sky: true, lite: 'auto', power: 'auto', night: false, nightPause: 0, autoSync: true, autoQuality: true, upscale: 'off',
+    notifyOne: true, notifyPremieres: true, notifyFinished: true, view: 'cards', homeTab: 'latest', bookmarksTab: 'watching', timeFormat: 'dh', compactNav: false, snow: true, sky: true, lite: 'auto', power: 'auto', night: false, nightPause: 0, autoSync: true, autoQuality: true, upscale: 'off', upscaleHQ: true,
     nickname: 'Зритель', status: '', about: '', scale: '5', avatar: '', cover: '', volume: 1, speed: 1, fit: 'contain', externalPlayer: false, hints: {},
   },
 };

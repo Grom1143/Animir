@@ -683,15 +683,16 @@ function createPlayer(cur, list) {
         switchQuality(+x);
       };
     }
-    if (Upscaler.supported()) {
-      const cur = upLevel();
-      UP_LEVELS.forEach(([h, label]) => items.push(['up:' + h, label, cur === h]));
-      items.push(['up:off', '4K+ выкл', !cur]);
+    {
+      const cur = st.upscale || 'off';
+      UP_LEVELS.forEach(([v, label]) => items.push(['up:' + v, label, cur === String(v)]));
+      items.push(['up:off', 'Апскейлинг выкл', cur === 'off']);
     }
     if (!items.length) return;
     openMenu(e.currentTarget, items, x => {
       if (String(x).startsWith('up:')) {
-        setUpscale(+String(x).slice(3) || 0);
+        const v = String(x).slice(3);
+        setUpscale(v === 'off' ? 0 : (v === 'auto' ? 'auto' : +v));
         return;
       }
       qualityPick?.(x);
@@ -706,19 +707,21 @@ function createPlayer(cur, list) {
     fetch('/api/pin-window', { method: 'POST', body: JSON.stringify({ on: pinned }) });
     osd(pinned ? 'Поверх всех окон' : 'Обычный режим');
   };
-  // Апскейлинг: холст на WebGL рисует кадр крупнее и с подчёркнутыми краями.
-  // Уровни выбираются в том же меню ⚙, что и качество источника, и запоминаются в настройках.
-  const UP_LEVELS = [[2160, '4K+ 2160p (4K)'], [1440, '4K+ 1440p (2K)'], [1080, '4K+ 1080p']];
-  const upLevel = () => (st.upscale === true ? 1440 : (+st.upscale || 0));
+  // Апскейлинг: холст на WebGL рисует кадр крупнее и чётче.
+  // Уровни в том же меню ⚙, что и качество источника, и запоминаются в настройках.
+  // «Авто» подбирает уровень по мощности видеокарты, без WebGL включается 2D-режим.
+  const UP_LEVELS = [['auto', 'Авто (по мощности)'], [2160, '2160p (4K)'], [1440, '1440p (2K)'], [1080, '1080p']];
+  const upLevel = () => (st.upscale === true ? 1440 : st.upscale === 'auto' ? 0 : (+st.upscale || 0));
   let upGL = null;
   function qLabel(text) {
     const qb = $('#b-quality', root);
     qb.hidden = false;
     qb.dataset.q = text;
-    qb.textContent = '⚙ ' + text + (upLevel() ? ' · 4K+' : '') + ' ▾';
+    const on = st.upscale && st.upscale !== 'off';
+    qb.textContent = '⚙ ' + text + (on ? (st.upscale === 'auto' ? ' · 4K+ авто' : ' · 4K+') : '') + ' ▾';
   }
   function setUpscale(level, quiet = false) {
-    if (!level) {
+    if (!level || level === 'off') {
       upGL?.disable();
       st.upscale = 'off';
       save();
@@ -726,12 +729,13 @@ function createPlayer(cur, list) {
       if (!quiet) osd('Апскейлинг выключен');
       return;
     }
-    if (!Upscaler.supported()) { toast('Видеокарта не поддерживает WebGL', 'err'); return; }
     if (!upGL) {
       upGL = new Upscaler(v, root, {
         fit: () => st.fit,
         target: () => upLevel(),
+        hq: () => st.upscaleHQ !== false,
         onSlow: msg => osd(msg),
+        onLevel: msg => osd(msg),
         onFatal: msg => {
           toast(msg, 'err');
           st.upscale = 'off';
@@ -741,19 +745,21 @@ function createPlayer(cur, list) {
       });
       window.__animirUpscale = upGL;  // отладка и замеры: window.__animirUpscale.gpuMs
     }
-    st.upscale = String(level);
+    st.upscale = level === 'auto' ? 'auto' : String(level);
     save();
     if (!upGL.enabled) {
       if (!upGL.enable()) { toast('Апскейлинг не запустился', 'err'); return; }
     } else {
-      upGL.override = 0;
+      upGL.auto = level === 'auto';
+      upGL.level = level === 'auto' ? (upGL.software ? 720 : 1080) : +level;
       upGL._resize();
+      upGL._draw();  // на паузе новых кадров нет, иначе остался бы чёрный холст
     }
     qLabel($('#b-quality', root).dataset.q || 'Качество');
-    if (!quiet) osd('Апскейлинг ' + level + 'p');
+    if (!quiet) osd(level === 'auto' ? 'Апскейлинг: авто по мощности' : 'Апскейлинг ' + level + 'p');
   }
-  if (upLevel()) {  // настройка включена - поднимаем после первого кадра
-    const on = () => setUpscale(upLevel(), true);
+  if (st.upscale && st.upscale !== 'off') {  // настройка включена - поднимаем после первого кадра
+    const on = () => setUpscale(st.upscale, true);
     if (v.readyState >= 2) on();
     else v.addEventListener('loadeddata', on, { once: true });
   }
