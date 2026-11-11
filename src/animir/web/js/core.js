@@ -124,7 +124,7 @@ const VIDEO_KINDS = { pv: 'Трейлеры', op: 'Опенинги', ed: 'Эн�
 
 const CARD = 'id russian name kind score status episodes episodesAired airedOn{year date} poster{mainUrl main2xUrl originalUrl}';
 let PAGE = 30;
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const SNAPS = new Map(); // id → короткая запись о тайтле (для контекстного меню)
 
 // ================= API =================
