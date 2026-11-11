@@ -402,11 +402,13 @@ async function pageRecs(view, q, _, alive) {
   const custom = (S.vibes || []).map(v => customMood('my:' + v.id, S.vibes)).filter(Boolean);
   const chipOf = m => `<a class="chip ${vibe?.k === m.k ? 'on' : ''}" href="#/recs?vibe=${encodeURIComponent(m.k)}" title="${esc(m.note)}">${esc(m.n)}${m.custom ? `<b class="mood-x" data-x="${esc(m.id)}" title="Удалить вайб">✕</b>` : ''}</a>`;
   const chips = `<div class="mood-chips"><a class="chip ${vibe ? '' : 'on'}" href="#/recs" title="По твоим оценкам и мнениям">✦ По моему вкусу</a>${[...MOODS, ...custom].map(chipOf).join('')}<button class="chip mood-add" id="vibe-add" title="Свой набор жанров и условий">+ Свой вайб</button></div>`;
+  // вкладки остаются и внутри вайба: «по вкусу» - порядок подборки, «советуют зрители» - по отзывам
+  const sortTabs = '<div class="tabs" id="rc-sort"><a class="tab on" data-s="me">По моему вкусу</a><a class="tab" data-s="people">Советуют зрители</a></div>';
   view.innerHTML = `<h1 class="page-title">Рекомендации</h1>${chips}${vibe
-    ? `<div class="mood-head"><p class="muted">${esc(vibe.note)}</p><button class="btn" id="vibe-rand">🎲 Случайное в вайбе</button></div><div id="rc-box"></div>`
+    ? `<div class="mood-head"><p class="muted">${esc(vibe.note)}</p><button class="btn" id="vibe-rand">🎲 Случайное в вайбе</button></div>${sortTabs}<div id="rc-box"></div>`
     : `${hint('recs3', 'Подборка строится по твоим оценкам и мнениям о тайтлах: похожее на то, что понравилось, выше; похожее на то, что не понравилось (низкая оценка, «Брошено», мнение 👎), ниже. Когда похожие закончатся, дальше идут лучшие тайтлы твоих любимых жанров. Под каждым тайтлом - что о нём думают зрители по отзывам на Shikimori.')}
     ${r === null ? emptyHtml('✦', 'Пока мало данных', 'Поставь ' + likedText() + ' или мнение «👍 Положительный» хотя бы двум тайтлам - и здесь появятся рекомендации.<br><br>А пока выбери вайб сверху: «Отдыхаю», «Кушаю», «Хочу плакать» и другие - подберём по настроению.<br><br><a class="btn primary" href="#/rate">Оценить просмотренное</a>')
-      : `<div class="tabs" id="rc-sort"><a class="tab on" data-s="me">По моему вкусу</a><a class="tab" data-s="people">Советуют зрители</a></div><div id="rc-box"></div>`}`}`;
+      : `${sortTabs}<div id="rc-box"></div>`}`}`;
   $('#vibe-add').onclick = () => editVibe();
   $$('.mood-x').forEach(el => el.onclick = async e => {
     e.preventDefault();
@@ -422,7 +424,8 @@ async function pageRecs(view, q, _, alive) {
     $('#vibe-rand').onclick = () => randomInVibe(vibe);
     const feed = await moodFeed(vibe);
     if (!alive()) return;
-    pager($('#rc-box'), feed, a => item(a), alive);
+    const viewers = viewersOnCards(alive);
+    pager($('#rc-box'), async page => { const res = await feed(page); viewers(res.items); return res; }, a => item(a), alive);
     $('#rc-box').firstChild.id = 'rc-grid';
     return;
   }
