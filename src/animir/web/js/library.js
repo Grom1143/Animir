@@ -298,8 +298,7 @@ function createPlayer(cur, list) {
       <div class="pl-top"><button class="pl-btn" id="pl-back" title="Назад (Esc)">←</button>
         <div style="flex:1;min-width:0"><div class="t">${esc(link ? title(link) : cur.dir ? folderTitle(cur.dir) : 'Видео по ссылке')}</div><div class="m">${cur.ep != null ? 'Серия ' + cur.ep + ' · ' : ''}${cur.dub ? esc(cur.dub) + ' · ' : ''}${esc(cur.name)}</div></div>
         <button class="pl-btn txt" id="b-speed" title="Скорость">⏱ ${st.speed === 1 ? 'Обычная' : st.speed + '×'} ▾</button>
-        <button class="pl-btn txt" id="b-quality" title="Качество" hidden>⚙ Авто ▾</button>
-        ${Upscaler.supported() ? '<button class="pl-btn txt" id="b-up" title="Апскейлинг 4K: чётче и мягче (шейдерный, без нейросетей)">4K+</button>' : ''}
+        <button class="pl-btn txt" id="b-quality" title="Качество и апскейлинг">⚙ Авто ▾</button>
         <button class="pl-btn txt" id="b-pin" title="Поверх всех окон">📌</button>
         <button class="pl-btn txt ${S.settings.night ? 'on' : ''}" id="b-night" title="Ночной кинозал">🌙</button>
         ${/^o:/.test(cur.key) ? '<button class="pl-btn txt" id="b-dl" title="Скачать эту серию">⬇</button>' : ''}
@@ -358,7 +357,7 @@ function createPlayer(cur, list) {
     } else v.src = cur.url;
     v.addEventListener('loadedmetadata', restore, { once: true });
     if (remember) { st.q = +q; save(); }  // ручной выбор запоминается, авто - нет
-    $('#b-quality', root).textContent = `⚙ ${q}p ▾`;
+    qLabel(q + 'p');
     osd(`Качество ${q}p`);
   };
   // Источник мог выдать устаревшую ссылку (токен живёт час) или CDN не ответил с первого раза.
@@ -424,9 +423,8 @@ function createPlayer(cur, list) {
             if (top) osd(`Источник отдаёт до ${top}p`);
           }
         }
-        $('#b-quality', root).hidden = false;
-        $('#b-quality', root).textContent = LITE ? '⚙ до 720p ▾'
-          : `⚙ ${(hls.levels.length > 1 && st.q && hls.levels.some(l => l.height === +st.q)) ? st.q + 'p' : cur.q ? cur.q + 'p' : 'Авто'} ▾`;
+        qLabel(LITE ? 'до 720p'
+          : (hls.levels.length > 1 && st.q && hls.levels.some(l => l.height === +st.q)) ? st.q + 'p' : cur.q ? cur.q + 'p' : 'Авто');
       }
     });
     hls.on(Hls.Events.ERROR, (_, data) => { if (!data.fatal) return; retryStream().then(ok => { if (!ok) showError(data.details); }); });
@@ -442,11 +440,7 @@ function createPlayer(cur, list) {
     }
     if (st.q && !LITE && !saved && quals.length) osd(`Источник отдаёт до ${Math.max(...quals.map(x => +x.q || 0))}p`);
     v.src = cur.url;
-    if (quals.length > 1) {
-      const q = $('#b-quality', root);
-      q.hidden = false;
-      q.textContent = `⚙ ${cur.q ? cur.q + 'p' : 'Авто'} ▾`;
-    }
+    if (quals.length > 1) qLabel(cur.q ? cur.q + 'p' : 'Авто');
   }
   // подъём качества: раз в 12 секунд смотрим, успевает ли качать, и берём дорожку выше.
   // Функция нужна и для пункта «Авто» в меню, чтобы включить автоматику обратно.
@@ -650,42 +644,58 @@ function createPlayer(cur, list) {
   const setSpeed = r => { v.playbackRate = r; st.speed = r; save(); $('#b-speed', root).textContent = `⏱ ${r === 1 ? 'Обычная' : r + '×'} ▾`; osd('Скорость ' + (r === 1 ? 'обычная' : r + '×')); };
   $('#b-speed', root).onclick = e => openMenu(e.currentTarget, SPEEDS.map(r => [r, r === 1 ? 'Обычная' : r + '×', r === v.playbackRate]), x => setSpeed(+x));
   $('#b-quality', root).onclick = e => {
+    const items = [];
+    let qualityPick = null;
     if (hls && hls.levels && hls.levels.length > 1) {
-      openMenu(e.currentTarget, [[-1, 'Авто', hls.currentLevel === -1 || hls.autoLevelEnabled], ...hls.levels.map((l, i) => [i, (l.height ? l.height + 'p' : Math.round(l.bitrate / 1000) + ' кбит/с'), !hls.autoLevelEnabled && hls.currentLevel === i]).reverse()],
-        x => {
-          if (+x < 0) {
-            autoQ = true;  // вернуть авто-качество
-            startAutoLadder();
-          } else {
-            autoQ = false;  // ручной выбор: автоматика выключается до конца серии
-            stopAuto();
-          }
-          hls.currentLevel = +x;
-          const qtxt = +x < 0 ? 'Авто' : (hls.levels[+x].height || '') + 'p';
-          if (+x >= 0 && hls.levels[+x].height) { st.q = hls.levels[+x].height; save(); }
-          else { st.q = 0; save(); }
-          $('#b-quality', root).textContent = '⚙ ' + qtxt + ' ▾';
-          osd('Качество ' + qtxt.toLowerCase());
-        });
-      return;
-    }
-    if (quals.length > 1) openMenu(e.currentTarget,
-      [[0, 'Авто (по скорости)', autoQ],
-        ...quals.map(x => [x.q, `${x.q}p`, !autoQ && +x.q === +(cur.q || quals[0].q)])],
-      x => {
+      items.push([-1, 'Авто', hls.currentLevel === -1 || hls.autoLevelEnabled]);
+      hls.levels.map((l, i) => [i, (l.height ? l.height + 'p' : Math.round(l.bitrate / 1000) + ' кбит/с'),
+        !hls.autoLevelEnabled && hls.currentLevel === i]).reverse().forEach(x => items.push(x));
+      qualityPick = x => {
+        if (+x < 0) {
+          autoQ = true;  // вернуть авто-качество
+          startAutoLadder();
+        } else {
+          autoQ = false;  // ручной выбор: автоматика выключается до конца серии
+          stopAuto();
+        }
+        hls.currentLevel = +x;
+        const qtxt = +x < 0 ? 'Авто' : (hls.levels[+x].height || '') + 'p';
+        if (+x >= 0 && hls.levels[+x].height) { st.q = hls.levels[+x].height; save(); }
+        else { st.q = 0; save(); }
+        qLabel(qtxt);
+        osd('Качество ' + qtxt.toLowerCase());
+      };
+    } else if (quals.length > 1) {
+      items.push([0, 'Авто (по скорости)', autoQ]);
+      quals.map(x => [x.q, `${x.q}p`, !autoQ && +x.q === +(cur.q || quals[0].q)]).forEach(x => items.push(x));
+      qualityPick = x => {
         if (+x === 0) {  // вернуться к авто: качество снова выбирается по скорости
           autoQ = true;
           st.q = 0;
           save();
           startAutoLadder();
           osd('Качество по скорости');
-          $('#b-quality', root).textContent = '⚙ Авто ▾';
+          qLabel('Авто');
           return;
         }
         autoQ = false;  // ручной выбор: автоматика ждёт до конца серии
         stopAuto();
         switchQuality(+x);
-      });
+      };
+    }
+    if (Upscaler.supported()) {
+      const cur = upLevel();
+      UP_LEVELS.forEach(([h, label]) => items.push(['up:' + h, label, cur === h]));
+      items.push(['up:off', '4K+ выкл', !cur]);
+    }
+    if (!items.length) return;
+    openMenu(e.currentTarget, items, x => {
+      if (String(x).startsWith('up:')) {
+        setUpscale(+String(x).slice(3) || 0);
+        return;
+      }
+      qualityPick?.(x);
+    });
   };
   const FITS = ['contain', 'cover', 'fill'], FIT_N = { contain: 'Вписать', cover: 'Заполнить', fill: 'Растянуть' };
   // 📌 Поверх всех окон (актуально для отдельного окна плеера)
@@ -697,15 +707,22 @@ function createPlayer(cur, list) {
     osd(pinned ? 'Поверх всех окон' : 'Обычный режим');
   };
   // Апскейлинг: холст на WebGL рисует кадр крупнее и с подчёркнутыми краями.
-  // Это не нейросеть: шейдер успевает за кадром и сам снижает разрешение на слабой видеокарте.
+  // Уровни выбираются в том же меню ⚙, что и качество источника, и запоминаются в настройках.
+  const UP_LEVELS = [[2160, '4K+ 2160p (4K)'], [1440, '4K+ 1440p (2K)'], [1080, '4K+ 1080p']];
+  const upLevel = () => (st.upscale === true ? 1440 : (+st.upscale || 0));
   let upGL = null;
-  const upBtn = $('#b-up', root);
-  const setUp = (on, quiet = false) => {
-    if (!on) {
+  function qLabel(text) {
+    const qb = $('#b-quality', root);
+    qb.hidden = false;
+    qb.dataset.q = text;
+    qb.textContent = '⚙ ' + text + (upLevel() ? ' · 4K+' : '') + ' ▾';
+  }
+  function setUpscale(level, quiet = false) {
+    if (!level) {
       upGL?.disable();
-      st.upscale = false;
+      st.upscale = 'off';
       save();
-      upBtn?.classList.remove('on');
+      qLabel($('#b-quality', root).dataset.q || 'Качество');
       if (!quiet) osd('Апскейлинг выключен');
       return;
     }
@@ -713,26 +730,32 @@ function createPlayer(cur, list) {
     if (!upGL) {
       upGL = new Upscaler(v, root, {
         fit: () => st.fit,
+        target: () => upLevel(),
         onSlow: msg => osd(msg),
         onFatal: msg => {
           toast(msg, 'err');
-          st.upscale = false;
+          st.upscale = 'off';
           save();
-          upBtn?.classList.remove('on');
+          qLabel($('#b-quality', root).dataset.q || 'Качество');
         },
       });
-      window.__animirUpscale = upGL;  // отладка и замеры: window.__animirUpscale.frameMs
+      window.__animirUpscale = upGL;  // отладка и замеры: window.__animirUpscale.gpuMs
     }
-    if (!upGL.enable()) { toast('Апскейлинг не запустился', 'err'); return; }
-    st.upscale = true;
+    st.upscale = String(level);
     save();
-    upBtn?.classList.add('on');
-    if (!quiet) osd('Апскейлинг 4K включён');
-  };
-  upBtn?.addEventListener('click', () => setUp(!st.upscale));
-  if (st.upscale) {  // настройка включена - поднимаем после первого кадра
-    if (v.readyState >= 2) setUp(true, true);
-    else v.addEventListener('loadeddata', () => setUp(true, true), { once: true });
+    if (!upGL.enabled) {
+      if (!upGL.enable()) { toast('Апскейлинг не запустился', 'err'); return; }
+    } else {
+      upGL.override = 0;
+      upGL._resize();
+    }
+    qLabel($('#b-quality', root).dataset.q || 'Качество');
+    if (!quiet) osd('Апскейлинг ' + level + 'p');
+  }
+  if (upLevel()) {  // настройка включена - поднимаем после первого кадра
+    const on = () => setUpscale(upLevel(), true);
+    if (v.readyState >= 2) on();
+    else v.addEventListener('loadeddata', on, { once: true });
   }
   $('#b-night', root).onclick = () => {
     st.night = !st.night;
