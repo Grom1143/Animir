@@ -299,6 +299,7 @@ function createPlayer(cur, list) {
         <div style="flex:1;min-width:0"><div class="t">${esc(link ? title(link) : cur.dir ? folderTitle(cur.dir) : 'Видео по ссылке')}</div><div class="m">${cur.ep != null ? 'Серия ' + cur.ep + ' · ' : ''}${cur.dub ? esc(cur.dub) + ' · ' : ''}${esc(cur.name)}</div></div>
         <button class="pl-btn txt" id="b-speed" title="Скорость">⏱ ${st.speed === 1 ? 'Обычная' : st.speed + '×'} ▾</button>
         <button class="pl-btn txt" id="b-quality" title="Качество" hidden>⚙ Авто ▾</button>
+        ${Upscaler.supported() ? '<button class="pl-btn txt" id="b-up" title="Апскейлинг 4K: чётче и мягче (шейдерный, без нейросетей)">4K+</button>' : ''}
         <button class="pl-btn txt" id="b-pin" title="Поверх всех окон">📌</button>
         <button class="pl-btn txt ${S.settings.night ? 'on' : ''}" id="b-night" title="Ночной кинозал">🌙</button>
         ${/^o:/.test(cur.key) ? '<button class="pl-btn txt" id="b-dl" title="Скачать эту серию">⬇</button>' : ''}
@@ -695,6 +696,44 @@ function createPlayer(cur, list) {
     fetch('/api/pin-window', { method: 'POST', body: JSON.stringify({ on: pinned }) });
     osd(pinned ? 'Поверх всех окон' : 'Обычный режим');
   };
+  // Апскейлинг: холст на WebGL рисует кадр крупнее и с подчёркнутыми краями.
+  // Это не нейросеть: шейдер успевает за кадром и сам снижает разрешение на слабой видеокарте.
+  let upGL = null;
+  const upBtn = $('#b-up', root);
+  const setUp = (on, quiet = false) => {
+    if (!on) {
+      upGL?.disable();
+      st.upscale = false;
+      save();
+      upBtn?.classList.remove('on');
+      if (!quiet) osd('Апскейлинг выключен');
+      return;
+    }
+    if (!Upscaler.supported()) { toast('Видеокарта не поддерживает WebGL', 'err'); return; }
+    if (!upGL) {
+      upGL = new Upscaler(v, root, {
+        fit: () => st.fit,
+        onSlow: msg => osd(msg),
+        onFatal: msg => {
+          toast(msg, 'err');
+          st.upscale = false;
+          save();
+          upBtn?.classList.remove('on');
+        },
+      });
+      window.__animirUpscale = upGL;  // отладка и замеры: window.__animirUpscale.frameMs
+    }
+    if (!upGL.enable()) { toast('Апскейлинг не запустился', 'err'); return; }
+    st.upscale = true;
+    save();
+    upBtn?.classList.add('on');
+    if (!quiet) osd('Апскейлинг 4K включён');
+  };
+  upBtn?.addEventListener('click', () => setUp(!st.upscale));
+  if (st.upscale) {  // настройка включена - поднимаем после первого кадра
+    if (v.readyState >= 2) setUp(true, true);
+    else v.addEventListener('loadeddata', () => setUp(true, true), { once: true });
+  }
   $('#b-night', root).onclick = () => {
     st.night = !st.night;
     applyNight();
@@ -759,6 +798,7 @@ function createPlayer(cur, list) {
       removeEventListener('mouseup', up);
       removeEventListener('mouseup', onUp);
       clearTimeout(holdT);
+      upGL?.destroy();
       hls?.destroy();
       v.pause();
       v.removeAttribute('src');

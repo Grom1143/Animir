@@ -340,6 +340,32 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; width: 100%
 .player-page video::cue { background: rgba(0,0,0,.55); font-size: 28px; }
 .pl-ui { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; transition: opacity .25s; color: #fff; }
 .player-page.idle .pl-ui { opacity: 0; }
+/* апскейлинг: холст рисует улучшенный кадр, само видео под ним не видно */
+.player-page canvas.pl-up {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #000;
+  pointer-events: none;
+}
+.player-page video.upscaled { opacity: 0; }
+/* свои субтитры поверх холста: нативные браузер рисует внутри видео, а его мы скрываем */
+.pl-subs {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 78px;
+  text-align: center;
+  color: #fff;
+  font-size: 28px;
+  line-height: 1.35;
+  font-weight: 600;
+  white-space: pre-line;
+  pointer-events: none;
+  text-shadow: 0 2px 6px #000, 0 0 3px #000;
+}
 .player-page.idle { cursor: none; }
 .pl-top { display: flex; align-items: center; gap: 14px; padding: 18px 22px; background: linear-gradient(rgba(0,0,0,.75), transparent); }
 .pl-top .t { font-size: 18px; font-weight: 700; }
